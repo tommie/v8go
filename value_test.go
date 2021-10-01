@@ -81,6 +81,7 @@ func TestValueString(t *testing.T) {
 	}{
 		{"Number", `13 * 2`, "26"},
 		{"String", `"string"`, "string"},
+		{"String with null char", `"before\x00after"`, "before\x00after"},
 		{"Object", `let obj = {}; obj`, "[object Object]"},
 		{"Function", `let fn = function(){}; fn`, "function(){}"},
 	}
