@@ -57,6 +57,20 @@ typedef m_value* ValuePtr;
 typedef m_template* TemplatePtr;
 typedef m_unboundScript* UnboundScriptPtr;
 
+typedef enum {
+  SYMBOL_ASYNC_ITERATOR = 1,
+  SYMBOL_HAS_INSTANCE,
+  SYMBOL_IS_CONCAT_SPREADABLE,
+  SYMBOL_ITERATOR,
+  SYMBOL_MATCH,
+  SYMBOL_REPLACE,
+  SYMBOL_SEARCH,
+  SYMBOL_SPLIT,
+  SYMBOL_TO_PRIMITIVE,
+  SYMBOL_TO_STRING_TAG,
+  SYMBOL_UNSCOPABLES,
+} SymbolIndex;
+
 typedef struct {
   const char* msg;
   const char* location;
@@ -184,10 +198,18 @@ extern void TemplateSetValue(TemplatePtr ptr,
                              const char* name,
                              ValuePtr val_ptr,
                              int attributes);
+extern int TemplateSetAnyValue(TemplatePtr ptr,
+                               ValuePtr key,
+                               ValuePtr val_ptr,
+                               int attributes);
 extern void TemplateSetTemplate(TemplatePtr ptr,
                                 const char* name,
                                 TemplatePtr obj_ptr,
                                 int attributes);
+extern int TemplateSetAnyTemplate(TemplatePtr ptr,
+                                  ValuePtr key,
+                                  TemplatePtr obj_ptr,
+                                  int attributes);
 
 extern TemplatePtr NewObjectTemplate(IsolatePtr iso_ptr);
 extern RtnValue ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx_ptr);
@@ -280,16 +302,23 @@ int ValueIsWasmModuleObject(ValuePtr ptr);
 int ValueIsModuleNamespaceObject(ValuePtr ptr);
 
 extern void ObjectSet(ValuePtr ptr, const char* key, ValuePtr val_ptr);
+extern void ObjectSetAnyKey(ValuePtr ptr, ValuePtr key, ValuePtr val_ptr);
 extern void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr);
 extern int ObjectSetInternalField(ValuePtr ptr, int idx, ValuePtr val_ptr);
 extern int ObjectInternalFieldCount(ValuePtr ptr);
 extern RtnValue ObjectGet(ValuePtr ptr, const char* key);
+extern RtnValue ObjectGetAnyKey(ValuePtr ptr, ValuePtr key);
 extern RtnValue ObjectGetIdx(ValuePtr ptr, uint32_t idx);
 extern ValuePtr ObjectGetInternalField(ValuePtr ptr, int idx);
 int ObjectHas(ValuePtr ptr, const char* key);
+int ObjectHasAnyKey(ValuePtr ptr, ValuePtr key);
 int ObjectHasIdx(ValuePtr ptr, uint32_t idx);
 int ObjectDelete(ValuePtr ptr, const char* key);
+int ObjectDeleteAnyKey(ValuePtr ptr, ValuePtr key);
 int ObjectDeleteIdx(ValuePtr ptr, uint32_t idx);
+
+ValuePtr BuiltinSymbol(IsolatePtr iso_ptr, SymbolIndex idx);
+const char* SymbolDescription(ValuePtr ptr);
 
 extern RtnValue NewPromiseResolver(ContextPtr ctx_ptr);
 extern ValuePtr PromiseResolverGetPromise(ValuePtr ptr);
