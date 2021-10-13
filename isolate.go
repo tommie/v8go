@@ -23,7 +23,7 @@ type Isolate struct {
 
 	cbMutex sync.RWMutex
 	cbSeq   int
-	cbs     map[int]FunctionCallback
+	cbs     map[int]FunctionCallbackWithError
 
 	null      *Value
 	undefined *Value
@@ -55,7 +55,7 @@ func NewIsolate() *Isolate {
 	initializeIfNecessary()
 	iso := &Isolate{
 		ptr: C.NewIsolate(),
-		cbs: make(map[int]FunctionCallback),
+		cbs: make(map[int]FunctionCallbackWithError),
 	}
 	iso.null = newValueNull(iso)
 	iso.undefined = newValueUndefined(iso)
@@ -169,7 +169,7 @@ func (i *Isolate) apply(opts *contextOptions) {
 	opts.iso = i
 }
 
-func (i *Isolate) registerCallback(cb FunctionCallback) int {
+func (i *Isolate) registerCallback(cb FunctionCallbackWithError) int {
 	i.cbMutex.Lock()
 	i.cbSeq++
 	ref := i.cbSeq
@@ -178,7 +178,7 @@ func (i *Isolate) registerCallback(cb FunctionCallback) int {
 	return ref
 }
 
-func (i *Isolate) getCallback(ref int) FunctionCallback {
+func (i *Isolate) getCallback(ref int) FunctionCallbackWithError {
 	i.cbMutex.RLock()
 	defer i.cbMutex.RUnlock()
 	return i.cbs[ref]
