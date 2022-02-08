@@ -37,6 +37,11 @@ struct m_value {
   Persistent<Value, CopyablePersistentTraits<Value>> ptr;
 };
 
+struct m_stack_trace {
+  Isolate* iso;
+  Persistent<StackTrace> ptr;
+};
+
 struct m_template {
   Isolate* iso;
   Persistent<Template> ptr;
@@ -45,63 +50,6 @@ struct m_template {
 struct m_unboundScript {
   Persistent<UnboundScript> ptr;
 };
-
-const char* CopyString(std::string str) {
-  int len = str.length();
-  char* mem = (char*)malloc(len + 1);
-  memcpy(mem, str.data(), len);
-  mem[len] = 0;
-  return mem;
-}
-
-const char* CopyString(String::Utf8Value& value) {
-  if (value.length() == 0) {
-    return nullptr;
-  }
-  return CopyString(std::string(*value, value.length()));
-}
-
-static RtnError ExceptionError(TryCatch& try_catch,
-                               Isolate* iso,
-                               Local<Context> ctx) {
-  HandleScope handle_scope(iso);
-
-  RtnError rtn = {nullptr, nullptr, nullptr};
-
-  if (try_catch.HasTerminated()) {
-    rtn.msg =
-        CopyString("ExecutionTerminated: script execution has been terminated");
-    return rtn;
-  }
-
-  String::Utf8Value exception(iso, try_catch.Exception());
-  rtn.msg = CopyString(exception);
-
-  Local<Message> msg = try_catch.Message();
-  if (!msg.IsEmpty()) {
-    String::Utf8Value origin(iso, msg->GetScriptOrigin().ResourceName());
-    std::ostringstream sb;
-    sb << *origin;
-    Maybe<int> line = try_catch.Message()->GetLineNumber(ctx);
-    if (line.IsJust()) {
-      sb << ":" << line.ToChecked();
-    }
-    Maybe<int> start = try_catch.Message()->GetStartColumn(ctx);
-    if (start.IsJust()) {
-      sb << ":"
-         << start.ToChecked() + 1;  // + 1 to match output from stack trace
-    }
-    rtn.location = CopyString(sb.str());
-  }
-
-  Local<Value> mstack;
-  if (try_catch.StackTrace(ctx).ToLocal(&mstack)) {
-    String::Utf8Value stack(iso, mstack);
-    rtn.stack = CopyString(stack);
-  }
-
-  return rtn;
-}
 
 m_value* tracked_value(m_ctx* ctx, m_value* val) {
   // (rogchap) we track values against a context so that when the context is
@@ -128,6 +76,69 @@ m_unboundScript* tracked_unbound_script(m_ctx* ctx, m_unboundScript* us) {
   ctx->unboundScripts.push_back(us);
 
   return us;
+}
+
+const char* CopyString(std::string str) {
+  int len = str.length();
+  char* mem = (char*)malloc(len + 1);
+  memcpy(mem, str.data(), len);
+  mem[len] = 0;
+  return mem;
+}
+
+const char* CopyString(const String::Utf8Value& value) {
+  if (value.length() == 0) {
+    return nullptr;
+  }
+  return CopyString(std::string(*value, value.length()));
+}
+
+static RtnError ExceptionError(TryCatch& try_catch,
+                               ContextPtr ctx) {
+  HandleScope handle_scope(ctx->iso);
+  Local<Context> local_ctx = ctx->ptr.Get(ctx->iso);
+
+  RtnError rtn = {};
+
+  if (try_catch.HasTerminated()) {
+    rtn.msg =
+        CopyString("ExecutionTerminated: script execution has been terminated");
+    return rtn;
+  }
+
+  m_value* exc_val = new m_value;
+  exc_val->iso = ctx->iso;
+  exc_val->ctx = ctx;
+  exc_val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(ctx->iso, try_catch.Exception());
+  rtn.exception = tracked_value(ctx, exc_val);
+
+  String::Utf8Value exception(ctx->iso, try_catch.Exception());
+  rtn.msg = CopyString(exception);
+
+  Local<Message> msg = try_catch.Message();
+  if (!msg.IsEmpty()) {
+    String::Utf8Value origin(ctx->iso, msg->GetScriptOrigin().ResourceName());
+    std::ostringstream sb;
+    sb << *origin;
+    Maybe<int> line = try_catch.Message()->GetLineNumber(local_ctx);
+    if (line.IsJust()) {
+      sb << ":" << line.ToChecked();
+    }
+    Maybe<int> start = try_catch.Message()->GetStartColumn(local_ctx);
+    if (start.IsJust()) {
+      sb << ":"
+         << start.ToChecked() + 1;  // + 1 to match output from stack trace
+    }
+    rtn.location = CopyString(sb.str());
+  }
+
+  Local<Value> mstack;
+  if (try_catch.StackTrace(local_ctx).ToLocal(&mstack)) {
+    String::Utf8Value stack(ctx->iso, mstack);
+    rtn.stack = CopyString(stack);
+  }
+
+  return rtn;
 }
 
 extern "C" {
@@ -250,7 +261,7 @@ RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso,
   Local<UnboundScript> unbound_script;
   if (!ScriptCompiler::CompileUnboundScript(iso, &source, option)
            .ToLocal(&unbound_script)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    rtn.error = ExceptionError(try_catch, ctx);
     return rtn;
   };
 
@@ -448,7 +459,7 @@ RtnValue ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx) {
   Local<ObjectTemplate> obj_tmpl = tmpl.As<ObjectTemplate>();
   Local<Object> obj;
   if (!obj_tmpl->NewInstance(local_ctx).ToLocal(&obj)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    rtn.error = ExceptionError(try_catch, ctx);
     return rtn;
   }
 
@@ -545,7 +556,7 @@ RtnValue FunctionTemplateGetFunction(TemplatePtr ptr, ContextPtr ctx) {
   RtnValue rtn = {};
   Local<Function> fn;
   if (!fn_tmpl->GetFunction(local_ctx).ToLocal(&fn)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    rtn.error = ExceptionError(try_catch, ctx);
     return rtn;
   }
 
@@ -626,19 +637,19 @@ RtnValue RunScript(ContextPtr ctx, const char* source, const char* origin) {
       String::NewFromUtf8(iso, origin, NewStringType::kNormal);
   Local<String> src, ogn;
   if (!maybeSrc.ToLocal(&src) || !maybeOgn.ToLocal(&ogn)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    rtn.error = ExceptionError(try_catch, ctx);
     return rtn;
   }
 
   ScriptOrigin script_origin(ogn);
   Local<Script> script;
   if (!Script::Compile(local_ctx, src, &script_origin).ToLocal(&script)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    rtn.error = ExceptionError(try_catch, ctx);
     return rtn;
   }
   Local<Value> result;
   if (!script->Run(local_ctx).ToLocal(&result)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    rtn.error = ExceptionError(try_catch, ctx);
     return rtn;
   }
   m_value* val = new m_value;
@@ -687,7 +698,7 @@ RtnValue UnboundScriptRun(ContextPtr ctx, UnboundScriptPtr us_ptr) {
   Local<Script> script = unbound_script->BindToCurrentContext();
   Local<Value> result;
   if (!script->Run(local_ctx).ToLocal(&result)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    rtn.error = ExceptionError(try_catch, ctx);
     return rtn;
   }
   m_value* val = new m_value;
@@ -705,12 +716,12 @@ RtnValue JSONParse(ContextPtr ctx, const char* str) {
 
   Local<String> v8Str;
   if (!String::NewFromUtf8(iso, str, NewStringType::kNormal).ToLocal(&v8Str)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    rtn.error = ExceptionError(try_catch, ctx);
   }
 
   Local<Value> result;
   if (!JSON::Parse(local_ctx, v8Str).ToLocal(&result)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    rtn.error = ExceptionError(try_catch, ctx);
     return rtn;
   }
   m_value* val = new m_value;
@@ -815,7 +826,7 @@ RtnValue NewValueString(IsolatePtr iso, const char* v, int v_length) {
   Local<String> str;
   if (!String::NewFromUtf8(iso, v, NewStringType::kNormal, v_length)
            .ToLocal(&str)) {
-    rtn.error = ExceptionError(try_catch, iso, ctx->ptr.Get(iso));
+    rtn.error = ExceptionError(try_catch, ctx);
     return rtn;
   }
   m_value* val = new m_value;
@@ -897,7 +908,7 @@ RtnValue NewValueBigIntFromWords(IsolatePtr iso,
   Local<BigInt> bigint;
   if (!BigInt::NewFromWords(local_ctx, sign_bit, word_count, words)
            .ToLocal(&bigint)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    rtn.error = ExceptionError(try_catch, ctx);
     return rtn;
   }
   m_value* val = new m_value;
@@ -945,7 +956,7 @@ RtnString ValueToDetailString(ValuePtr ptr) {
   RtnString rtn = {0};
   Local<String> str;
   if (!value->ToDetailString(local_ctx).ToLocal(&str)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    rtn.error = ExceptionError(try_catch, ctx);
     return rtn;
   }
   String::Utf8Value ds(iso, str);
@@ -994,7 +1005,7 @@ RtnValue ValueToObject(ValuePtr ptr) {
   RtnValue rtn = {};
   Local<Object> obj;
   if (!value->ToObject(local_ctx).ToLocal(&obj)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    rtn.error = ExceptionError(try_catch, ctx);
     return rtn;
   }
   m_value* new_val = new m_value;
@@ -1284,6 +1295,36 @@ int ValueIsModuleNamespaceObject(ValuePtr ptr) {
   return value->IsModuleNamespaceObject();
 }
 
+static StackTracePtr WrapStackTrace(Local<StackTrace> trace, Isolate* iso) {
+  Locker locker(iso);
+  Isolate::Scope isolate_scope(iso);
+  HandleScope handle_scope(iso);
+
+  m_stack_trace* ptr = new m_stack_trace;
+  ptr->iso = iso;
+  ptr->ptr.Reset(iso, trace);
+  return ptr;
+}
+
+RtnMessage WrapExceptionMessage(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+  Local<Message> message = Exception::CreateMessage(iso, value);
+  RtnMessage rtn;
+  rtn.text = CopyString(String::Utf8Value(iso, message->Get()));
+  Local<String> source;
+  if (message->GetSource(local_ctx).ToLocal(&source)) {
+    rtn.source = CopyString(String::Utf8Value(iso, source));
+  }
+  rtn.lineNumber = message->GetLineNumber(local_ctx).FromMaybe(-1);
+  rtn.posStart = message->GetStartPosition();
+  rtn.posEnd = message->GetEndPosition();
+  rtn.colStart = message->GetStartColumn();
+  rtn.colEnd = message->GetEndColumn();
+  rtn.wasmFuncIndex = message->GetWasmFunctionIndex();
+  rtn.stackTrace = WrapStackTrace(message->GetStackTrace(), iso);
+  return rtn;
+}
+
 /********** Object **********/
 
 #define LOCAL_OBJECT(ptr) \
@@ -1327,12 +1368,12 @@ RtnValue ObjectGet(ValuePtr ptr, const char* key) {
   Local<String> key_val;
   if (!String::NewFromUtf8(iso, key, NewStringType::kNormal)
            .ToLocal(&key_val)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    rtn.error = ExceptionError(try_catch, ctx);
     return rtn;
   }
   Local<Value> result;
   if (!obj->Get(local_ctx, key_val).ToLocal(&result)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    rtn.error = ExceptionError(try_catch, ctx);
     return rtn;
   }
   m_value* new_val = new m_value;
@@ -1369,7 +1410,7 @@ RtnValue ObjectGetIdx(ValuePtr ptr, uint32_t idx) {
 
   Local<Value> result;
   if (!obj->Get(local_ctx, idx).ToLocal(&result)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    rtn.error = ExceptionError(try_catch, ctx);
     return rtn;
   }
   m_value* new_val = new m_value;
@@ -1413,7 +1454,7 @@ RtnValue NewPromiseResolver(ContextPtr ctx) {
   RtnValue rtn = {};
   Local<Promise::Resolver> resolver;
   if (!Promise::Resolver::New(local_ctx).ToLocal(&resolver)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    rtn.error = ExceptionError(try_catch, ctx);
     return rtn;
   }
   m_value* val = new m_value;
@@ -1462,12 +1503,12 @@ RtnValue PromiseThen(ValuePtr ptr, int callback_ref) {
   Local<Function> func;
   if (!Function::New(local_ctx, FunctionTemplateCallback, cbData)
            .ToLocal(&func)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    rtn.error = ExceptionError(try_catch, ctx);
     return rtn;
   }
   Local<Promise> result;
   if (!promise->Then(local_ctx, func).ToLocal(&result)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    rtn.error = ExceptionError(try_catch, ctx);
     return rtn;
   }
   m_value* result_val = new m_value;
@@ -1487,20 +1528,20 @@ RtnValue PromiseThen2(ValuePtr ptr, int on_fulfilled_ref, int on_rejected_ref) {
   Local<Function> onFulfilledFunc;
   if (!Function::New(local_ctx, FunctionTemplateCallback, onFulfilledData)
            .ToLocal(&onFulfilledFunc)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    rtn.error = ExceptionError(try_catch, ctx);
     return rtn;
   }
   Local<Integer> onRejectedData = Integer::New(iso, on_rejected_ref);
   Local<Function> onRejectedFunc;
   if (!Function::New(local_ctx, FunctionTemplateCallback, onRejectedData)
            .ToLocal(&onRejectedFunc)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    rtn.error = ExceptionError(try_catch, ctx);
     return rtn;
   }
   Local<Promise> result;
   if (!promise->Then(local_ctx, onFulfilledFunc, onRejectedFunc)
            .ToLocal(&result)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    rtn.error = ExceptionError(try_catch, ctx);
     return rtn;
   }
   m_value* result_val = new m_value;
@@ -1520,12 +1561,12 @@ RtnValue PromiseCatch(ValuePtr ptr, int callback_ref) {
   Local<Function> func;
   if (!Function::New(local_ctx, FunctionTemplateCallback, cbData)
            .ToLocal(&func)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    rtn.error = ExceptionError(try_catch, ctx);
     return rtn;
   }
   Local<Promise> result;
   if (!promise->Catch(local_ctx, func).ToLocal(&result)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    rtn.error = ExceptionError(try_catch, ctx);
     return rtn;
   }
   m_value* result_val = new m_value;
@@ -1572,7 +1613,7 @@ RtnValue FunctionCall(ValuePtr ptr, ValuePtr recv, int argc, ValuePtr args[]) {
 
   Local<Value> result;
   if (!fn->Call(local_ctx, local_recv, argc, argv).ToLocal(&result)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    rtn.error = ExceptionError(try_catch, ctx);
     return rtn;
   }
   m_value* rtnval = new m_value;
@@ -1591,7 +1632,7 @@ RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]) {
   buildCallArguments(iso, argv, argc, args);
   Local<Object> result;
   if (!fn->NewInstance(local_ctx, argc, argv).ToLocal(&result)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    rtn.error = ExceptionError(try_catch, ctx);
     return rtn;
   }
   m_value* rtnval = new m_value;
@@ -1611,6 +1652,42 @@ ValuePtr FunctionSourceMapUrl(ValuePtr ptr) {
   rtnval->ctx = ctx;
   rtnval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
   return tracked_value(ctx, rtnval);
+}
+
+/********** StackTrace **********/
+
+#define LOCAL_STACK_TRACE(ptr)       \
+  Isolate* iso = ptr->iso;           \
+  Locker locker(iso);                \
+  Isolate::Scope isolate_scope(iso); \
+  HandleScope handle_scope(iso);     \
+  Local<StackTrace> trace = ptr->ptr.Get(iso);
+
+void StackTraceFreeWrapper(StackTracePtr ptr) {
+  ptr->ptr.Empty();  // Just does `val_ = 0;` without calling V8::DisposeGlobal
+  delete ptr;
+}
+
+int StackTraceNumFrames(StackTracePtr ptr) {
+  LOCAL_STACK_TRACE(ptr)
+  return trace->GetFrameCount();
+}
+
+RtnStackFrame StackTraceFrame(StackTracePtr ptr, uint32_t idx) {
+  LOCAL_STACK_TRACE(ptr)
+  Local<StackFrame> frame = trace->GetFrame(iso, idx);
+
+  RtnStackFrame rtn;
+  rtn.scriptName = CopyString(String::Utf8Value(iso, frame->GetScriptName()));
+  rtn.scriptSource = CopyString(String::Utf8Value(iso, frame->GetScriptSource()));
+  rtn.functionName = CopyString(String::Utf8Value(iso, frame->GetFunctionName()));
+  rtn.lineNumber = frame->GetLineNumber();
+  rtn.columnNumber = frame->GetColumn();
+  rtn.isEval = frame->IsEval();
+  rtn.isConstructor = frame->IsConstructor();
+  rtn.isWASM = frame->IsWasm();
+  rtn.isUserJavaScript = frame->IsUserJavaScript();
+  return rtn;
 }
 
 /********** v8::V8 **********/

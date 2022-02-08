@@ -110,7 +110,7 @@ func (i *Isolate) CompileUnboundScript(source, origin string, opts CompileOption
 
 	rtn := C.IsolateCompileUnboundScript(i.ptr, cSource, cOrigin, cOptions)
 	if rtn.ptr == nil {
-		return nil, newJSError(rtn.error)
+		return nil, newJSError(nil, rtn.error)
 	}
 	if opts.CachedData != nil {
 		opts.CachedData.Rejected = int(rtn.cachedDataRejected) == 1

@@ -113,6 +113,10 @@ func TestFunctionCallError(t *testing.T) {
 		t.Errorf("expected an error, got none")
 	}
 	got := *(err.(*v8.JSError))
+	if want := "error"; got.Value.String() != want {
+		t.Errorf("Value want %+v, got: %+v", want, got)
+	}
+	got.Value = nil
 	want := v8.JSError{Message: "error", Location: "script.js:1:21"}
 	if got != want {
 		t.Errorf("want %+v, got: %+v", want, got)
@@ -197,6 +201,10 @@ func TestFunctionNewInstanceError(t *testing.T) {
 		t.Errorf("expected an error, got none")
 	}
 	got := *(err.(*v8.JSError))
+	if want := "error"; got.Value.String() != want {
+		t.Errorf("Value want %+v, got: %+v", want, got)
+	}
+	got.Value = nil
 	want := v8.JSError{Message: "error", Location: "script.js:1:21"}
 	if got != want {
 		t.Errorf("want %+v, got: %+v", want, got)

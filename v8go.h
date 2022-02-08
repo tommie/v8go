@@ -35,6 +35,7 @@ typedef struct v8ScriptCompilerCachedData v8ScriptCompilerCachedData;
 typedef const v8ScriptCompilerCachedData* ScriptCompilerCachedDataPtr;
 #endif
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -45,15 +46,40 @@ extern const int ScriptCompilerEagerCompile;
 
 typedef struct m_ctx m_ctx;
 typedef struct m_value m_value;
+typedef struct m_stack_trace m_stack_trace;
 typedef struct m_template m_template;
 typedef struct m_unboundScript m_unboundScript;
 
 typedef m_ctx* ContextPtr;
 typedef m_value* ValuePtr;
+typedef m_stack_trace* StackTracePtr;
 typedef m_template* TemplatePtr;
 typedef m_unboundScript* UnboundScriptPtr;
 
 typedef struct {
+  const char* text;
+  const char* source;
+  int lineNumber;
+  int posStart, posEnd;
+  int colStart, colEnd;
+  int wasmFuncIndex;
+  StackTracePtr stackTrace;
+} RtnMessage;
+
+typedef struct {
+  const char* scriptName;
+  const char* scriptSource;
+  const char* functionName;
+  int lineNumber;
+  int columnNumber;
+  bool isEval;
+  bool isConstructor;
+  bool isWASM;
+  bool isUserJavaScript;
+} RtnStackFrame;
+
+typedef struct {
+  ValuePtr exception;
   const char* msg;
   const char* location;
   const char* stack;
@@ -297,6 +323,11 @@ extern RtnValue FunctionCall(ValuePtr ptr,
                              ValuePtr argv[]);
 RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]);
 ValuePtr FunctionSourceMapUrl(ValuePtr ptr);
+
+extern RtnMessage WrapExceptionMessage(ValuePtr ptr);
+extern void StackTraceFreeWrapper(StackTracePtr ptr);
+extern int StackTraceNumFrames(StackTracePtr ptr);
+extern RtnStackFrame StackTraceFrame(StackTracePtr ptr, uint32_t idx);
 
 const char* Version();
 extern void SetFlags(const char* flags);

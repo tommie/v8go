@@ -17,16 +17,21 @@ import (
 // JavaScript exceptions handled in the context. When used with the fmt
 // verb `%+v`, will output the JavaScript stack trace, if available.
 type JSError struct {
+	*Value
+
 	Message    string
 	Location   string
 	StackTrace string
 }
 
-func newJSError(rtnErr C.RtnError) error {
+func newJSError(ctx *Context, rtnErr C.RtnError) error {
 	err := &JSError{
 		Message:    C.GoString(rtnErr.msg),
 		Location:   C.GoString(rtnErr.location),
 		StackTrace: C.GoString(rtnErr.stack),
+	}
+	if ctx != nil {
+		err.Value = &Value{rtnErr.exception, ctx}
 	}
 	C.free(unsafe.Pointer(rtnErr.msg))
 	C.free(unsafe.Pointer(rtnErr.location))
@@ -36,6 +41,13 @@ func newJSError(rtnErr C.RtnError) error {
 
 func (e *JSError) Error() string {
 	return e.Message
+}
+
+func (e *JSError) ExceptionMessage() *Message {
+	if e.Value == nil {
+		return nil
+	}
+	return newMessageFromC(e.Value.ctx.iso, C.WrapExceptionMessage(e.Value.ptr))
 }
 
 // Format implements the fmt.Formatter interface to provide a custom formatter

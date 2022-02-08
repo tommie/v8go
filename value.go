@@ -199,7 +199,7 @@ func (v *Value) Boolean() bool {
 func (v *Value) DetailString() string {
 	rtn := C.ValueToDetailString(v.ptr)
 	if rtn.data == nil {
-		err := newJSError(rtn.error)
+		err := newJSError(v.ctx, rtn.error)
 		panic(err) // TODO: Return a fallback value
 	}
 	defer C.free(unsafe.Pointer(rtn.data))

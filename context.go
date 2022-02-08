@@ -164,14 +164,14 @@ func goContext(ref int) C.ContextPtr {
 
 func valueResult(ctx *Context, rtn C.RtnValue) (*Value, error) {
 	if rtn.value == nil {
-		return nil, newJSError(rtn.error)
+		return nil, newJSError(ctx, rtn.error)
 	}
 	return &Value{rtn.value, ctx}, nil
 }
 
 func objectResult(ctx *Context, rtn C.RtnValue) (*Object, error) {
 	if rtn.value == nil {
-		return nil, newJSError(rtn.error)
+		return nil, newJSError(ctx, rtn.error)
 	}
 	return &Object{&Value{rtn.value, ctx}}, nil
 }
