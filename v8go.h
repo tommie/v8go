@@ -58,6 +58,7 @@ typedef m_unboundScript* UnboundScriptPtr;
 
 typedef struct {
   const char* text;
+  const char* scriptResourceName;
   const char* source;
   int lineNumber;
   int posStart, posEnd;
@@ -80,9 +81,7 @@ typedef struct {
 
 typedef struct {
   ValuePtr exception;
-  const char* msg;
-  const char* location;
-  const char* stack;
+  RtnMessage excMessage;
 } RtnError;
 
 typedef struct {
@@ -324,7 +323,6 @@ extern RtnValue FunctionCall(ValuePtr ptr,
 RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]);
 ValuePtr FunctionSourceMapUrl(ValuePtr ptr);
 
-extern RtnMessage WrapExceptionMessage(ValuePtr ptr);
 extern void StackTraceFreeWrapper(StackTracePtr ptr);
 extern int StackTraceNumFrames(StackTracePtr ptr);
 extern RtnStackFrame StackTraceFrame(StackTracePtr ptr, uint32_t idx);

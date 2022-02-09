@@ -116,7 +116,8 @@ func TestFunctionCallError(t *testing.T) {
 	if want := "error"; got.Value.String() != want {
 		t.Errorf("Value want %+v, got: %+v", want, got)
 	}
-	got.Value = nil
+	// Ignore complex fields.
+	got = v8.JSError{Message: got.Message, Location: got.Location, StackTrace: got.StackTrace}
 	want := v8.JSError{Message: "error", Location: "script.js:1:21"}
 	if got != want {
 		t.Errorf("want %+v, got: %+v", want, got)
@@ -204,7 +205,8 @@ func TestFunctionNewInstanceError(t *testing.T) {
 	if want := "error"; got.Value.String() != want {
 		t.Errorf("Value want %+v, got: %+v", want, got)
 	}
-	got.Value = nil
+	// Ignore complex fields.
+	got = v8.JSError{Message: got.Message, Location: got.Location, StackTrace: got.StackTrace}
 	want := v8.JSError{Message: "error", Location: "script.js:1:21"}
 	if got != want {
 		t.Errorf("want %+v, got: %+v", want, got)

@@ -6,6 +6,7 @@ package v8go_test
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 
 	v8 "rogchap.com/v8go"
@@ -89,6 +90,49 @@ func TestJSErrorOutput(t *testing.T) {
 	if e.StackTrace != expectedStack {
 		t.Errorf("unexpected error stack trace: %q", e.StackTrace)
 	}
+	emsg := e.ExceptionMessage()
+	if got, want := emsg.Text(), "Uncaught ReferenceError: c is not defined"; got != want {
+		t.Errorf("unexpected ExceptionMessage.Text: got %q, want %q", got, want)
+	}
+	if got, want := emsg.ScriptResourceName(), "math.js"; got != want {
+		t.Errorf("unexpected ExceptionMessage.ScriptResourceName: got %q, want %q", got, want)
+	}
+	if got, want := emsg.LineNumber(), 7; got != want {
+		t.Errorf("unexpected ExceptionMessage.LineNumber: got %v, want %v", got, want)
+	}
+	if got, want := asIntSlice(emsg.PositionRange()), []int{85, 86}; !reflect.DeepEqual(got, want) {
+		t.Errorf("unexpected ExceptionMessage.PositionRange: got %v, want %v", got, want)
+	}
+	if got, want := asIntSlice(emsg.ColumnRange()), []int{16, 17}; !reflect.DeepEqual(got, want) {
+		t.Errorf("unexpected ExceptionMessage.ColumnRange: got %v, want %v", got, want)
+	}
+	trace := emsg.StackTrace()
+	if got, want := trace.NumFrames(), 2; got != want {
+		t.Errorf("unexpected StackTrace.NumFrames: got %v, want %v", got, want)
+	}
+	if got, want := trace.Frame(0), (&v8.StackFrame{
+		ScriptName:       "math.js",
+		ScriptSource:     math,
+		FunctionName:     "addMore",
+		LineNumber:       7,
+		ColumnNumber:     17,
+		IsUserJavaScript: true,
+	}); *got != *want {
+		t.Errorf("unexpected StackTrace.Frame(0): got %+v, want %+v", got, want)
+	}
+	if got, want := trace.Frame(1), (&v8.StackFrame{
+		ScriptName:       "main.js",
+		ScriptSource:     main,
+		LineNumber:       3,
+		ColumnNumber:     10,
+		IsUserJavaScript: true,
+	}); *got != *want {
+		t.Errorf("unexpected StackTrace.Frame(1): got %+v, want %+v", got, want)
+	}
+}
+
+func asIntSlice(vs ...int) []int {
+	return vs
 }
 
 func TestJSErrorFormat_forSyntaxError(t *testing.T) {

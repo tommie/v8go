@@ -93,6 +93,37 @@ const char* CopyString(const String::Utf8Value& value) {
   return CopyString(std::string(*value, value.length()));
 }
 
+static StackTracePtr WrapStackTrace(Local<StackTrace> trace, Isolate* iso) {
+  Locker locker(iso);
+  Isolate::Scope isolate_scope(iso);
+  HandleScope handle_scope(iso);
+
+  m_stack_trace* ptr = new m_stack_trace;
+  ptr->iso = iso;
+  ptr->ptr.Reset(iso, trace);
+  return ptr;
+}
+
+static RtnMessage WrapExceptionMessage(Local<Message> message, Local<Context> local_ctx) {
+  Isolate *iso = local_ctx->GetIsolate();
+
+  RtnMessage rtn;
+  rtn.text = CopyString(String::Utf8Value(iso, message->Get()));
+  rtn.scriptResourceName = CopyString(String::Utf8Value(iso, message->GetScriptResourceName()));
+  Local<String> source;
+  if (message->GetSource(local_ctx).ToLocal(&source)) {
+    rtn.source = CopyString(String::Utf8Value(iso, source));
+  }
+  rtn.lineNumber = message->GetLineNumber(local_ctx).FromMaybe(-1);
+  rtn.posStart = message->GetStartPosition();
+  rtn.posEnd = message->GetEndPosition();
+  rtn.colStart = message->GetStartColumn();
+  rtn.colEnd = message->GetEndColumn();
+  rtn.wasmFuncIndex = message->GetWasmFunctionIndex();
+  rtn.stackTrace = WrapStackTrace(message->GetStackTrace(), iso);
+  return rtn;
+}
+
 static RtnError ExceptionError(TryCatch& try_catch,
                                ContextPtr ctx) {
   HandleScope handle_scope(ctx->iso);
@@ -101,41 +132,28 @@ static RtnError ExceptionError(TryCatch& try_catch,
   RtnError rtn = {};
 
   if (try_catch.HasTerminated()) {
-    rtn.msg =
-        CopyString("ExecutionTerminated: script execution has been terminated");
+    Local<Value> exception = Exception::Error(String::NewFromUtf8Literal(ctx->iso, "ExecutionTerminated: script execution has been terminated"));
+    m_value* exc_val = new m_value;
+    exc_val->iso = ctx->iso;
+    exc_val->ctx = ctx;
+    exc_val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(ctx->iso, exception);
+    rtn.exception = tracked_value(ctx, exc_val);
+    rtn.excMessage = WrapExceptionMessage(Exception::CreateMessage(ctx->iso, exception), local_ctx);
     return rtn;
   }
 
-  m_value* exc_val = new m_value;
-  exc_val->iso = ctx->iso;
-  exc_val->ctx = ctx;
-  exc_val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(ctx->iso, try_catch.Exception());
-  rtn.exception = tracked_value(ctx, exc_val);
-
-  String::Utf8Value exception(ctx->iso, try_catch.Exception());
-  rtn.msg = CopyString(exception);
+  Local<Value> exception = try_catch.Exception();
+  if (!exception.IsEmpty()) {
+    m_value* exc_val = new m_value;
+    exc_val->iso = ctx->iso;
+    exc_val->ctx = ctx;
+    exc_val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(ctx->iso, exception);
+    rtn.exception = tracked_value(ctx, exc_val);
+  }
 
   Local<Message> msg = try_catch.Message();
   if (!msg.IsEmpty()) {
-    String::Utf8Value origin(ctx->iso, msg->GetScriptOrigin().ResourceName());
-    std::ostringstream sb;
-    sb << *origin;
-    Maybe<int> line = try_catch.Message()->GetLineNumber(local_ctx);
-    if (line.IsJust()) {
-      sb << ":" << line.ToChecked();
-    }
-    Maybe<int> start = try_catch.Message()->GetStartColumn(local_ctx);
-    if (start.IsJust()) {
-      sb << ":"
-         << start.ToChecked() + 1;  // + 1 to match output from stack trace
-    }
-    rtn.location = CopyString(sb.str());
-  }
-
-  Local<Value> mstack;
-  if (try_catch.StackTrace(local_ctx).ToLocal(&mstack)) {
-    String::Utf8Value stack(ctx->iso, mstack);
-    rtn.stack = CopyString(stack);
+    rtn.excMessage = WrapExceptionMessage(msg, local_ctx);
   }
 
   return rtn;
@@ -1293,36 +1311,6 @@ int ValueIsWasmModuleObject(ValuePtr ptr) {
 int ValueIsModuleNamespaceObject(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
   return value->IsModuleNamespaceObject();
-}
-
-static StackTracePtr WrapStackTrace(Local<StackTrace> trace, Isolate* iso) {
-  Locker locker(iso);
-  Isolate::Scope isolate_scope(iso);
-  HandleScope handle_scope(iso);
-
-  m_stack_trace* ptr = new m_stack_trace;
-  ptr->iso = iso;
-  ptr->ptr.Reset(iso, trace);
-  return ptr;
-}
-
-RtnMessage WrapExceptionMessage(ValuePtr ptr) {
-  LOCAL_VALUE(ptr);
-  Local<Message> message = Exception::CreateMessage(iso, value);
-  RtnMessage rtn;
-  rtn.text = CopyString(String::Utf8Value(iso, message->Get()));
-  Local<String> source;
-  if (message->GetSource(local_ctx).ToLocal(&source)) {
-    rtn.source = CopyString(String::Utf8Value(iso, source));
-  }
-  rtn.lineNumber = message->GetLineNumber(local_ctx).FromMaybe(-1);
-  rtn.posStart = message->GetStartPosition();
-  rtn.posEnd = message->GetEndPosition();
-  rtn.colStart = message->GetStartColumn();
-  rtn.colEnd = message->GetEndColumn();
-  rtn.wasmFuncIndex = message->GetWasmFunctionIndex();
-  rtn.stackTrace = WrapStackTrace(message->GetStackTrace(), iso);
-  return rtn;
 }
 
 /********** Object **********/

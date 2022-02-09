@@ -10,49 +10,52 @@ import "C"
 import "unsafe"
 
 type Message struct {
-	stackTrace       *StackTrace
-	text             string
-	source           string
-	lineNumber       int
-	posStart, posEnd int
-	colStart, colEnd int
-	wasmFuncIndex    int
+	stackTrace         *StackTrace
+	text               string
+	scriptResourceName string
+	source             string
+	lineNumber         int
+	posStart, posEnd   int
+	colStart, colEnd   int
+	wasmFuncIndex      int
 }
 
-func newMessageFromC(iso *Isolate, v C.RtnMessage) *Message {
+func newMessageFromC(v C.RtnMessage) *Message {
 	defer func() {
 		C.free(unsafe.Pointer(v.text))
+		C.free(unsafe.Pointer(v.scriptResourceName))
 		C.free(unsafe.Pointer(v.source))
 	}()
 
 	return &Message{
-		stackTrace:    newStackTraceFromC(iso, v.stackTrace),
-		text:          C.GoString(v.text),
-		source:        C.GoString(v.source),
-		lineNumber:    int(v.lineNumber),
-		posStart:      int(v.posStart),
-		posEnd:        int(v.posEnd),
-		colStart:      int(v.colStart),
-		colEnd:        int(v.colEnd),
-		wasmFuncIndex: int(v.wasmFuncIndex),
+		stackTrace:         newStackTraceFromC(v.stackTrace),
+		text:               C.GoString(v.text),
+		scriptResourceName: C.GoString(v.scriptResourceName),
+		source:             C.GoString(v.source),
+		lineNumber:         int(v.lineNumber),
+		posStart:           int(v.posStart),
+		posEnd:             int(v.posEnd),
+		colStart:           int(v.colStart),
+		colEnd:             int(v.colEnd),
+		wasmFuncIndex:      int(v.wasmFuncIndex),
 	}
 }
 
-func (m *Message) Text() string              { return m.text }
-func (m *Message) Source() string            { return m.source }
-func (m *Message) LineNumber() int           { return m.lineNumber }
-func (m *Message) PositionRange() (int, int) { return m.posStart, m.posEnd }
-func (m *Message) ColumnRange() (int, int)   { return m.colStart, m.colEnd }
-func (m *Message) WASMFunctionIndex() int    { return m.wasmFuncIndex }
-func (m *Message) StackTrace() *StackTrace   { return m.stackTrace }
+func (m *Message) Text() string               { return m.text }
+func (m *Message) ScriptResourceName() string { return m.scriptResourceName }
+func (m *Message) Source() string             { return m.source }
+func (m *Message) LineNumber() int            { return m.lineNumber }
+func (m *Message) PositionRange() (int, int)  { return m.posStart, m.posEnd }
+func (m *Message) ColumnRange() (int, int)    { return m.colStart, m.colEnd }
+func (m *Message) WASMFunctionIndex() int     { return m.wasmFuncIndex }
+func (m *Message) StackTrace() *StackTrace    { return m.stackTrace }
 
 type StackTrace struct {
 	ptr C.StackTracePtr
-	iso *Isolate
 }
 
-func newStackTraceFromC(iso *Isolate, ptr C.StackTracePtr) *StackTrace {
-	return &StackTrace{ptr, iso}
+func newStackTraceFromC(ptr C.StackTracePtr) *StackTrace {
+	return &StackTrace{ptr}
 }
 
 func (st *StackTrace) finalizer() {

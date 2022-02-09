@@ -10,8 +10,9 @@ import "C"
 import (
 	"fmt"
 	"io"
-	"unsafe"
 )
+
+var DisableLegacyJSErrorStrings = false
 
 // JSError is an error that is returned if there is are any
 // JavaScript exceptions handled in the context. When used with the fmt
@@ -19,24 +20,43 @@ import (
 type JSError struct {
 	*Value
 
+	m *Message
+
+	// Deprecated fields. Use ExceptionMessage() instead.
+
 	Message    string
 	Location   string
 	StackTrace string
 }
 
 func newJSError(ctx *Context, rtnErr C.RtnError) error {
-	err := &JSError{
-		Message:    C.GoString(rtnErr.msg),
-		Location:   C.GoString(rtnErr.location),
-		StackTrace: C.GoString(rtnErr.stack),
+	m := newMessageFromC(rtnErr.excMessage)
+	startCol, _ := m.ColumnRange()
+
+	var v *Value
+	if rtnErr.exception != nil {
+		v = &Value{rtnErr.exception, ctx}
 	}
-	if ctx != nil {
-		err.Value = &Value{rtnErr.exception, ctx}
+	e := &JSError{
+		Value: v,
+		m:     m,
 	}
-	C.free(unsafe.Pointer(rtnErr.msg))
-	C.free(unsafe.Pointer(rtnErr.location))
-	C.free(unsafe.Pointer(rtnErr.stack))
-	return err
+
+	if !DisableLegacyJSErrorStrings {
+		if rtnErr.exception != nil {
+			v = &Value{rtnErr.exception, ctx}
+			if o, err := v.AsObject(); err == nil {
+				if so, err := o.Get("stack"); err == nil {
+					e.StackTrace = so.String()
+				}
+			}
+			e.Message = v.String()
+		} else {
+			e.Message = m.Text()
+		}
+		e.Location = fmt.Sprint(m.ScriptResourceName(), ":", m.LineNumber(), ":", startCol+1)
+	}
+	return e
 }
 
 func (e *JSError) Error() string {
@@ -44,10 +64,7 @@ func (e *JSError) Error() string {
 }
 
 func (e *JSError) ExceptionMessage() *Message {
-	if e.Value == nil {
-		return nil
-	}
-	return newMessageFromC(e.Value.ctx.iso, C.WrapExceptionMessage(e.Value.ptr))
+	return e.m
 }
 
 // Format implements the fmt.Formatter interface to provide a custom formatter

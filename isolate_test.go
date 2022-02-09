@@ -43,7 +43,7 @@ func TestIsolateTerminateExecution(t *testing.T) {
 
 	script := `function loop() { while (true) { } }; foo(loop);`
 	_, e := ctx.RunScript(script, "forever.js")
-	if e == nil || !strings.HasPrefix(e.Error(), "ExecutionTerminated") {
+	if e == nil || !strings.HasPrefix(e.Error(), "Error: ExecutionTerminated") {
 		t.Errorf("unexpected error: %v", e)
 	}
 
