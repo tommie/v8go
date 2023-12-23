@@ -12,10 +12,13 @@ jobs:
                 arch: [x86_64, arm64]
                 include:
                     - os: android
+                      v8os: android
                       platform: ubuntu-latest
                     - os: linux
+                      v8os: linux
                       platform: ubuntu-latest
                     - os: darwin
+                      v8os: mac
                       platform: macos-latest
         runs-on: ${{ matrix.platform }}
         steps:
@@ -35,10 +38,10 @@ jobs:
               run: python3 -m ensurepip --default-pip && python3 -m pip install --upgrade setuptools
             - name: Build V8 (${{ matrix.os }})
               if: matrix.os == 'linux'
-              run: cd deps && ./build.py --no-clang --arch ${{ matrix.arch }} --os ${{ matrix.os }}
+              run: cd deps && ./build.py --no-clang --arch ${{ matrix.arch }} --os ${{ matrix.v8os }}
             - name: Build V8 (${{ matrix.os }})
               if: matrix.os == 'darwin' || matrix.os == 'android'
-              run: cd deps && ./build.py --arch ${{ matrix.arch }} --os ${{ matrix.os }}
+              run: cd deps && ./build.py --arch ${{ matrix.arch }} --os ${{ matrix.v8os }}
             - name: Create PR
               uses: peter-evans/create-pull-request@v3
               with:

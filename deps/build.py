@@ -22,7 +22,7 @@ parser.add_argument('--arch',
 parser.add_argument(
     '--os',
     dest='os',
-    choices=['android', 'darwin', 'ios', 'linux', 'windows'],
+    choices=['android', 'ios', 'linux', 'mac', 'windows'],
     default=platform.system().lower())
 parser.set_defaults(debug=False, clang=True)
 args = parser.parse_args()
