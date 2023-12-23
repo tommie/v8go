@@ -30,6 +30,9 @@ jobs:
             - name: Install g++-aarch64-linux-gnu
               if: matrix.os == 'linux' && matrix.arch == 'arm64'
               run: sudo apt update && sudo apt install g++-aarch64-linux-gnu -y
+            - name: Install setuptools
+              if: matrix.platform == 'macos-latest'
+              run: python3 -m ensurepip --default-pip && python3 -m pip install --upgrade setuptools
             - name: Build V8 (${{ matrix.os }})
               if: matrix.os == 'linux'
               run: cd deps && ./build.py --no-clang --arch ${{ matrix.arch }} --os ${{ matrix.os }}
