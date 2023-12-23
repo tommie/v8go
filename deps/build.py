@@ -19,6 +19,11 @@ parser.add_argument('--arch',
     choices=valid_archs,
     default=default_arch,
     required=default_arch is None)
+parser.add_argument(
+    '--os',
+    dest='os',
+    choices=['android', 'darwin', 'ios', 'linux', 'windows'],
+    default=platform.system().lower())
 parser.set_defaults(debug=False, clang=True)
 args = parser.parse_args()
 
@@ -27,21 +32,26 @@ v8_path = os.path.join(deps_path, "v8")
 tools_path = os.path.join(deps_path, "depot_tools")
 is_windows = platform.system().lower() == "windows"
 
+def get_custom_deps():
+    # These deps are unnecessary for building.
+    deps = {
+        "v8/testing/gmock"                      : None,
+        "v8/test/wasm-js"                       : None,
+        "v8/third_party/colorama/src"           : None,
+        "v8/tools/gyp"                          : None,
+        "v8/tools/luci-go"                      : None,
+    }
+    if args.os != "android":
+        deps["v8/third_party/catapult"] = None
+        deps["v8/third_party/android_tools"] = None
+    return deps
+
 gclient_sln = [
     { "name"        : "v8",
         "url"         : "https://chromium.googlesource.com/v8/v8.git",
         "deps_file"   : "DEPS",
         "managed"     : False,
-        "custom_deps" : {
-            # These deps are unnecessary for building.
-            "v8/testing/gmock"                      : None,
-            "v8/test/wasm-js"                       : None,
-            "v8/third_party/android_tools"          : None,
-            "v8/third_party/catapult"               : None,
-            "v8/third_party/colorama/src"           : None,
-            "v8/tools/gyp"                          : None,
-            "v8/tools/luci-go"                      : None,
-        },
+        "custom_deps" : get_custom_deps(),
         "custom_vars": {
             "build_for_node" : True,
         },
@@ -51,6 +61,7 @@ gclient_sln = [
 gn_args = """
 is_debug=%s
 is_clang=%s
+target_os="%s"
 target_cpu="%s"
 v8_target_cpu="%s"
 clang_use_chrome_plugins=false
@@ -68,10 +79,12 @@ v8_enable_i18n_support=true
 icu_use_data_file=false
 v8_enable_test_features=false
 exclude_unwind_tables=true
+v8_android_log_stdout=true
 """
 
 def v8deps():
-    spec = "solutions = %s" % gclient_sln
+    spec = "solutions = %s\n" % gclient_sln
+    spec += "target_os = [%r]" % (args.os,)
     env = os.environ.copy()
     env["PATH"] = tools_path + os.pathsep + env["PATH"]
     subprocess.check_call(cmd(["gclient", "sync", "--spec", spec]),
@@ -82,8 +95,7 @@ def cmd(args):
     return ["cmd", "/c"] + args if is_windows else args
 
 def os_arch():
-    u = platform.uname()
-    return u[0].lower() + "_" + args.arch
+    return args.os + "_" + args.arch
 
 def v8_arch():
     if args.arch == "x86_64":
@@ -130,7 +142,7 @@ def main():
     strip_debug_info = 'false' if args.debug else 'true'
 
     arch = v8_arch()
-    gnargs = gn_args % (is_debug, is_clang, arch, arch, symbol_level, strip_debug_info)
+    gnargs = gn_args % (is_debug, is_clang, args.os, arch, arch, symbol_level, strip_debug_info)
     gen_args = gnargs.replace('\n', ' ')
 
     subprocess.check_call(cmd([gn_path, "gen", build_path, "--args=" + gen_args]),

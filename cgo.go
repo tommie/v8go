@@ -9,6 +9,8 @@ package v8go
 // #cgo CXXFLAGS: -fno-rtti -fPIC -std=c++17 -DV8_COMPRESS_POINTERS -DV8_31BIT_SMIS_ON_64BIT_ARCH -I${SRCDIR}/deps/include -Wall -DV8_ENABLE_SANDBOX
 // #cgo LDFLAGS: -pthread -lv8
 // #cgo libgcompat LDFLAGS: -lgcompat
+// #cgo android,amd64 LDFLAGS: -L${SRCDIR}/deps/android_x86_64
+// #cgo android,arm64 LDFLAGS: -L${SRCDIR}/deps/android_arm64
 // #cgo darwin,amd64 LDFLAGS: -L${SRCDIR}/deps/darwin_x86_64
 // #cgo darwin,arm64 LDFLAGS: -L${SRCDIR}/deps/darwin_arm64
 // #cgo linux,amd64 LDFLAGS: -L${SRCDIR}/deps/linux_x86_64 -ldl
