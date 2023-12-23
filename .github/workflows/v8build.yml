@@ -22,31 +22,87 @@ jobs:
                       platform: macos-latest
         runs-on: ${{ matrix.platform }}
         steps:
+            - name: Restore CCache
+              uses: actions/cache@v3
+              with:
+                  path: .ccache
+                  key: ${{ runner.os }}:${{ matrix.os }}:${{ matrix.arch }}:libv8:ccache
+                  restore-keys: |
+                      ${{ runner.os }}:${{ matrix.os }}:${{ matrix.arch }}:libv8:ccache
+
+            - name: Install CCache
+              if: matrix.platform == 'ubuntu-latest'
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -yq ccache
+                  sudo update-ccache-symlinks
+
+                  echo "/usr/lib/ccache" >> "$GITHUB_PATH"
+
+            - name: Install CCache
+              if: matrix.platform == 'macos-latest'
+              run: |
+                  brew install ccache
+
+                  echo "$(brew --prefix ccache)/libexec" >> "$GITHUB_PATH"
+
+            - name: Configure CCache
+              run: |
+                  echo "CCACHE_CPP2=yes" >> "$GITHUB_ENV"
+                  echo "CCACHE_SLOPPINESS=time_macros" >> "$GITHUB_ENV"
+
+                  ccacheDir="${GITHUB_WORKSPACE}/.ccache"
+                  mkdir -p "$ccacheDir"
+
+                  echo "CCACHE_DIR=$ccacheDir" >> "$GITHUB_ENV"
+
+            - name: Install g++-aarch64-linux-gnu
+              if: matrix.os == 'linux' && matrix.arch == 'arm64'
+              run: sudo apt update && sudo apt install g++-aarch64-linux-gnu -y
+
+            - name: Install setuptools
+              if: matrix.platform == 'macos-latest'
+              run: python3 -m ensurepip --default-pip && python3 -m pip install --upgrade setuptools
+
             - name: Checkout
               uses: actions/checkout@v2
               with:
                   submodules: true
                   fetch-depth: 1
+
             - name: Update depot_tools fetch config
               run: cd deps/depot_tools && git config --unset-all remote.origin.fetch; git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/*
-              shell: bash
-            - name: Install g++-aarch64-linux-gnu
-              if: matrix.os == 'linux' && matrix.arch == 'arm64'
-              run: sudo apt update && sudo apt install g++-aarch64-linux-gnu -y
-            - name: Install setuptools
-              if: matrix.platform == 'macos-latest'
-              run: python3 -m ensurepip --default-pip && python3 -m pip install --upgrade setuptools
+
             - name: Build V8 (${{ matrix.os }})
-              if: matrix.os == 'linux'
-              run: cd deps && ./build.py --no-clang --arch ${{ matrix.arch }} --os ${{ matrix.v8os }}
-            - name: Build V8 (${{ matrix.os }})
-              if: matrix.os == 'darwin' || matrix.os == 'android'
-              run: cd deps && ./build.py --arch ${{ matrix.arch }} --os ${{ matrix.v8os }}
+              run: cd deps && ./build.py --ccache --arch ${{ matrix.arch }} --os ${{ matrix.v8os }}
+
+            - name: Show CCache Status
+              run: ccache -s
+
+            - name: Upload Artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                  # The name matches the directory under deps/.
+                  name: ${{ matrix.os }}_${{ matrix.arch }}
+                  if-no-files-found: error
+                  path: deps/${{ matrix.os }}_${{ matrix.arch }}/libv8.a
+                  retention-days: 2
+
+    commit:
+        name: Commit Built Artifacts
+        needs: build
+        runs-on: ubuntu-latest
+        steps:
+            - name: Download Artifacts
+              uses: actions/download-artifact@v4
+              with:
+                  path: deps
+
             - name: Create PR
               uses: peter-evans/create-pull-request@v3
               with:
-                commit-message: Update V8 static library for ${{ matrix.os }} ${{ matrix.arch }}
-                branch-suffix: random
-                delete-branch: true
-                title: V8 static library for ${{ matrix.os }} ${{ matrix.arch }}
-                body: Auto-generated pull request to build V8 for ${{ matrix.os }} ${{ matrix.arch }}
+                  commit-message: Update compiled V8 libraries
+                  branch-suffix: random
+                  delete-branch: true
+                  title: V8 libraries for all targets
+                  body: Auto-generated pull request of built V8 libraries

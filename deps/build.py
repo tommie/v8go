@@ -12,6 +12,8 @@ default_arch = current_arch if current_arch in valid_archs else None
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--debug', dest='debug', action='store_true')
+parser.add_argument('--ccache', action='store_true')
+parser.add_argument('--clang', dest='clang', action='store_true')
 parser.add_argument('--no-clang', dest='clang', action='store_false')
 parser.add_argument('--arch',
     dest='arch',
@@ -24,13 +26,14 @@ parser.add_argument(
     dest='os',
     choices=['android', 'ios', 'linux', 'mac', 'windows'],
     default=platform.system().lower())
-parser.set_defaults(debug=False, clang=True)
+parser.set_defaults(debug=False, ccache=False, clang=None)
 args = parser.parse_args()
 
 deps_path = os.path.dirname(os.path.realpath(__file__))
 v8_path = os.path.join(deps_path, "v8")
 tools_path = os.path.join(deps_path, "depot_tools")
 is_windows = platform.system().lower() == "windows"
+is_clang = args.clang if args.clang is not None else args.os != "linux"
 
 def get_custom_deps():
     # These deps are unnecessary for building.
@@ -143,6 +146,8 @@ def main():
 
     arch = v8_arch()
     gnargs = gn_args % (is_debug, is_clang, args.os, arch, arch, symbol_level, strip_debug_info)
+    if args.ccache:
+        gnargs += 'cc_wrapper = "ccache"\n'
     gen_args = gnargs.replace('\n', ' ')
 
     subprocess.check_call(cmd([gn_path, "gen", build_path, "--args=" + gen_args]),
