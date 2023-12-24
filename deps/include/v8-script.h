@@ -9,11 +9,14 @@
 #include <stdint.h>
 
 #include <memory>
+#include <tuple>
 #include <vector>
 
+#include "v8-callbacks.h"     // NOLINT(build/include_directory)
 #include "v8-data.h"          // NOLINT(build/include_directory)
 #include "v8-local-handle.h"  // NOLINT(build/include_directory)
 #include "v8-maybe.h"         // NOLINT(build/include_directory)
+#include "v8-memory-span.h"   // NOLINT(build/include_directory)
 #include "v8-message.h"       // NOLINT(build/include_directory)
 #include "v8config.h"         // NOLINT(build/include_directory)
 
@@ -54,7 +57,7 @@ class V8_EXPORT ScriptOrModule {
 /**
  * A compiled JavaScript script, not yet tied to a Context.
  */
-class V8_EXPORT UnboundScript {
+class V8_EXPORT UnboundScript : public Data {
  public:
   /**
    * Binds the script to the currently entered context.
@@ -141,10 +144,9 @@ class V8_EXPORT ModuleRequest : public Data {
    *
    * All assertions present in the module request will be supplied in this
    * list, regardless of whether they are supported by the host. Per
-   * https://tc39.es/proposal-import-assertions/#sec-hostgetsupportedimportassertions,
-   * hosts are expected to ignore assertions that they do not support (as
-   * opposed to, for example, triggering an error if an unsupported assertion is
-   * present).
+   * https://tc39.es/proposal-import-attributes/#sec-hostgetsupportedimportattributes,
+   * hosts are expected to throw for assertions that they do not support (as
+   * opposed to, for example, ignoring them).
    */
   Local<FixedArray> GetImportAssertions() const;
 
@@ -284,9 +286,14 @@ class V8_EXPORT Module : public Data {
    * module_name is used solely for logging/debugging and doesn't affect module
    * behavior.
    */
+  V8_DEPRECATE_SOON("Please use the version that takes a MemorySpan")
   static Local<Module> CreateSyntheticModule(
       Isolate* isolate, Local<String> module_name,
       const std::vector<Local<String>>& export_names,
+      SyntheticModuleEvaluationSteps evaluation_steps);
+  static Local<Module> CreateSyntheticModule(
+      Isolate* isolate, Local<String> module_name,
+      const MemorySpan<const Local<String>>& export_names,
       SyntheticModuleEvaluationSteps evaluation_steps);
 
   /**
@@ -319,7 +326,7 @@ class V8_EXPORT Module : public Data {
  * A compiled JavaScript script, tied to a Context which was active when the
  * script was compiled.
  */
-class V8_EXPORT Script {
+class V8_EXPORT Script : public Data {
  public:
   /**
    * A shorthand for ScriptCompiler::Compile().
@@ -413,6 +420,8 @@ class V8_EXPORT ScriptCompiler {
     V8_INLINE explicit Source(
         Local<String> source_string, CachedData* cached_data = nullptr,
         ConsumeCodeCacheTask* consume_cache_task = nullptr);
+    V8_INLINE Source(Local<String> source_string, const ScriptOrigin& origin,
+                     CompileHintCallback callback, void* callback_data);
     V8_INLINE ~Source() = default;
 
     // Ownership of the CachedData or its buffers is *not* transferred to the
@@ -440,6 +449,10 @@ class V8_EXPORT ScriptCompiler {
     // set when calling a compile method.
     std::unique_ptr<CachedData> cached_data;
     std::unique_ptr<ConsumeCodeCacheTask> consume_cache_task;
+
+    // For requesting compile hints from the embedder.
+    CompileHintCallback compile_hint_callback = nullptr;
+    void* compile_hint_callback_data = nullptr;
   };
 
   /**
@@ -569,7 +582,8 @@ class V8_EXPORT ScriptCompiler {
     kNoCompileOptions = 0,
     kConsumeCodeCache,
     kEagerCompile,
-    kProduceCompileHints
+    kProduceCompileHints,
+    kConsumeCompileHints
   };
 
   /**
@@ -642,7 +656,9 @@ class V8_EXPORT ScriptCompiler {
   static ScriptStreamingTask* StartStreaming(
       Isolate* isolate, StreamedSource* source,
       ScriptType type = ScriptType::kClassic,
-      CompileOptions options = kNoCompileOptions);
+      CompileOptions options = kNoCompileOptions,
+      CompileHintCallback compile_hint_callback = nullptr,
+      void* compile_hint_callback_data = nullptr);
 
   static ConsumeCodeCacheTask* StartConsumingCodeCache(
       Isolate* isolate, std::unique_ptr<CachedData> source);
@@ -781,6 +797,19 @@ ScriptCompiler::Source::Source(Local<String> string, CachedData* data,
     : source_string(string),
       cached_data(data),
       consume_cache_task(consume_cache_task) {}
+
+ScriptCompiler::Source::Source(Local<String> string, const ScriptOrigin& origin,
+                               CompileHintCallback callback,
+                               void* callback_data)
+    : source_string(string),
+      resource_name(origin.ResourceName()),
+      resource_line_offset(origin.LineOffset()),
+      resource_column_offset(origin.ColumnOffset()),
+      resource_options(origin.Options()),
+      source_map_url(origin.SourceMapUrl()),
+      host_defined_options(origin.GetHostDefinedOptions()),
+      compile_hint_callback(callback),
+      compile_hint_callback_data(callback_data) {}
 
 const ScriptCompiler::CachedData* ScriptCompiler::Source::GetCachedData()
     const {
