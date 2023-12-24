@@ -25,10 +25,8 @@ jobs:
             - name: Restore CCache
               uses: actions/cache@v3
               with:
-                  path: .ccache
+                  path: ~/.ccache
                   key: ${{ runner.os }}:${{ matrix.os }}:${{ matrix.arch }}:libv8:ccache
-                  restore-keys: |
-                      ${{ runner.os }}:${{ matrix.os }}:${{ matrix.arch }}:libv8:ccache
 
             - name: Install CCache
               if: matrix.platform == 'ubuntu-latest'
@@ -51,7 +49,7 @@ jobs:
                   echo "CCACHE_CPP2=yes" >> "$GITHUB_ENV"
                   echo "CCACHE_SLOPPINESS=time_macros" >> "$GITHUB_ENV"
 
-                  ccacheDir="${GITHUB_WORKSPACE}/.ccache"
+                  ccacheDir="$HOME/.ccache"
                   mkdir -p "$ccacheDir"
 
                   echo "CCACHE_DIR=$ccacheDir" >> "$GITHUB_ENV"
