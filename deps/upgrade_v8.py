@@ -40,27 +40,31 @@ def get_directories_names(path):
         flist.append(p.name)
   return sorted(flist)
 
-def package_name(package, index, total):
-  name = f'_ "rogchap.com/v8go/deps/include/{package}"'
-  if (index + 1 == total):
+def get_module_name():
+  gomod = subprocess.check_output(["go", "mod", "edit", "-print"], cwd=deps_path, env=env).decode('utf-8')
+  return [line.split(" ")[1].strip() for line in gomod.strip().splitlines() if line.startswith("module ")][0]
+
+def package_name(module, package, index, total):
+  name = f'_ "{module}/deps/include/{package}"'
+  if index + 1 == total:
     return name
   else:
     return name + '\n'
 
-def create_include_vendor_file(src_path, directories):
+def create_include_vendor_file(src_path, directories, module):
   package_names = []
   total_directories = len(directories)
 
   for index, directory_name in enumerate(directories):
-    package_names.append(package_name(directory_name, index, total_directories))
+    package_names.append(package_name(module, directory_name, index, total_directories))
 
   with open(os.path.join(src_path, 'vendor.go'), 'w') as temp_file:
       temp_file.write(include_vendor_file_template % ('\t'.join(package_names)))
 
-def create_vendor_files(src_path):
+def create_vendor_files(src_path, module):
   directories = get_directories_names(src_path)
 
-  create_include_vendor_file(src_path, directories)
+  create_include_vendor_file(src_path, directories, module)
 
   for directory in directories:
     directory_path = os.path.join(src_path, directory)
@@ -88,12 +92,10 @@ def get_latest_v8_hash():
 
 def get_v8_version_tag():
   tags = subprocess.check_output(["git", "tag", "--points-at", latest_stable_v8_hash], cwd=v8_path, env=env).decode('utf-8')
-  return tags.split(os.linesep)[0]
+  return tags.splitlines()[0]
 
-# Current version
+module = get_module_name()
 current_v8_hash_installed = read_v8_version_file(deps_path)
-
-# Get latest version
 latest_stable_v8_hash = get_latest_v8_hash()
 
 if current_v8_hash_installed != latest_stable_v8_hash:
@@ -107,5 +109,5 @@ if current_v8_hash_installed != latest_stable_v8_hash:
 
   shutil.rmtree(deps_include_path)
   shutil.copytree(v8_include_path, deps_include_path, dirs_exist_ok=True)
-  create_vendor_files(deps_include_path)
+  create_vendor_files(deps_include_path, module)
   update_v8_version_file(deps_path, latest_stable_v8_hash)
