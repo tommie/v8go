@@ -101,6 +101,7 @@ jobs:
             - name: Create PR
               uses: peter-evans/create-pull-request@v5
               with:
+                  add-paths: "deps/*_*/libv8.a"
                   commit-message: Update compiled V8 libraries
                   branch-suffix: random
                   delete-branch: true
