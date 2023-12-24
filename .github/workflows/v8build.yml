@@ -104,7 +104,7 @@ jobs:
                   path: deps
 
             - name: Create PR
-              uses: peter-evans/create-pull-request@v3
+              uses: peter-evans/create-pull-request@v5
               with:
                   commit-message: Update compiled V8 libraries
                   branch-suffix: random
