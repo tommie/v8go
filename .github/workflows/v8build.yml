@@ -23,7 +23,10 @@ jobs:
               uses: actions/cache@v3
               with:
                   path: ~/.ccache
-                  key: ${{ runner.os }}:${{ matrix.os }}:${{ matrix.arch }}:libv8:ccache
+                  key: libv8:ccache:${{ matrix.os }}:${{ matrix.arch }}:${{ hashFiles('deps/v8_version) }}:${{ runner.os }}
+                  restore_keys: |
+                      libv8:ccache:${{ matrix.os }}:${{ matrix.arch }}:
+                      ${{ runner.os }}:${{ matrix.os }}:${{ matrix.arch }}:libv8:ccache
 
             - name: Install CCache
               if: matrix.platform == 'ubuntu-latest'
@@ -43,13 +46,11 @@ jobs:
 
             - name: Configure CCache
               run: |
-                  echo "CCACHE_CPP2=yes" >> "$GITHUB_ENV"
-                  echo "CCACHE_SLOPPINESS=time_macros" >> "$GITHUB_ENV"
-
                   ccacheDir="$HOME/.ccache"
                   mkdir -p "$ccacheDir"
-
                   echo "CCACHE_DIR=$ccacheDir" >> "$GITHUB_ENV"
+                  echo "CCACHE_CPP2=yes" >> "$GITHUB_ENV"
+                  echo "CCACHE_SLOPPINESS=time_macros" >> "$GITHUB_ENV"
 
             - name: Install g++-aarch64-linux-gnu
               if: matrix.os == 'linux' && matrix.arch == 'arm64'
