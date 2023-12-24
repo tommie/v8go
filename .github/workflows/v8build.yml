@@ -12,13 +12,10 @@ jobs:
                 arch: [x86_64, arm64]
                 include:
                     - os: android
-                      v8os: android
                       platform: ubuntu-latest
                     - os: linux
-                      v8os: linux
                       platform: ubuntu-latest
                     - os: darwin
-                      v8os: mac
                       platform: macos-latest
         runs-on: ${{ matrix.platform }}
         steps:
@@ -72,7 +69,7 @@ jobs:
               run: cd deps/depot_tools && git config --unset-all remote.origin.fetch; git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/*
 
             - name: Build V8 (${{ matrix.os }})
-              run: cd deps && ./build.py --ccache --arch ${{ matrix.arch }} --os ${{ matrix.v8os }}
+              run: cd deps && ./build.py --ccache --arch ${{ matrix.arch }} --os ${{ matrix.os }}
 
             - name: Show CCache Status
               run: ccache -s

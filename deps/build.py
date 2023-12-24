@@ -24,7 +24,7 @@ parser.add_argument('--arch',
 parser.add_argument(
     '--os',
     dest='os',
-    choices=['android', 'ios', 'linux', 'mac', 'windows'],
+    choices=['android', 'ios', 'linux', 'darwin', 'windows'],
     default=platform.system().lower())
 parser.set_defaults(debug=False, ccache=False, clang=None)
 args = parser.parse_args()
@@ -87,7 +87,7 @@ v8_android_log_stdout=true
 
 def v8deps():
     spec = "solutions = %s\n" % gclient_sln
-    spec += "target_os = [%r]" % (args.os,)
+    spec += "target_os = [%r]" % (v8_os(),)
     env = os.environ.copy()
     env["PATH"] = tools_path + os.pathsep + env["PATH"]
     subprocess.check_call(cmd(["gclient", "sync", "--spec", spec]),
@@ -99,6 +99,9 @@ def cmd(args):
 
 def os_arch():
     return args.os + "_" + args.arch
+
+def v8_os():
+    return args.os.replace('darwin', 'mac')
 
 def v8_arch():
     if args.arch == "x86_64":
@@ -145,7 +148,7 @@ def main():
     strip_debug_info = 'false' if args.debug else 'true'
 
     arch = v8_arch()
-    gnargs = gn_args % (is_debug, is_clang, args.os, arch, arch, symbol_level, strip_debug_info)
+    gnargs = gn_args % (is_debug, is_clang, v8_os(), arch, arch, symbol_level, strip_debug_info)
     if args.ccache:
         gnargs += 'cc_wrapper = "ccache"\n'
     gen_args = gnargs.replace('\n', ' ')
