@@ -33,8 +33,8 @@ jobs:
           if: ${{ steps.check_v8.has_upgrade }} == 'y'
           uses: peter-evans/create-pull-request@v5
           with:
-              commit-message: Records new V8 release: ${{ steps.check_v8.latest_v8_hash }}
-              title: Records new V8 release: ${{ steps.check_v8.latest_v8_hash }}
+              commit-message: "Records new V8 release: ${{ steps.check_v8.latest_v8_hash }}"
+              title: "Records new V8 release: ${{ steps.check_v8.latest_v8_hash }}"
               body: |
                   This is an automated bump of the V8 release hash based on the Chromium dashboard.
                   Code changes will happen on the next run of the build workflow.
