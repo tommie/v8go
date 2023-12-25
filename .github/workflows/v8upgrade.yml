@@ -28,14 +28,13 @@ jobs:
               wget -q -O- "https://chromiumdash.appspot.com/fetch_releases?channel=Stable&platform=Linux&num=1&offset=0" | jq -r ".[0].hashes.v8" >deps/latest_v8_hash
               echo "latest_v8_hash=$(<deps/latest_v8_hash)" >>"$GITHUB_OUTPUT"
               echo "has_upgrade=$(git status --porcelain | grep -q . && echo y || echo n)" >>"$GITHUB_OUTPUT"
-              cat "$GITHUB_OUTPUT"
 
         - name: Create PR
           if: ${{ steps.check_v8.has_upgrade }} == 'y'
           uses: peter-evans/create-pull-request@v5
           with:
-              commit-message: Records new V8 release (${{ steps.check_v8.latest_v8_hash }})
-              title: Records new V8 release (${{ steps.check_v8.latest_v8_hash }})
+              commit-message: Records new V8 release: ${{ steps.check_v8.latest_v8_hash }}
+              title: Records new V8 release: ${{ steps.check_v8.latest_v8_hash }}
               body: |
                   This is an automated bump of the V8 release hash based on the Chromium dashboard.
                   Code changes will happen on the next run of the build workflow.
