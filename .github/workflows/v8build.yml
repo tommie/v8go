@@ -53,7 +53,7 @@ jobs:
               uses: actions/cache@v3
               with:
                   path: ~/.ccache
-                  key: libv8:ccache:${{ matrix.os }}:${{ matrix.arch }}:${{ hashFiles('deps/v8_hash) }}:${{ runner.os }}
+                  key: libv8:ccache:${{ matrix.os }}:${{ matrix.arch }}:${{ hashFiles('deps/v8_hash') }}:${{ runner.os }}
                   restore_keys: |
                       libv8:ccache:${{ matrix.os }}:${{ matrix.arch }}:
                       ${{ runner.os }}:${{ matrix.os }}:${{ matrix.arch }}:libv8:ccache
