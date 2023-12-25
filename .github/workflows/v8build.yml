@@ -54,7 +54,7 @@ jobs:
               with:
                   path: ~/.ccache
                   key: libv8:ccache:${{ matrix.os }}:${{ matrix.arch }}:${{ hashFiles('deps/v8_hash') }}:${{ runner.os }}
-                  restore_keys: |
+                  restore-keys: |
                       libv8:ccache:${{ matrix.os }}:${{ matrix.arch }}:
                       ${{ runner.os }}:${{ matrix.os }}:${{ matrix.arch }}:libv8:ccache
 
@@ -130,6 +130,7 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v4
               with:
+                  submodules: true
                   fetch-depth: 1
 
             - name: Download Artifacts
