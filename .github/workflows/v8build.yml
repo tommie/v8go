@@ -3,6 +3,36 @@ name: V8 Build
 on: workflow_dispatch
 
 jobs:
+    build_common:
+        name: Build Architecture Independent Files
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  submodules: true
+                  fetch-depth: 1
+
+            - name: Update to latest V8
+              run: |
+                  latest_v8_hash="$(<deps/latest_v8_hash)"
+                  cd deps/v8
+                  git fetch origin "$latest_v8_hash"
+                  latest_v8_version="$(git tag --points-at "$latest_v8_hash" | head -n1)"
+                  git checkout "${latest_v8_version:-$latest_v8_hash}"
+
+            - name: Create include files
+              run: cd deps && ./build_common.py
+
+            - name: Upload include/ Artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                  # The name matches the directory under deps/.
+                  name: include
+                  if-no-files-found: error
+                  path: deps/include/
+                  retention-days: 2
+
     build:
         name: Build V8 for ${{ matrix.os }} ${{ matrix.arch }}
         strategy:
@@ -23,7 +53,7 @@ jobs:
               uses: actions/cache@v3
               with:
                   path: ~/.ccache
-                  key: libv8:ccache:${{ matrix.os }}:${{ matrix.arch }}:${{ hashFiles('deps/v8_version) }}:${{ runner.os }}
+                  key: libv8:ccache:${{ matrix.os }}:${{ matrix.arch }}:${{ hashFiles('deps/v8_hash) }}:${{ runner.os }}
                   restore_keys: |
                       libv8:ccache:${{ matrix.os }}:${{ matrix.arch }}:
                       ${{ runner.os }}:${{ matrix.os }}:${{ matrix.arch }}:libv8:ccache
@@ -66,6 +96,14 @@ jobs:
                   submodules: true
                   fetch-depth: 1
 
+            - name: Update to latest V8
+              run: |
+                  latest_v8_hash="$(<deps/latest_v8_hash)"
+                  cd deps/v8
+                  git fetch origin "$latest_v8_hash"
+                  latest_v8_version="$(git tag --points-at "$latest_v8_hash" | head -n1)"
+                  git checkout "${latest_v8_version:-$latest_v8_hash}"
+
             - name: Update depot_tools fetch config
               run: cd deps/depot_tools && git config --unset-all remote.origin.fetch; git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/*
 
@@ -86,7 +124,7 @@ jobs:
 
     commit:
         name: Commit Built Artifacts
-        needs: build
+        needs: [build, build_common]
         runs-on: ubuntu-latest
         steps:
             - name: Checkout
@@ -99,12 +137,28 @@ jobs:
               with:
                   path: deps
 
+            - id: update_v8
+              name: Update to latest V8
+              run: |
+                  latest_v8_hash="$(<deps/latest_v8_hash)"
+                  echo "$latest_v8_hash" >deps/v8_hash
+
+                  cd deps/v8
+                  git fetch origin "$latest_v8_hash"
+                  latest_v8_version="$(git tag --points-at "$latest_v8_hash" | head -n1)"
+                  git checkout "${latest_v8_version:-$latest_v8_hash}"
+                  echo "latest_v8_version=${latest_v8_version:-$latest_v8_hash}" >>"$GITHUB_OUTPUT"
+
             - name: Create PR
               uses: peter-evans/create-pull-request@v5
               with:
-                  add-paths: "deps/*_*/libv8.a"
-                  commit-message: Update compiled V8 libraries
+                  commit-message: Add built V8 libraries at ${{ steps.update_v8.latest_v8_version }}
+                  title: Add built V8 libraries at ${{ steps.update_v8.latest_v8_version }}
+                  body: Auto-generated pull request of built V8 libraries
+                  add-paths: |
+                      deps/*_*/libv8.a
+                      deps/include/
+                      deps/v8
+                      deps/v8_hash
                   branch-suffix: random
                   delete-branch: true
-                  title: V8 libraries for all targets
-                  body: Auto-generated pull request of built V8 libraries

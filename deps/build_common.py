@@ -1,11 +1,7 @@
 #!/usr/bin/env python3
 
-import urllib.request
-import sys
-import json
 import subprocess
 import os
-import fnmatch
 import pathlib
 import shutil
 
@@ -22,9 +18,6 @@ import (
 \t%s
 )
 """
-
-CHROME_VERSIONS_URL = "https://chromiumdash.appspot.com/fetch_releases?channel=Stable&platform=Linux&num=1&offset=0"
-V8_VERSION_FILE = "v8_version"
 
 deps_path = os.path.dirname(os.path.realpath(__file__))
 v8go_path = os.path.abspath(os.path.join(deps_path, os.pardir))
@@ -77,37 +70,8 @@ def create_vendor_files(src_path, module):
     with open(os.path.join(directory_path, 'vendor.go'), 'w') as temp_file:
       temp_file.write(vendor_file_template % (directory, directory))
 
-def update_v8_version_file(src_path, version):
-  with open(os.path.join(src_path, V8_VERSION_FILE), "w") as v8_file:
-    print(version, file=v8_file)
-
-def read_v8_version_file(src_path):
-  v8_version_file = open(os.path.join(src_path, V8_VERSION_FILE), "r")
-  return v8_version_file.read().strip()
-
-def get_latest_v8_hash():
-  with urllib.request.urlopen(CHROME_VERSIONS_URL) as response:
-   json_response = response.read()
-   return json.loads(json_response)[0]["hashes"]["v8"]
-
-def get_v8_version_tag():
-  tags = subprocess.check_output(["git", "tag", "--points-at", latest_stable_v8_hash], cwd=v8_path, env=env).decode('utf-8')
-  return tags.splitlines()[0]
-
-module = get_module_name()
-current_v8_hash_installed = read_v8_version_file(deps_path)
-latest_stable_v8_hash = get_latest_v8_hash()
-
-if current_v8_hash_installed != latest_stable_v8_hash:
-  subprocess.check_call(["git", "fetch", "origin", latest_stable_v8_hash],
-                        cwd=v8_path,
-                        env=env)
-  latest_stable_v8_version = get_v8_version_tag()
-  subprocess.check_call(["git", "-c", "advice.detachedHead=false", "checkout", latest_stable_v8_version],
-                        cwd=v8_path,
-                        env=env)
-
+if __name__ == "__main__":
+  module = get_module_name()
   shutil.rmtree(deps_include_path)
   shutil.copytree(v8_include_path, deps_include_path, dirs_exist_ok=True)
   create_vendor_files(deps_include_path, module)
-  update_v8_version_file(deps_path, latest_stable_v8_hash)
