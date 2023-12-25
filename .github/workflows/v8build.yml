@@ -161,8 +161,8 @@ jobs:
             - name: Create PR
               uses: peter-evans/create-pull-request@v5
               with:
-                  commit-message: Add built V8 libraries at ${{ steps.update_v8.latest_v8_version }}
-                  title: Add built V8 libraries at ${{ steps.update_v8.latest_v8_version }}
+                  commit-message: Add built V8 libraries at ${{ steps.update_v8.outputs.latest_v8_version }}
+                  title: Add built V8 libraries at ${{ steps.update_v8.outputs.latest_v8_version }}
                   body: Auto-generated pull request of built V8 libraries
                   add-paths: |
                       deps/*_*/libv8.a
