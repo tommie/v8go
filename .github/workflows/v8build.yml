@@ -104,6 +104,14 @@ jobs:
                   latest_v8_version="$(git tag --points-at "$latest_v8_hash" | head -n1)"
                   git checkout "${latest_v8_version:-$latest_v8_hash}"
 
+            - name: Restore V8 Build Cache
+              uses: actions/cache@v3
+              with:
+                  path: deps/v8/build
+                  key: libv8:v8build:${{ matrix.os }}:${{ matrix.arch }}:${{ hashFiles('deps/v8_hash') }}:${{ runner.os }}
+                  restore-keys: |
+                      libv8:v8build:${{ matrix.os }}:${{ matrix.arch }}:
+
             - name: Update depot_tools fetch config
               run: cd deps/depot_tools && git config --unset-all remote.origin.fetch; git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/*
 
