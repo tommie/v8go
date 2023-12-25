@@ -9,10 +9,6 @@ jobs:
     upgrade:
         name: Upgrade V8
         runs-on: ubuntu-latest
-        outputs:
-            latest_v8_hash: ${{ steps.check_v8.latest_v8_hash }}
-            has_upgrade: ${{ steps.check_v8.has_upgrade }}
-
         steps:
         - name: Install Utilities
           run: |
@@ -32,6 +28,7 @@ jobs:
               wget -q -O- "https://chromiumdash.appspot.com/fetch_releases?channel=Stable&platform=Linux&num=1&offset=0" | jq -r ".[0].hashes.v8" >deps/latest_v8_hash
               echo "latest_v8_hash=$(<deps/latest_v8_hash)" >>"$GITHUB_OUTPUT"
               echo "has_upgrade=$(git status --porcelain | grep -q . && echo y || echo n)" >>"$GITHUB_OUTPUT"
+              cat "$GITHUB_OUTPUT"
 
         - name: Create PR
           if: ${{ steps.check_v8.has_upgrade }} == 'y'
