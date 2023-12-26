@@ -33,7 +33,6 @@ deps_path = os.path.dirname(os.path.realpath(__file__))
 v8_path = os.path.join(deps_path, "v8")
 tools_path = os.path.join(deps_path, "depot_tools")
 is_windows = platform.system().lower() == "windows"
-is_clang = args.clang if args.clang is not None else args.os != "linux"
 
 def get_custom_deps():
     # These deps are unnecessary for building.
@@ -140,7 +139,7 @@ def main():
     env = os.environ.copy()
 
     is_debug = 'true' if args.debug else 'false'
-    is_clang = 'true' if args.clang else 'false'
+    is_clang = args.clang if args.clang is not None else args.os != "linux"
     # symbol_level = 1 includes line number information
     # symbol_level = 2 can be used for additional debug information, but it can increase the
     #   compiled library by an order of magnitude and further slow down compilation
