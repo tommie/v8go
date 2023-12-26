@@ -138,8 +138,8 @@ def main():
     build_path = os.path.join(deps_path, ".build", os_arch())
     env = os.environ.copy()
 
-    is_debug = 'true' if args.debug else 'false'
-    is_clang = args.clang if args.clang is not None else args.os != "linux"
+    is_debug = str(bool(args.debug)).lower()
+    is_clang = str(args.clang if args.clang is not None else args.os != "linux").lower()
     # symbol_level = 1 includes line number information
     # symbol_level = 2 can be used for additional debug information, but it can increase the
     #   compiled library by an order of magnitude and further slow down compilation
