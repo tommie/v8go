@@ -138,21 +138,34 @@ def main():
     build_path = os.path.join(deps_path, ".build", os_arch())
     env = os.environ.copy()
 
-    is_debug = str(bool(args.debug)).lower()
-    is_clang = str(args.clang if args.clang is not None else args.os != "linux").lower()
+    is_debug = args.debug
+    is_clang = args.clang if args.clang is not None else args.os != "linux"
+    arch = v8_arch()
     # symbol_level = 1 includes line number information
     # symbol_level = 2 can be used for additional debug information, but it can increase the
     #   compiled library by an order of magnitude and further slow down compilation
     symbol_level = 1 if args.debug else 0
-    strip_debug_info = 'false' if args.debug else 'true'
+    strip_debug_info = not args.debug
 
-    arch = v8_arch()
-    gnargs = gn_args % (is_debug, is_clang, v8_os(), arch, arch, symbol_level, strip_debug_info)
+    gnargs = gn_args % (
+        str(bool(is_debug)).lower(),
+        str(is_clang).lower(),
+        v8_os(),
+        arch,
+        arch,
+        symbol_level,
+        str(strip_debug_info).lower(),
+    )
     if args.ccache:
-        gnargs += 'cc_wrapper = "ccache"\n'
-    gen_args = gnargs.replace('\n', ' ')
+        gnargs += 'cc_wrapper="ccache"\n'
+    if not is_clang and arch == "arm64":
+        # https://chromium.googlesource.com/chromium/deps/icu/+/2958a507f15e475045906d73af39018d5038a93b
+        # introduced -mmark-bti-property, which isn't supported by GCC.
+        #
+        # V8 itself fixed this in https://chromium-review.googlesource.com/c/v8/v8/+/3930160.
+        gnargs += 'arm_control_flow_integrity="none"\n'
 
-    subprocess.check_call(cmd([gn_path, "gen", build_path, "--args=" + gen_args]),
+    subprocess.check_call(cmd([gn_path, "gen", build_path, "--args=" + gnargs.replace('\n', ' ')]),
                         cwd=v8_path,
                         env=env)
     subprocess.check_call([ninja_path, "-v", "-C", build_path, "v8_monolith"],
