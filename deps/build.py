@@ -128,7 +128,7 @@ def build_gn_args():
 
 def subprocess_check_call(cmdargs, *pargs, **kwargs):
     if args.verbose:
-        print(sys.argv[0], ">", " ".join(cmd), file=sys.stderr)
+        print(sys.argv[0], ">", " ".join(cmdargs), file=sys.stderr)
     subprocess.check_call(cmd(cmdargs), *pargs, **kwargs)
 
 def cmd(args):
