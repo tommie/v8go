@@ -116,7 +116,7 @@ jobs:
               run: cd deps/depot_tools && git config --unset-all remote.origin.fetch; git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/*
 
             - name: Build V8 (${{ matrix.os }})
-              run: cd deps && ./build.py --ccache --arch ${{ matrix.arch }} --os ${{ matrix.os }}
+              run: cd deps && ./build.py --ccache --verbose --arch ${{ matrix.arch }} --os ${{ matrix.os }}
 
             - name: Show CCache Status
               run: ccache -s

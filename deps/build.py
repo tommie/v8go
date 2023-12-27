@@ -5,6 +5,7 @@ import os
 import platform
 import shutil
 import subprocess
+import sys
 
 valid_archs = ['arm64', 'x86_64']
 # "x86_64" is called "amd64" on Windows
@@ -12,6 +13,7 @@ current_arch = platform.uname()[4].lower().replace("amd64", "x86_64")
 default_arch = current_arch if current_arch in valid_archs else None
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--verbose', '-v', action='store_true')
 parser.add_argument('--debug', dest='debug', action='store_true')
 parser.add_argument('--ccache', action='store_true')
 parser.add_argument('--clang', dest='clang', action='store_true')
@@ -27,13 +29,14 @@ parser.add_argument(
     dest='os',
     choices=['android', 'ios', 'linux', 'darwin', 'windows'],
     default=platform.system().lower())
-parser.set_defaults(debug=False, ccache=False, clang=None)
+parser.set_defaults(verbose=False, debug=False, ccache=False, clang=None)
 args = parser.parse_args()
 
 deps_path = os.path.dirname(os.path.realpath(__file__))
 v8_path = os.path.join(deps_path, "v8")
 tools_path = os.path.join(deps_path, "depot_tools")
 is_windows = platform.system().lower() == "windows"
+is_clang = args.clang if args.clang is not None else args.os != "linux"
 
 def get_custom_deps():
     # These deps are unnecessary for building.
@@ -90,13 +93,12 @@ def v8deps():
     spec += "target_os = [%r]" % (v8_os(),)
     env = os.environ.copy()
     env["PATH"] = tools_path + os.pathsep + env["PATH"]
-    subprocess.check_call(cmd(["gclient", "sync", "--spec", spec]),
+    subprocess_check_call(["gclient", "sync", "--spec", spec],
                         cwd=deps_path,
                         env=env)
 
 def build_gn_args():
     is_debug = args.debug
-    is_clang = args.clang if args.clang is not None else args.os != "linux"
     arch = v8_arch()
     # symbol_level = 1 includes line number information
     # symbol_level = 2 can be used for additional debug information, but it can increase the
@@ -124,6 +126,11 @@ def build_gn_args():
 
     return gnargs
 
+def subprocess_check_call(cmdargs, *args, **kwargs):
+    if args.verbose:
+        print(sys.argv[0], ">", " ".join(cmd), file=sys.stderr)
+    subprocess.check_call(cmd(cmdargs), *args, **kwargs)
+
 def cmd(args):
     return ["cmd", "/c"] + args if is_windows else args
 
@@ -150,11 +157,11 @@ def apply_mingw_patches():
 
 def apply_patch(patch_name, working_dir):
     patch_path = os.path.join(deps_path, os_arch(), patch_name + ".patch")
-    subprocess.check_call(["git", "apply", "-v", patch_path], cwd=working_dir)
+    subprocess_check_call(["git", "apply", "-v", patch_path], cwd=working_dir)
 
 def update_last_change():
     out_path = os.path.join(v8_path, "build", "util", "LASTCHANGE")
-    subprocess.check_call(["python", "build/util/lastchange.py", "-o", out_path], cwd=v8_path)
+    subprocess_check_call(["python", "build/util/lastchange.py", "-o", out_path], cwd=v8_path)
 
 def convert_to_thin_ar(src_fn, dest_fn, dest_obj_dn):
     """Extracts all files from src_fn to dest_obj_dn/ and makes a thin archive at dest_fn.
@@ -163,15 +170,17 @@ def convert_to_thin_ar(src_fn, dest_fn, dest_obj_dn):
     """
     dest_path = os.path.dirname(dest_fn)
 
-    ar_path = "ar"
-    if args.os == "linux" and args.arch == "arm64":
+    ar_path = "third_party/llvm-build/Release+Asserts/bin/llvm-ar"
+    if args.os == "linux" and args.arch == "arm64" and not is_clang:
         ar_path = "aarch64-linux-gnu-ar"
+    elif not os.access(ar_path, os.X_OK):
+        ar_path = "ar"
 
     if os.path.exists(dest_obj_dn):
         shutil.rmtree(dest_obj_dn)
     os.makedirs(dest_obj_dn)
 
-    subprocess.check_call(
+    subprocess_check_call(
         [
             ar_path,
             "x",
@@ -183,7 +192,7 @@ def convert_to_thin_ar(src_fn, dest_fn, dest_obj_dn):
     if os.path.exists(dest_fn):
         os.unlink(dest_fn)
 
-    subprocess.check_call(
+    subprocess_check_call(
         [
             ar_path,
             "qsc",
@@ -206,8 +215,8 @@ def main():
 
     gnargs = build_gn_args()
 
-    subprocess.check_call(cmd([gn_path, "gen", build_path, "--args=" + gnargs.replace('\n', ' ')]), cwd=v8_path)
-    subprocess.check_call([ninja_path, "-v", "-C", build_path, "v8_monolith"], cwd=v8_path)
+    subprocess_check_call([gn_path, "gen", build_path, "--args=" + gnargs.replace('\n', ' ')], cwd=v8_path)
+    subprocess_check_call([ninja_path, "-v", "-C", build_path, "v8_monolith"], cwd=v8_path)
 
     dest_path = os.path.join(deps_path, os_arch())
     convert_to_thin_ar(
