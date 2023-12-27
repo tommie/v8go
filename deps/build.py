@@ -170,7 +170,7 @@ def convert_to_thin_ar(src_fn, dest_fn, dest_obj_dn):
     """
     dest_path = os.path.dirname(dest_fn)
 
-    ar_path = "third_party/llvm-build/Release+Asserts/bin/llvm-ar"
+    ar_path = os.path.abspath(os.path.join(v8_path, "third_party/llvm-build/Release+Asserts/bin/llvm-ar"))
     if args.os == "linux" and args.arch == "arm64" and not is_clang:
         ar_path = "aarch64-linux-gnu-ar"
     elif not os.access(ar_path, os.X_OK):
