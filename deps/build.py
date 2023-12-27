@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-import platform
-import os
-import subprocess
-import shutil
 import argparse
+import glob
+import os
+import platform
+import shutil
+import subprocess
 
 valid_archs = ['arm64', 'x86_64']
 # "x86_64" is called "amd64" on Windows
@@ -93,6 +94,36 @@ def v8deps():
                         cwd=deps_path,
                         env=env)
 
+def build_gn_args():
+    is_debug = args.debug
+    is_clang = args.clang if args.clang is not None else args.os != "linux"
+    arch = v8_arch()
+    # symbol_level = 1 includes line number information
+    # symbol_level = 2 can be used for additional debug information, but it can increase the
+    #   compiled library by an order of magnitude and further slow down compilation
+    symbol_level = 1 if args.debug else 0
+    strip_debug_info = not args.debug
+
+    gnargs = gn_args % (
+        str(bool(is_debug)).lower(),
+        str(is_clang).lower(),
+        v8_os(),
+        arch,
+        arch,
+        symbol_level,
+        str(strip_debug_info).lower(),
+    )
+    if args.ccache:
+        gnargs += 'cc_wrapper="ccache"\n'
+    if not is_clang and arch == "arm64":
+        # https://chromium.googlesource.com/chromium/deps/icu/+/2958a507f15e475045906d73af39018d5038a93b
+        # introduced -mmark-bti-property, which isn't supported by GCC.
+        #
+        # V8 itself fixed this in https://chromium-review.googlesource.com/c/v8/v8/+/3930160.
+        gnargs += 'arm_control_flow_integrity="none"\n'
+
+    return gnargs
+
 def cmd(args):
     return ["cmd", "/c"] + args if is_windows else args
 
@@ -125,6 +156,42 @@ def update_last_change():
     out_path = os.path.join(v8_path, "build", "util", "LASTCHANGE")
     subprocess.check_call(["python", "build/util/lastchange.py", "-o", out_path], cwd=v8_path)
 
+def convert_to_thin_ar(src_fn, dest_fn, dest_obj_dn):
+    """Extracts all files from src_fn to dest_obj_dn/ and makes a thin archive at dest_fn.
+
+    GitHub's file size limit is 100 MiB, and the archive is hitting that.
+    """
+    dest_path = os.path.dirname(dest_fn)
+
+    ar_path = "ar"
+    if args.os == "linux" and args.arch == "arm64":
+        ar_path = "aarch64-linux-gnu-ar"
+
+    if os.path.exists(dest_obj_dn):
+        shutil.rmtree(dest_obj_dn)
+    os.makedirs(dest_obj_dn)
+
+    subprocess.check_call(
+        [
+            ar_path,
+            "x",
+            "--output", dest_obj_dn,
+            src_fn,
+        ],
+        cwd=v8_path)
+
+    if os.path.exists(dest_fn):
+        os.unlink(dest_fn)
+
+    subprocess.check_call(
+        [
+            ar_path,
+            "qsc",
+            "--thin",
+            dest_fn,
+        ] + [os.path.relpath(fn, dest_path) for fn in glob.glob(os.path.join(dest_obj_dn, "*"))],
+        cwd=dest_path)
+
 def main():
     v8deps()
     if is_windows:
@@ -136,48 +203,17 @@ def main():
     assert(os.path.exists(ninja_path))
 
     build_path = os.path.join(deps_path, ".build", os_arch())
-    env = os.environ.copy()
 
-    is_debug = args.debug
-    is_clang = args.clang if args.clang is not None else args.os != "linux"
-    arch = v8_arch()
-    # symbol_level = 1 includes line number information
-    # symbol_level = 2 can be used for additional debug information, but it can increase the
-    #   compiled library by an order of magnitude and further slow down compilation
-    symbol_level = 1 if args.debug else 0
-    strip_debug_info = not args.debug
+    gnargs = build_gn_args()
 
-    gnargs = gn_args % (
-        str(bool(is_debug)).lower(),
-        str(is_clang).lower(),
-        v8_os(),
-        arch,
-        arch,
-        symbol_level,
-        str(strip_debug_info).lower(),
-    )
-    if args.ccache:
-        gnargs += 'cc_wrapper="ccache"\n'
-    if not is_clang and arch == "arm64":
-        # https://chromium.googlesource.com/chromium/deps/icu/+/2958a507f15e475045906d73af39018d5038a93b
-        # introduced -mmark-bti-property, which isn't supported by GCC.
-        #
-        # V8 itself fixed this in https://chromium-review.googlesource.com/c/v8/v8/+/3930160.
-        gnargs += 'arm_control_flow_integrity="none"\n'
+    subprocess.check_call(cmd([gn_path, "gen", build_path, "--args=" + gnargs.replace('\n', ' ')]), cwd=v8_path)
+    subprocess.check_call([ninja_path, "-v", "-C", build_path, "v8_monolith"], cwd=v8_path)
 
-    subprocess.check_call(cmd([gn_path, "gen", build_path, "--args=" + gnargs.replace('\n', ' ')]),
-                        cwd=v8_path,
-                        env=env)
-    subprocess.check_call([ninja_path, "-v", "-C", build_path, "v8_monolith"],
-                        cwd=v8_path,
-                        env=env)
-
-    lib_fn = os.path.join(build_path, "obj/libv8_monolith.a")
     dest_path = os.path.join(deps_path, os_arch())
-    if not os.path.exists(dest_path):
-        os.makedirs(dest_path)
-    dest_fn = os.path.join(dest_path, 'libv8.a')
-    shutil.copy(lib_fn, dest_fn)
+    convert_to_thin_ar(
+        os.path.join(build_path, "obj/libv8_monolith.a"),
+        os.path.join(dest_path, "libv8.a"),
+        os.path.join(dest_path, "obj"))
 
 
 if __name__ == "__main__":

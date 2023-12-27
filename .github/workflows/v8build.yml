@@ -127,7 +127,9 @@ jobs:
                   # The name matches the directory under deps/.
                   name: ${{ matrix.os }}_${{ matrix.arch }}
                   if-no-files-found: error
-                  path: deps/${{ matrix.os }}_${{ matrix.arch }}/libv8.a
+                  path: |
+                      deps/${{ matrix.os }}_${{ matrix.arch }}/libv8.a
+                      deps/${{ matrix.os }}_${{ matrix.arch }}/obj/
                   retention-days: 2
 
     commit:
