@@ -126,10 +126,10 @@ def build_gn_args():
 
     return gnargs
 
-def subprocess_check_call(cmdargs, *args, **kwargs):
+def subprocess_check_call(cmdargs, *pargs, **kwargs):
     if args.verbose:
         print(sys.argv[0], ">", " ".join(cmd), file=sys.stderr)
-    subprocess.check_call(cmd(cmdargs), *args, **kwargs)
+    subprocess.check_call(cmd(cmdargs), *pargs, **kwargs)
 
 def cmd(args):
     return ["cmd", "/c"] + args if is_windows else args
