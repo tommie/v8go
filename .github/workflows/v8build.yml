@@ -49,14 +49,13 @@ jobs:
                       platform: macos-latest
         runs-on: ${{ matrix.platform }}
         steps:
-            - name: Restore CCache
-              uses: actions/cache@v3
-              with:
-                  path: ~/.ccache
-                  key: libv8:ccache:${{ matrix.os }}:${{ matrix.arch }}:${{ hashFiles('deps/v8_hash') }}:${{ runner.os }}
-                  restore-keys: |
-                      libv8:ccache:${{ matrix.os }}:${{ matrix.arch }}:
-                      ${{ runner.os }}:${{ matrix.os }}:${{ matrix.arch }}:libv8:ccache
+            - name: Install g++-aarch64-linux-gnu
+              if: matrix.os == 'linux' && matrix.arch == 'arm64'
+              run: sudo apt update && sudo apt install g++-aarch64-linux-gnu -y
+
+            - name: Install setuptools
+              if: matrix.platform == 'macos-latest'
+              run: python3 -m ensurepip --default-pip && python3 -m pip install --upgrade setuptools
 
             - name: Install CCache
               if: matrix.platform == 'ubuntu-latest'
@@ -74,22 +73,6 @@ jobs:
 
                   echo "$(brew --prefix ccache)/libexec" >> "$GITHUB_PATH"
 
-            - name: Configure CCache
-              run: |
-                  ccacheDir="$HOME/.ccache"
-                  mkdir -p "$ccacheDir"
-                  echo "CCACHE_DIR=$ccacheDir" >> "$GITHUB_ENV"
-                  echo "CCACHE_CPP2=yes" >> "$GITHUB_ENV"
-                  echo "CCACHE_SLOPPINESS=time_macros" >> "$GITHUB_ENV"
-
-            - name: Install g++-aarch64-linux-gnu
-              if: matrix.os == 'linux' && matrix.arch == 'arm64'
-              run: sudo apt update && sudo apt install g++-aarch64-linux-gnu -y
-
-            - name: Install setuptools
-              if: matrix.platform == 'macos-latest'
-              run: python3 -m ensurepip --default-pip && python3 -m pip install --upgrade setuptools
-
             - name: Checkout
               uses: actions/checkout@v4
               with:
@@ -103,6 +86,23 @@ jobs:
                   git fetch origin "$latest_v8_hash"
                   latest_v8_version="$(git tag --points-at "$latest_v8_hash" | head -n1)"
                   git checkout "${latest_v8_version:-$latest_v8_hash}"
+
+            - name: Configure CCache
+              run: |
+                  ccacheDir="$HOME/.ccache"
+                  mkdir -p "$ccacheDir"
+                  echo "CCACHE_DIR=$ccacheDir" >> "$GITHUB_ENV"
+                  echo "CCACHE_CPP2=yes" >> "$GITHUB_ENV"
+                  echo "CCACHE_SLOPPINESS=time_macros" >> "$GITHUB_ENV"
+
+            - name: Restore CCache
+              uses: actions/cache@v3
+              with:
+                  path: ~/.ccache
+                  key: libv8:ccache:${{ matrix.os }}:${{ matrix.arch }}:${{ hashFiles('deps/v8_hash') }}:${{ runner.os }}
+                  restore-keys: |
+                      libv8:ccache:${{ matrix.os }}:${{ matrix.arch }}:
+                      ${{ runner.os }}:${{ matrix.os }}:${{ matrix.arch }}:libv8:ccache
 
             - name: Restore V8 Build Cache
               uses: actions/cache@v3
