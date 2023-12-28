@@ -213,7 +213,7 @@ def convert_to_thin_ar(src_fn, dest_fn, dest_obj_dn):
         if len(ar_file_groups) < len(ar_files):
             ar_file_groups.extend([[]] * (len(ar_files) - len(ar_file_groups)))
         for i, ar_file in enumerate(ar_files):
-            ar_file_groups[i].append(ar_file.lower() if ar_mangles_case else ar_file)
+            ar_file_groups[i].append(ar_file)
 
     for i, ar_files in enumerate(ar_file_groups):
         subprocess_check_call(
