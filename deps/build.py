@@ -199,22 +199,14 @@ def convert_to_thin_ar(src_fn, dest_fn, dest_obj_dn):
 
     # llvm-ar (--clang) for Darwin (but not Android) seems to mangle
     # the names to lowercase on extraction, while others do not.
-    ar_mangles_case = args.os == "darwin"
+    case_sensitive = args.os != "darwin"
 
     # Extracting files one-by-one is slow, so let's group them into
-    # disjoint sets and use "ar N"...
-    ar_file_names = {}
-    for ar_file in ar_files:
-        ar_file_names[ar_file] = ar_file_names.get(ar_file, 0) + 1
+    # disjoint sets and use "ar N"... Complicated by the occasional
+    # case mangling.
+    ar_file_groups = allocate_disjoint_files(ar_files, case_sensitive)
 
-    ar_file_groups = []
-    for ar_file, count in ar_file_names.items():
-        if len(ar_file_groups) < count:
-            ar_file_groups.extend([[]] * (count - len(ar_file_groups)))
-        for i in range(count):
-            ar_file_groups[i].append(ar_file)
-
-    for i, ar_files in enumerate(ar_file_groups):
+    for i, ar_files in ar_file_groups:
         subprocess_check_call(
             [
                 ar_path,
@@ -225,7 +217,7 @@ def convert_to_thin_ar(src_fn, dest_fn, dest_obj_dn):
             ] + ar_files,
             cwd=v8_path)
         for ar_file in ar_files:
-            ar_file_canon = ar_file.lower() if ar_mangles_case else ar_file
+            ar_file_canon = ar_file if case_sensitive else ar_file.lower()
             os.rename(os.path.join(dest_obj_dn, ar_file_canon), os.path.join(dest_obj_dn, "{}.{}.o".format(1 + i, ar_file)))
 
     if os.path.exists(dest_fn):
@@ -239,6 +231,32 @@ def convert_to_thin_ar(src_fn, dest_fn, dest_obj_dn):
             os.path.relpath(dest_fn, dest_path),
         ] + [os.path.relpath(fn, dest_path) for fn in sorted(glob.glob(os.path.join(dest_obj_dn, "*")))],
         cwd=dest_path)
+
+def allocate_disjoint_files(ar_files, case_sensitive=True):
+    ar_file_counts = {} # file -> count
+    for ar_file in ar_files:
+        ar_file_counts[ar_file] = ar_file_counts.get(ar_file, 0) + 1
+    ar_file_counts = list(ar_file_counts.items())
+    ar_file_counts.sort(key=lambda item: -item[1])
+
+    ar_file_groups = [] # [(index, files)]
+    while ar_file_counts:
+        canon_file_set = {} # canon file -> (file, count)
+        file_set = set()
+        max_count = 0
+        for ar_file, count in ar_file_counts:
+            ar_file_canon = ar_file if case_sensitive else ar_file.lower()
+            canon_file_set.setdefault(ar_file_canon, (ar_file, count))
+            file_set.add(ar_file)
+            max_count = max(max_count, count)
+        ar_file_counts = [(ar_file, count) for ar_file, count in ar_file_counts if ar_file not in file_set]
+        groups = [(i, []) for i in range(max_count)]
+        for ar_file, count in canon_file_set.values():
+            for i in range(count):
+                groups[i][1].append(ar_file)
+        ar_file_groups.extend(groups)
+
+    return ar_file_groups
 
 def main():
     v8deps()
