@@ -199,18 +199,18 @@ def convert_to_thin_ar(src_fn, dest_fn, dest_obj_dn):
 
     # Extracting files one-by-one is slow, so let's group them into
     # disjoint sets and use "ar N"...
-    ar_file_counts = {}
+    ar_file_names = {}
     for ar_file in ar_files:
-        # At least llvm-ar (used for Darwin) seems to mangle the names
-        # to lowercase upon creation.
-        ar_file = ar_file.lower()
-        ar_file_counts[ar_file] = ar_file_counts.get(ar_file, 0) + 1
+        # llvm-ar (--clang) seems to mangle the names to lowercase on
+        # extraction, while binutils ar does not.
+        ar_file_canon = ar_file if is_clang else ar_file.lower()
+        ar_file_names.setdefault(ar_file_canon, []).append(ar_file)
 
     ar_file_groups = []
-    for ar_file, count in ar_file_counts.items():
-        if len(ar_file_groups) < count:
-            ar_file_groups.extend([[]] * (count - len(ar_file_groups)))
-        for i in range(count):
+    for ar_file_canon, ar_files in ar_file_names.items():
+        if len(ar_file_groups) < len(ar_files):
+            ar_file_groups.extend([[]] * (len(ar_files) - len(ar_file_groups)))
+        for i, ar_file in enumerate(ar_files):
             ar_file_groups[i].append(ar_file)
 
     for i, ar_files in enumerate(ar_file_groups):
@@ -225,7 +225,8 @@ def convert_to_thin_ar(src_fn, dest_fn, dest_obj_dn):
             ] + ar_files,
             cwd=v8_path)
         for ar_file in ar_files:
-            os.rename(os.path.join(dest_obj_dn, ar_file), os.path.join(dest_obj_dn, "{}.{}.o".format(1 + i, ar_file)))
+            ar_file_canon = ar_file if is_clang else ar_file.lower()
+            os.rename(os.path.join(dest_obj_dn, ar_file_canon), os.path.join(dest_obj_dn, "{}.{}.o".format(1 + i, ar_file)))
 
     if os.path.exists(dest_fn):
         os.unlink(dest_fn)
