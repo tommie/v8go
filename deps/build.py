@@ -218,7 +218,7 @@ def convert_to_thin_ar(src_fn, dest_fn, dest_obj_dn):
             cwd=v8_path)
         for ar_file in ar_files:
             ar_file_canon = ar_file if case_sensitive else ar_file.lower()
-            os.rename(os.path.join(dest_obj_dn, ar_file_canon), os.path.join(dest_obj_dn, "{}.{}.o".format(1 + i, ar_file)))
+            os.rename(os.path.join(dest_obj_dn, ar_file_canon), os.path.join(dest_obj_dn, "{}.{}".format(1 + i, ar_file)))
 
     if os.path.exists(dest_fn):
         os.unlink(dest_fn)
