@@ -10,10 +10,11 @@
 #include <string.h>
 
 #include <atomic>
+#include <iterator>
+#include <memory>
 #include <type_traits>
 
-#include "v8-version.h"  // NOLINT(build/include_directory)
-#include "v8config.h"    // NOLINT(build/include_directory)
+#include "v8config.h"  // NOLINT(build/include_directory)
 
 namespace v8 {
 
@@ -21,15 +22,14 @@ class Array;
 class Context;
 class Data;
 class Isolate;
-template <typename T>
-class Local;
 
 namespace internal {
 
+class Heap;
 class Isolate;
 
 typedef uintptr_t Address;
-static const Address kNullAddress = 0;
+static constexpr Address kNullAddress = 0;
 
 constexpr int KB = 1024;
 constexpr int MB = KB * 1024;
@@ -82,7 +82,7 @@ struct SmiTagging<4> {
       static_cast<intptr_t>(kUintptrAllBitsSet << (kSmiValueSize - 1));
   static constexpr intptr_t kSmiMaxValue = -(kSmiMinValue + 1);
 
-  V8_INLINE static int SmiToInt(const internal::Address value) {
+  V8_INLINE static constexpr int SmiToInt(Address value) {
     int shift_bits = kSmiTagSize + kSmiShiftSize;
     // Truncate and shift down (requires >> to be sign extending).
     return static_cast<int32_t>(static_cast<uint32_t>(value)) >> shift_bits;
@@ -107,7 +107,7 @@ struct SmiTagging<8> {
       static_cast<intptr_t>(kUintptrAllBitsSet << (kSmiValueSize - 1));
   static constexpr intptr_t kSmiMaxValue = -(kSmiMinValue + 1);
 
-  V8_INLINE static int SmiToInt(const internal::Address value) {
+  V8_INLINE static constexpr int SmiToInt(Address value) {
     int shift_bits = kSmiTagSize + kSmiShiftSize;
     // Shift down and throw away top 32 bits.
     return static_cast<int>(static_cast<intptr_t>(value) >> shift_bits);
@@ -150,8 +150,9 @@ const int kSmiMinValue = static_cast<int>(PlatformSmiTagging::kSmiMinValue);
 const int kSmiMaxValue = static_cast<int>(PlatformSmiTagging::kSmiMaxValue);
 constexpr bool SmiValuesAre31Bits() { return kSmiValueSize == 31; }
 constexpr bool SmiValuesAre32Bits() { return kSmiValueSize == 32; }
+constexpr bool Is64() { return kApiSystemPointerSize == sizeof(int64_t); }
 
-V8_INLINE static constexpr internal::Address IntToSmi(int value) {
+V8_INLINE static constexpr Address IntToSmi(int value) {
   return (static_cast<Address>(value) << (kSmiTagSize + kSmiShiftSize)) |
          kSmiTag;
 }
@@ -248,20 +249,22 @@ static_assert(1ULL << (64 - kBoundedSizeShift) ==
 // size allows omitting bounds checks on table accesses if the indices are
 // guaranteed (e.g. through shifting) to be below the maximum index. This
 // value must be a power of two.
-static const size_t kExternalPointerTableReservationSize = 512 * MB;
+constexpr size_t kExternalPointerTableReservationSize = 512 * MB;
 
 // The external pointer table indices stored in HeapObjects as external
 // pointers are shifted to the left by this amount to guarantee that they are
 // smaller than the maximum table size.
-static const uint32_t kExternalPointerIndexShift = 6;
+constexpr uint32_t kExternalPointerIndexShift = 6;
 #else
-static const size_t kExternalPointerTableReservationSize = 1024 * MB;
-static const uint32_t kExternalPointerIndexShift = 5;
+constexpr size_t kExternalPointerTableReservationSize = 1024 * MB;
+constexpr uint32_t kExternalPointerIndexShift = 5;
 #endif  // V8_TARGET_OS_ANDROID
 
 // The maximum number of entries in an external pointer table.
-static const size_t kMaxExternalPointers =
-    kExternalPointerTableReservationSize / kApiSystemPointerSize;
+constexpr int kExternalPointerTableEntrySize = 8;
+constexpr int kExternalPointerTableEntrySizeLog2 = 3;
+constexpr size_t kMaxExternalPointers =
+    kExternalPointerTableReservationSize / kExternalPointerTableEntrySize;
 static_assert((1 << (32 - kExternalPointerIndexShift)) == kMaxExternalPointers,
               "kExternalPointerTableReservationSize and "
               "kExternalPointerIndexShift don't match");
@@ -269,7 +272,7 @@ static_assert((1 << (32 - kExternalPointerIndexShift)) == kMaxExternalPointers,
 #else  // !V8_COMPRESS_POINTERS
 
 // Needed for the V8.SandboxedExternalPointersCount histogram.
-static const size_t kMaxExternalPointers = 0;
+constexpr size_t kMaxExternalPointers = 0;
 
 #endif  // V8_COMPRESS_POINTERS
 
@@ -282,15 +285,21 @@ static const size_t kMaxExternalPointers = 0;
 // that it is smaller than the size of the table.
 using ExternalPointerHandle = uint32_t;
 
-// ExternalPointers point to objects located outside the sandbox. When
-// sandboxed external pointers are enabled, these are stored on heap as
-// ExternalPointerHandles, otherwise they are simply raw pointers.
+// ExternalPointers point to objects located outside the sandbox. When the V8
+// sandbox is enabled, these are stored on heap as ExternalPointerHandles,
+// otherwise they are simply raw pointers.
 #ifdef V8_ENABLE_SANDBOX
 using ExternalPointer_t = ExternalPointerHandle;
 #else
 using ExternalPointer_t = Address;
 #endif
 
+constexpr ExternalPointer_t kNullExternalPointer = 0;
+constexpr ExternalPointerHandle kNullExternalPointerHandle = 0;
+
+//
+// External Pointers.
+//
 // When the sandbox is enabled, external pointers are stored in an external
 // pointer table and are referenced from HeapObjects through an index (a
 // "handle"). When stored in the table, the pointers are tagged with per-type
@@ -360,6 +369,7 @@ using ExternalPointer_t = Address;
 // ExternalPointerTable.
 constexpr uint64_t kExternalPointerMarkBit = 1ULL << 62;
 constexpr uint64_t kExternalPointerTagMask = 0x40ff000000000000;
+constexpr uint64_t kExternalPointerTagMaskWithoutMarkBit = 0xff000000000000;
 constexpr uint64_t kExternalPointerTagShift = 48;
 
 // All possible 8-bit type tags.
@@ -418,7 +428,8 @@ constexpr uint64_t kAllExternalPointerTypeTags[] = {
   V(kWasmTypeInfoNativeTypeTag,                 TAG(18)) \
   V(kWasmExportedFunctionDataSignatureTag,      TAG(19)) \
   V(kWasmContinuationJmpbufTag,                 TAG(20)) \
-  V(kArrayBufferExtensionTag,                   TAG(21))
+  V(kWasmIndirectFunctionTargetTag,             TAG(21)) \
+  V(kArrayBufferExtensionTag,                   TAG(22))
 
 // All external pointer tags.
 #define ALL_EXTERNAL_POINTER_TAGS(V) \
@@ -431,7 +442,7 @@ constexpr uint64_t kAllExternalPointerTypeTags[] = {
   (HasMarkBit ? kExternalPointerMarkBit : 0))
 enum ExternalPointerTag : uint64_t {
   // Empty tag value. Mostly used as placeholder.
-  kExternalPointerNullTag =            MAKE_TAG(0, 0b00000000),
+  kExternalPointerNullTag =            MAKE_TAG(1, 0b00000000),
   // External pointer tag that will match any external pointer. Use with care!
   kAnyExternalPointerTag =             MAKE_TAG(1, 0b11111111),
   // The free entry tag has all type bits set so every type check with a
@@ -472,6 +483,107 @@ PER_ISOLATE_EXTERNAL_POINTER_TAGS(CHECK_NON_SHARED_EXTERNAL_POINTER_TAGS)
 #undef SHARED_EXTERNAL_POINTER_TAGS
 #undef EXTERNAL_POINTER_TAGS
 
+//
+// Indirect Pointers.
+//
+// When the sandbox is enabled, indirect pointers are used to reference
+// HeapObjects that live outside of the sandbox (but are still managed by V8's
+// garbage collector). When object A references an object B through an indirect
+// pointer, object A will contain a IndirectPointerHandle, i.e. a shifted
+// 32-bit index, which identifies an entry in a pointer table (either the
+// trusted pointer table for TrustedObjects, or the code pointer table if it is
+// a Code object). This table entry then contains the actual pointer to object
+// B. Further, object B owns this pointer table entry, and it is responsible
+// for updating the "self-pointer" in the entry when it is relocated in memory.
+// This way, in contrast to "normal" pointers, indirect pointers never need to
+// be tracked by the GC (i.e. there is no remembered set for them).
+// These pointers do not exist when the sandbox is disabled.
+
+// An IndirectPointerHandle represents a 32-bit index into a pointer table.
+using IndirectPointerHandle = uint32_t;
+
+// A null handle always references an entry that contains nullptr.
+constexpr IndirectPointerHandle kNullIndirectPointerHandle = 0;
+
+// When the sandbox is enabled, indirect pointers are used to implement:
+// - TrustedPointers: an indirect pointer using the trusted pointer table (TPT)
+//   and referencing a TrustedObject in one of the trusted heap spaces.
+// - CodePointers, an indirect pointer using the code pointer table (CPT) and
+//   referencing a Code object together with its instruction stream.
+
+//
+// Trusted Pointers.
+//
+// A pointer to a TrustedObject.
+// When the sandbox is enabled, these are indirect pointers using the trusted
+// pointer table (TPT). They are used to reference trusted objects (located in
+// one of V8's trusted heap spaces, outside of the sandbox) from inside the
+// sandbox in a memory-safe way. When the sandbox is disabled, these are
+// regular tagged pointers.
+using TrustedPointerHandle = IndirectPointerHandle;
+
+// The size of the virtual memory reservation for the trusted pointer table.
+// As with the external pointer table, a maximum table size in combination with
+// shifted indices allows omitting bounds checks.
+constexpr size_t kTrustedPointerTableReservationSize = 64 * MB;
+
+// The trusted pointer handles are stores shifted to the left by this amount
+// to guarantee that they are smaller than the maximum table size.
+constexpr uint32_t kTrustedPointerHandleShift = 9;
+
+// A null handle always references an entry that contains nullptr.
+constexpr TrustedPointerHandle kNullTrustedPointerHandle =
+    kNullIndirectPointerHandle;
+
+// The maximum number of entries in an trusted pointer table.
+constexpr int kTrustedPointerTableEntrySize = 8;
+constexpr int kTrustedPointerTableEntrySizeLog2 = 3;
+constexpr size_t kMaxTrustedPointers =
+    kTrustedPointerTableReservationSize / kTrustedPointerTableEntrySize;
+static_assert((1 << (32 - kTrustedPointerHandleShift)) == kMaxTrustedPointers,
+              "kTrustedPointerTableReservationSize and "
+              "kTrustedPointerHandleShift don't match");
+
+//
+// Code Pointers.
+//
+// A pointer to a Code object.
+// Essentially a specialized version of a trusted pointer that (when the
+// sandbox is enabled) uses the code pointer table (CPT) instead of the TPT.
+// Each entry in the CPT contains both a pointer to a Code object as well as a
+// pointer to the Code's entrypoint. This allows calling/jumping into Code with
+// one fewer memory access (compared to the case where the entrypoint pointer
+// first needs to be loaded from the Code object). As such, a CodePointerHandle
+// can be used both to obtain the referenced Code object and to directly load
+// its entrypoint.
+//
+// When the sandbox is disabled, these are regular tagged pointers.
+using CodePointerHandle = IndirectPointerHandle;
+
+// The size of the virtual memory reservation for the code pointer table.
+// As with the other tables, a maximum table size in combination with shifted
+// indices allows omitting bounds checks.
+constexpr size_t kCodePointerTableReservationSize = 16 * MB;
+
+// Code pointer handles are shifted by a different amount than indirect pointer
+// handles as the tables have a different maximum size.
+constexpr uint32_t kCodePointerHandleShift = 12;
+
+// A null handle always references an entry that contains nullptr.
+constexpr CodePointerHandle kNullCodePointerHandle = kNullIndirectPointerHandle;
+
+// The maximum number of entries in a code pointer table.
+constexpr int kCodePointerTableEntrySize = 16;
+constexpr int kCodePointerTableEntrySizeLog2 = 4;
+constexpr size_t kMaxCodePointers =
+    kCodePointerTableReservationSize / kCodePointerTableEntrySize;
+static_assert(
+    (1 << (32 - kCodePointerHandleShift)) == kMaxCodePointers,
+    "kCodePointerTableReservationSize and kCodePointerHandleShift don't match");
+
+constexpr int kCodePointerTableEntryEntrypointOffset = 0;
+constexpr int kCodePointerTableEntryCodeObjectOffset = 8;
+
 // {obj} must be the raw tagged pointer representation of a HeapObject
 // that's guaranteed to never be in ReadOnlySpace.
 V8_EXPORT internal::Isolate* IsolateFromNeverReadOnlySpaceObject(Address obj);
@@ -479,7 +591,7 @@ V8_EXPORT internal::Isolate* IsolateFromNeverReadOnlySpaceObject(Address obj);
 // Returns if we need to throw when an error occurs. This infers the language
 // mode based on the current context and the closure. This returns true if the
 // language mode is strict.
-V8_EXPORT bool ShouldThrowOnError(v8::internal::Isolate* isolate);
+V8_EXPORT bool ShouldThrowOnError(internal::Isolate* isolate);
 /**
  * This class exports constants and functionality from within v8 that
  * is necessary to implement inline functions in the v8 api.  Don't
@@ -487,8 +599,7 @@ V8_EXPORT bool ShouldThrowOnError(v8::internal::Isolate* isolate);
  */
 class Internals {
 #ifdef V8_MAP_PACKING
-  V8_INLINE static constexpr internal::Address UnpackMapWord(
-      internal::Address mapword) {
+  V8_INLINE static constexpr Address UnpackMapWord(Address mapword) {
     // TODO(wenyuzhao): Clear header metadata.
     return mapword ^ kMapWordXorMask;
   }
@@ -519,13 +630,19 @@ class Internals {
   static const int kExternalOneByteRepresentationTag = 0x0a;
 
   static const uint32_t kNumIsolateDataSlots = 4;
-  static const int kStackGuardSize = 7 * kApiSystemPointerSize;
+  static const int kStackGuardSize = 8 * kApiSystemPointerSize;
   static const int kBuiltinTier0EntryTableSize = 7 * kApiSystemPointerSize;
   static const int kBuiltinTier0TableSize = 7 * kApiSystemPointerSize;
+  static const int kLinearAllocationAreaSize = 3 * kApiSystemPointerSize;
+  static const int kThreadLocalTopSize = 30 * kApiSystemPointerSize;
+  static const int kHandleScopeDataSize =
+      2 * kApiSystemPointerSize + 2 * kApiInt32Size;
 
-  // ExternalPointerTable layout guarantees.
-  static const int kExternalPointerTableBufferOffset = 0;
-  static const int kExternalPointerTableSize = 4 * kApiSystemPointerSize;
+  // ExternalPointerTable and TrustedPointerTable layout guarantees.
+  static const int kExternalPointerTableBasePointerOffset = 0;
+  static const int kExternalPointerTableSize = 2 * kApiSystemPointerSize;
+  static const int kTrustedPointerTableSize = 2 * kApiSystemPointerSize;
+  static const int kTrustedPointerTableBasePointerOffset = 0;
 
   // IsolateData layout guarantees.
   static const int kIsolateCageBaseOffset = 0;
@@ -537,27 +654,62 @@ class Internals {
       kVariousBooleanFlagsOffset + 8;
   static const int kBuiltinTier0TableOffset =
       kBuiltinTier0EntryTableOffset + kBuiltinTier0EntryTableSize;
-  static const int kIsolateEmbedderDataOffset =
+  static const int kNewAllocationInfoOffset =
       kBuiltinTier0TableOffset + kBuiltinTier0TableSize;
+  static const int kOldAllocationInfoOffset =
+      kNewAllocationInfoOffset + kLinearAllocationAreaSize;
   static const int kIsolateFastCCallCallerFpOffset =
-      kIsolateEmbedderDataOffset + kNumIsolateDataSlots * kApiSystemPointerSize;
+      kOldAllocationInfoOffset + kLinearAllocationAreaSize;
   static const int kIsolateFastCCallCallerPcOffset =
       kIsolateFastCCallCallerFpOffset + kApiSystemPointerSize;
   static const int kIsolateFastApiCallTargetOffset =
       kIsolateFastCCallCallerPcOffset + kApiSystemPointerSize;
   static const int kIsolateLongTaskStatsCounterOffset =
       kIsolateFastApiCallTargetOffset + kApiSystemPointerSize;
+  static const int kIsolateThreadLocalTopOffset =
+      kIsolateLongTaskStatsCounterOffset + kApiSizetSize;
+  static const int kIsolateHandleScopeDataOffset =
+      kIsolateThreadLocalTopOffset + kThreadLocalTopSize;
+  static const int kIsolateEmbedderDataOffset =
+      kIsolateHandleScopeDataOffset + kHandleScopeDataSize;
 #ifdef V8_COMPRESS_POINTERS
   static const int kIsolateExternalPointerTableOffset =
-      kIsolateLongTaskStatsCounterOffset + kApiSizetSize;
+      kIsolateEmbedderDataOffset + kNumIsolateDataSlots * kApiSystemPointerSize;
   static const int kIsolateSharedExternalPointerTableAddressOffset =
       kIsolateExternalPointerTableOffset + kExternalPointerTableSize;
-  static const int kIsolateRootsOffset =
+  static const int kIsolateTrustedPointerTableOffset =
       kIsolateSharedExternalPointerTableAddressOffset + kApiSystemPointerSize;
+  static const int kIsolateApiCallbackThunkArgumentOffset =
+      kIsolateTrustedPointerTableOffset + kTrustedPointerTableSize;
 #else
-  static const int kIsolateRootsOffset =
-      kIsolateLongTaskStatsCounterOffset + kApiSizetSize;
+  static const int kIsolateApiCallbackThunkArgumentOffset =
+      kIsolateEmbedderDataOffset + kNumIsolateDataSlots * kApiSystemPointerSize;
 #endif
+  static const int kIsolateRootsOffset =
+      kIsolateApiCallbackThunkArgumentOffset + kApiSystemPointerSize;
+
+#if V8_STATIC_ROOTS_BOOL
+
+// These constants need to be initialized in api.cc.
+#define EXPORTED_STATIC_ROOTS_PTR_LIST(V) \
+  V(UndefinedValue)                       \
+  V(NullValue)                            \
+  V(TrueValue)                            \
+  V(FalseValue)                           \
+  V(EmptyString)                          \
+  V(TheHoleValue)
+
+  using Tagged_t = uint32_t;
+  struct StaticReadOnlyRoot {
+#define DEF_ROOT(name) V8_EXPORT static const Tagged_t k##name;
+    EXPORTED_STATIC_ROOTS_PTR_LIST(DEF_ROOT)
+#undef DEF_ROOT
+
+    V8_EXPORT static const Tagged_t kFirstStringMap;
+    V8_EXPORT static const Tagged_t kLastStringMap;
+  };
+
+#endif  // V8_STATIC_ROOTS_BOOL
 
   static const int kUndefinedValueRootIndex = 4;
   static const int kTheHoleValueRootIndex = 5;
@@ -581,7 +733,7 @@ class Internals {
   static const int kFirstJSApiObjectType = 0x422;
   static const int kLastJSApiObjectType = 0x80A;
 
-  static const int kUndefinedOddballKind = 5;
+  static const int kUndefinedOddballKind = 4;
   static const int kNullOddballKind = 3;
 
   // Constants used by PropertyCallbackInfo to check if we should throw when an
@@ -612,15 +764,15 @@ class Internals {
 #endif
   }
 
-  V8_INLINE static bool HasHeapObjectTag(const internal::Address value) {
+  V8_INLINE static constexpr bool HasHeapObjectTag(Address value) {
     return (value & kHeapObjectTagMask) == static_cast<Address>(kHeapObjectTag);
   }
 
-  V8_INLINE static int SmiValue(const internal::Address value) {
+  V8_INLINE static constexpr int SmiValue(Address value) {
     return PlatformSmiTagging::SmiToInt(value);
   }
 
-  V8_INLINE static constexpr internal::Address IntToSmi(int value) {
+  V8_INLINE static constexpr Address IntToSmi(int value) {
     return internal::IntToSmi(value);
   }
 
@@ -628,16 +780,39 @@ class Internals {
     return PlatformSmiTagging::IsValidSmi(value);
   }
 
-  V8_INLINE static int GetInstanceType(const internal::Address obj) {
-    typedef internal::Address A;
-    A map = ReadTaggedPointerField(obj, kHeapObjectMapOffset);
+#if V8_STATIC_ROOTS_BOOL
+  V8_INLINE static bool is_identical(Address obj, Tagged_t constant) {
+    return static_cast<Tagged_t>(obj) == constant;
+  }
+
+  V8_INLINE static bool CheckInstanceMapRange(Address obj, Tagged_t first_map,
+                                              Tagged_t last_map) {
+    auto map = ReadRawField<Tagged_t>(obj, kHeapObjectMapOffset);
+#ifdef V8_MAP_PACKING
+    map = UnpackMapWord(map);
+#endif
+    return map >= first_map && map <= last_map;
+  }
+#endif
+
+  V8_INLINE static int GetInstanceType(Address obj) {
+    Address map = ReadTaggedPointerField(obj, kHeapObjectMapOffset);
 #ifdef V8_MAP_PACKING
     map = UnpackMapWord(map);
 #endif
     return ReadRawField<uint16_t>(map, kMapInstanceTypeOffset);
   }
 
-  V8_INLINE static int GetOddballKind(const internal::Address obj) {
+  V8_INLINE static Address LoadMap(Address obj) {
+    if (!HasHeapObjectTag(obj)) return kNullAddress;
+    Address map = ReadTaggedPointerField(obj, kHeapObjectMapOffset);
+#ifdef V8_MAP_PACKING
+    map = UnpackMapWord(map);
+#endif
+    return map;
+  }
+
+  V8_INLINE static int GetOddballKind(Address obj) {
     return SmiValue(ReadTaggedSignedField(obj, kOddballKindOffset));
   }
 
@@ -658,80 +833,92 @@ class Internals {
             static_cast<unsigned>(kLastJSApiObjectType - kJSObjectType));
   }
 
-  V8_INLINE static uint8_t GetNodeFlag(internal::Address* obj, int shift) {
+  V8_INLINE static uint8_t GetNodeFlag(Address* obj, int shift) {
     uint8_t* addr = reinterpret_cast<uint8_t*>(obj) + kNodeFlagsOffset;
     return *addr & static_cast<uint8_t>(1U << shift);
   }
 
-  V8_INLINE static void UpdateNodeFlag(internal::Address* obj, bool value,
-                                       int shift) {
+  V8_INLINE static void UpdateNodeFlag(Address* obj, bool value, int shift) {
     uint8_t* addr = reinterpret_cast<uint8_t*>(obj) + kNodeFlagsOffset;
     uint8_t mask = static_cast<uint8_t>(1U << shift);
     *addr = static_cast<uint8_t>((*addr & ~mask) | (value << shift));
   }
 
-  V8_INLINE static uint8_t GetNodeState(internal::Address* obj) {
+  V8_INLINE static uint8_t GetNodeState(Address* obj) {
     uint8_t* addr = reinterpret_cast<uint8_t*>(obj) + kNodeFlagsOffset;
     return *addr & kNodeStateMask;
   }
 
-  V8_INLINE static void UpdateNodeState(internal::Address* obj, uint8_t value) {
+  V8_INLINE static void UpdateNodeState(Address* obj, uint8_t value) {
     uint8_t* addr = reinterpret_cast<uint8_t*>(obj) + kNodeFlagsOffset;
     *addr = static_cast<uint8_t>((*addr & ~kNodeStateMask) | value);
   }
 
   V8_INLINE static void SetEmbedderData(v8::Isolate* isolate, uint32_t slot,
                                         void* data) {
-    internal::Address addr = reinterpret_cast<internal::Address>(isolate) +
-                             kIsolateEmbedderDataOffset +
-                             slot * kApiSystemPointerSize;
+    Address addr = reinterpret_cast<Address>(isolate) +
+                   kIsolateEmbedderDataOffset + slot * kApiSystemPointerSize;
     *reinterpret_cast<void**>(addr) = data;
   }
 
   V8_INLINE static void* GetEmbedderData(const v8::Isolate* isolate,
                                          uint32_t slot) {
-    internal::Address addr = reinterpret_cast<internal::Address>(isolate) +
-                             kIsolateEmbedderDataOffset +
-                             slot * kApiSystemPointerSize;
+    Address addr = reinterpret_cast<Address>(isolate) +
+                   kIsolateEmbedderDataOffset + slot * kApiSystemPointerSize;
     return *reinterpret_cast<void* const*>(addr);
   }
 
   V8_INLINE static void IncrementLongTasksStatsCounter(v8::Isolate* isolate) {
-    internal::Address addr = reinterpret_cast<internal::Address>(isolate) +
-                             kIsolateLongTaskStatsCounterOffset;
+    Address addr =
+        reinterpret_cast<Address>(isolate) + kIsolateLongTaskStatsCounterOffset;
     ++(*reinterpret_cast<size_t*>(addr));
   }
 
-  V8_INLINE static internal::Address* GetRoot(v8::Isolate* isolate, int index) {
-    internal::Address addr = reinterpret_cast<internal::Address>(isolate) +
-                             kIsolateRootsOffset +
-                             index * kApiSystemPointerSize;
-    return reinterpret_cast<internal::Address*>(addr);
+  V8_INLINE static Address* GetRootSlot(v8::Isolate* isolate, int index) {
+    Address addr = reinterpret_cast<Address>(isolate) + kIsolateRootsOffset +
+                   index * kApiSystemPointerSize;
+    return reinterpret_cast<Address*>(addr);
+  }
+
+  V8_INLINE static Address GetRoot(v8::Isolate* isolate, int index) {
+#if V8_STATIC_ROOTS_BOOL
+    Address base = *reinterpret_cast<Address*>(
+        reinterpret_cast<uintptr_t>(isolate) + kIsolateCageBaseOffset);
+    switch (index) {
+#define DECOMPRESS_ROOT(name) \
+  case k##name##RootIndex:    \
+    return base + StaticReadOnlyRoot::k##name;
+      EXPORTED_STATIC_ROOTS_PTR_LIST(DECOMPRESS_ROOT)
+#undef DECOMPRESS_ROOT
+      default:
+        break;
+    }
+#undef EXPORTED_STATIC_ROOTS_PTR_LIST
+#endif  // V8_STATIC_ROOTS_BOOL
+    return *GetRootSlot(isolate, index);
   }
 
 #ifdef V8_ENABLE_SANDBOX
-  V8_INLINE static internal::Address* GetExternalPointerTableBase(
-      v8::Isolate* isolate) {
-    internal::Address addr = reinterpret_cast<internal::Address>(isolate) +
-                             kIsolateExternalPointerTableOffset +
-                             kExternalPointerTableBufferOffset;
-    return *reinterpret_cast<internal::Address**>(addr);
+  V8_INLINE static Address* GetExternalPointerTableBase(v8::Isolate* isolate) {
+    Address addr = reinterpret_cast<Address>(isolate) +
+                   kIsolateExternalPointerTableOffset +
+                   kExternalPointerTableBasePointerOffset;
+    return *reinterpret_cast<Address**>(addr);
   }
 
-  V8_INLINE static internal::Address* GetSharedExternalPointerTableBase(
+  V8_INLINE static Address* GetSharedExternalPointerTableBase(
       v8::Isolate* isolate) {
-    internal::Address addr = reinterpret_cast<internal::Address>(isolate) +
-                             kIsolateSharedExternalPointerTableAddressOffset;
-    addr = *reinterpret_cast<internal::Address*>(addr);
-    addr += kExternalPointerTableBufferOffset;
-    return *reinterpret_cast<internal::Address**>(addr);
+    Address addr = reinterpret_cast<Address>(isolate) +
+                   kIsolateSharedExternalPointerTableAddressOffset;
+    addr = *reinterpret_cast<Address*>(addr);
+    addr += kExternalPointerTableBasePointerOffset;
+    return *reinterpret_cast<Address**>(addr);
   }
 #endif
 
   template <typename T>
-  V8_INLINE static T ReadRawField(internal::Address heap_object_ptr,
-                                  int offset) {
-    internal::Address addr = heap_object_ptr + offset - kHeapObjectTag;
+  V8_INLINE static T ReadRawField(Address heap_object_ptr, int offset) {
+    Address addr = heap_object_ptr + offset - kHeapObjectTag;
 #ifdef V8_COMPRESS_POINTERS
     if (sizeof(T) > kApiTaggedSize) {
       // TODO(ishell, v8:8875): When pointer compression is enabled 8-byte size
@@ -746,29 +933,28 @@ class Internals {
     return *reinterpret_cast<const T*>(addr);
   }
 
-  V8_INLINE static internal::Address ReadTaggedPointerField(
-      internal::Address heap_object_ptr, int offset) {
+  V8_INLINE static Address ReadTaggedPointerField(Address heap_object_ptr,
+                                                  int offset) {
 #ifdef V8_COMPRESS_POINTERS
     uint32_t value = ReadRawField<uint32_t>(heap_object_ptr, offset);
-    internal::Address base =
-        GetPtrComprCageBaseFromOnHeapAddress(heap_object_ptr);
-    return base + static_cast<internal::Address>(static_cast<uintptr_t>(value));
+    Address base = GetPtrComprCageBaseFromOnHeapAddress(heap_object_ptr);
+    return base + static_cast<Address>(static_cast<uintptr_t>(value));
 #else
-    return ReadRawField<internal::Address>(heap_object_ptr, offset);
+    return ReadRawField<Address>(heap_object_ptr, offset);
 #endif
   }
 
-  V8_INLINE static internal::Address ReadTaggedSignedField(
-      internal::Address heap_object_ptr, int offset) {
+  V8_INLINE static Address ReadTaggedSignedField(Address heap_object_ptr,
+                                                 int offset) {
 #ifdef V8_COMPRESS_POINTERS
     uint32_t value = ReadRawField<uint32_t>(heap_object_ptr, offset);
-    return static_cast<internal::Address>(static_cast<uintptr_t>(value));
+    return static_cast<Address>(static_cast<uintptr_t>(value));
 #else
-    return ReadRawField<internal::Address>(heap_object_ptr, offset);
+    return ReadRawField<Address>(heap_object_ptr, offset);
 #endif
   }
 
-  V8_INLINE static v8::Isolate* GetIsolateForSandbox(internal::Address obj) {
+  V8_INLINE static v8::Isolate* GetIsolateForSandbox(Address obj) {
 #ifdef V8_ENABLE_SANDBOX
     return reinterpret_cast<v8::Isolate*>(
         internal::IsolateFromNeverReadOnlySpaceObject(obj));
@@ -779,22 +965,22 @@ class Internals {
   }
 
   template <ExternalPointerTag tag>
-  V8_INLINE static internal::Address ReadExternalPointerField(
-      v8::Isolate* isolate, internal::Address heap_object_ptr, int offset) {
+  V8_INLINE static Address ReadExternalPointerField(v8::Isolate* isolate,
+                                                    Address heap_object_ptr,
+                                                    int offset) {
 #ifdef V8_ENABLE_SANDBOX
     static_assert(tag != kExternalPointerNullTag);
     // See src/sandbox/external-pointer-table-inl.h. Logic duplicated here so
     // it can be inlined and doesn't require an additional call.
-    internal::Address* table = IsSharedExternalPointerType(tag)
-                                   ? GetSharedExternalPointerTableBase(isolate)
-                                   : GetExternalPointerTableBase(isolate);
+    Address* table = IsSharedExternalPointerType(tag)
+                         ? GetSharedExternalPointerTableBase(isolate)
+                         : GetExternalPointerTableBase(isolate);
     internal::ExternalPointerHandle handle =
         ReadRawField<ExternalPointerHandle>(heap_object_ptr, offset);
     uint32_t index = handle >> kExternalPointerIndexShift;
-    std::atomic<internal::Address>* ptr =
-        reinterpret_cast<std::atomic<internal::Address>*>(&table[index]);
-    internal::Address entry =
-        std::atomic_load_explicit(ptr, std::memory_order_relaxed);
+    std::atomic<Address>* ptr =
+        reinterpret_cast<std::atomic<Address>*>(&table[index]);
+    Address entry = std::atomic_load_explicit(ptr, std::memory_order_relaxed);
     return entry & ~tag;
 #else
     return ReadRawField<Address>(heap_object_ptr, offset);
@@ -802,16 +988,14 @@ class Internals {
   }
 
 #ifdef V8_COMPRESS_POINTERS
-  V8_INLINE static internal::Address GetPtrComprCageBaseFromOnHeapAddress(
-      internal::Address addr) {
+  V8_INLINE static Address GetPtrComprCageBaseFromOnHeapAddress(Address addr) {
     return addr & -static_cast<intptr_t>(kPtrComprCageBaseAlignment);
   }
 
-  V8_INLINE static internal::Address DecompressTaggedAnyField(
-      internal::Address heap_object_ptr, uint32_t value) {
-    internal::Address base =
-        GetPtrComprCageBaseFromOnHeapAddress(heap_object_ptr);
-    return base + static_cast<internal::Address>(static_cast<uintptr_t>(value));
+  V8_INLINE static Address DecompressTaggedField(Address heap_object_ptr,
+                                                 uint32_t value) {
+    Address base = GetPtrComprCageBaseFromOnHeapAddress(heap_object_ptr);
+    return base + static_cast<Address>(static_cast<uintptr_t>(value));
   }
 
 #endif  // V8_COMPRESS_POINTERS
@@ -849,8 +1033,212 @@ class BackingStoreBase {};
 // This is needed for histograms sampling garbage collection reasons.
 constexpr int kGarbageCollectionReasonMaxValue = 27;
 
-}  // namespace internal
+// Base class for the address block allocator compatible with standard
+// containers, which registers its allocated range as strong roots.
+class V8_EXPORT StrongRootAllocatorBase {
+ public:
+  Heap* heap() const { return heap_; }
 
+  bool operator==(const StrongRootAllocatorBase& other) const {
+    return heap_ == other.heap_;
+  }
+  bool operator!=(const StrongRootAllocatorBase& other) const {
+    return heap_ != other.heap_;
+  }
+
+ protected:
+  explicit StrongRootAllocatorBase(Heap* heap) : heap_(heap) {}
+  explicit StrongRootAllocatorBase(v8::Isolate* isolate);
+
+  // Allocate/deallocate a range of n elements of type internal::Address.
+  Address* allocate_impl(size_t n);
+  void deallocate_impl(Address* p, size_t n) noexcept;
+
+ private:
+  Heap* heap_;
+};
+
+// The general version of this template behaves just as std::allocator, with
+// the exception that the constructor takes the isolate as parameter. Only
+// specialized versions, e.g., internal::StrongRootAllocator<internal::Address>
+// and internal::StrongRootAllocator<v8::Local<T>> register the allocated range
+// as strong roots.
+template <typename T>
+class StrongRootAllocator : public StrongRootAllocatorBase,
+                            private std::allocator<T> {
+ public:
+  using value_type = T;
+
+  explicit StrongRootAllocator(Heap* heap) : StrongRootAllocatorBase(heap) {}
+  explicit StrongRootAllocator(v8::Isolate* isolate)
+      : StrongRootAllocatorBase(isolate) {}
+  template <typename U>
+  StrongRootAllocator(const StrongRootAllocator<U>& other) noexcept
+      : StrongRootAllocatorBase(other) {}
+
+  using std::allocator<T>::allocate;
+  using std::allocator<T>::deallocate;
+};
+
+// A class of iterators that wrap some different iterator type.
+// If specified, ElementType is the type of element accessed by the wrapper
+// iterator; in this case, the actual reference and pointer types of Iterator
+// must be convertible to ElementType& and ElementType*, respectively.
+template <typename Iterator, typename ElementType = void>
+class WrappedIterator {
+ public:
+  static_assert(
+      !std::is_void_v<ElementType> ||
+      (std::is_convertible_v<typename std::iterator_traits<Iterator>::pointer,
+                             ElementType*> &&
+       std::is_convertible_v<typename std::iterator_traits<Iterator>::reference,
+                             ElementType&>));
+
+  using iterator_category =
+      typename std::iterator_traits<Iterator>::iterator_category;
+  using difference_type =
+      typename std::iterator_traits<Iterator>::difference_type;
+  using value_type =
+      std::conditional_t<std::is_void_v<ElementType>,
+                         typename std::iterator_traits<Iterator>::value_type,
+                         ElementType>;
+  using pointer =
+      std::conditional_t<std::is_void_v<ElementType>,
+                         typename std::iterator_traits<Iterator>::pointer,
+                         ElementType*>;
+  using reference =
+      std::conditional_t<std::is_void_v<ElementType>,
+                         typename std::iterator_traits<Iterator>::reference,
+                         ElementType&>;
+
+  constexpr WrappedIterator() noexcept : it_() {}
+  constexpr explicit WrappedIterator(Iterator it) noexcept : it_(it) {}
+
+  template <typename OtherIterator, typename OtherElementType,
+            std::enable_if_t<std::is_convertible_v<OtherIterator, Iterator>,
+                             bool> = true>
+  constexpr WrappedIterator(
+      const WrappedIterator<OtherIterator, OtherElementType>& it) noexcept
+      : it_(it.base()) {}
+
+  constexpr reference operator*() const noexcept { return *it_; }
+  constexpr pointer operator->() const noexcept { return it_.operator->(); }
+
+  constexpr WrappedIterator& operator++() noexcept {
+    ++it_;
+    return *this;
+  }
+  constexpr WrappedIterator operator++(int) noexcept {
+    WrappedIterator result(*this);
+    ++(*this);
+    return result;
+  }
+
+  constexpr WrappedIterator& operator--() noexcept {
+    --it_;
+    return *this;
+  }
+  constexpr WrappedIterator operator--(int) noexcept {
+    WrappedIterator result(*this);
+    --(*this);
+    return result;
+  }
+  constexpr WrappedIterator operator+(difference_type n) const noexcept {
+    WrappedIterator result(*this);
+    result += n;
+    return result;
+  }
+  constexpr WrappedIterator& operator+=(difference_type n) noexcept {
+    it_ += n;
+    return *this;
+  }
+  constexpr WrappedIterator operator-(difference_type n) const noexcept {
+    return *this + (-n);
+  }
+  constexpr WrappedIterator& operator-=(difference_type n) noexcept {
+    *this += -n;
+    return *this;
+  }
+  constexpr reference operator[](difference_type n) const noexcept {
+    return it_[n];
+  }
+
+  constexpr Iterator base() const noexcept { return it_; }
+
+ private:
+  template <typename OtherIterator, typename OtherElementType>
+  friend class WrappedIterator;
+
+ private:
+  Iterator it_;
+};
+
+template <typename Iterator, typename ElementType, typename OtherIterator,
+          typename OtherElementType>
+constexpr bool operator==(
+    const WrappedIterator<Iterator, ElementType>& x,
+    const WrappedIterator<OtherIterator, OtherElementType>& y) noexcept {
+  return x.base() == y.base();
+}
+
+template <typename Iterator, typename ElementType, typename OtherIterator,
+          typename OtherElementType>
+constexpr bool operator<(
+    const WrappedIterator<Iterator, ElementType>& x,
+    const WrappedIterator<OtherIterator, OtherElementType>& y) noexcept {
+  return x.base() < y.base();
+}
+
+template <typename Iterator, typename ElementType, typename OtherIterator,
+          typename OtherElementType>
+constexpr bool operator!=(
+    const WrappedIterator<Iterator, ElementType>& x,
+    const WrappedIterator<OtherIterator, OtherElementType>& y) noexcept {
+  return !(x == y);
+}
+
+template <typename Iterator, typename ElementType, typename OtherIterator,
+          typename OtherElementType>
+constexpr bool operator>(
+    const WrappedIterator<Iterator, ElementType>& x,
+    const WrappedIterator<OtherIterator, OtherElementType>& y) noexcept {
+  return y < x;
+}
+
+template <typename Iterator, typename ElementType, typename OtherIterator,
+          typename OtherElementType>
+constexpr bool operator>=(
+    const WrappedIterator<Iterator, ElementType>& x,
+    const WrappedIterator<OtherIterator, OtherElementType>& y) noexcept {
+  return !(x < y);
+}
+
+template <typename Iterator, typename ElementType, typename OtherIterator,
+          typename OtherElementType>
+constexpr bool operator<=(
+    const WrappedIterator<Iterator, ElementType>& x,
+    const WrappedIterator<OtherIterator, OtherElementType>& y) noexcept {
+  return !(y < x);
+}
+
+template <typename Iterator, typename ElementType, typename OtherIterator,
+          typename OtherElementType>
+constexpr auto operator-(
+    const WrappedIterator<Iterator, ElementType>& x,
+    const WrappedIterator<OtherIterator, OtherElementType>& y) noexcept
+    -> decltype(x.base() - y.base()) {
+  return x.base() - y.base();
+}
+
+template <typename Iterator, typename ElementType>
+constexpr WrappedIterator<Iterator> operator+(
+    typename WrappedIterator<Iterator, ElementType>::difference_type n,
+    const WrappedIterator<Iterator, ElementType>& x) noexcept {
+  x += n;
+  return x;
+}
+
+}  // namespace internal
 }  // namespace v8
 
 #endif  // INCLUDE_V8_INTERNAL_H_

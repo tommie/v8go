@@ -173,6 +173,7 @@ path. Add it with -I<path> to the command line
 //  V8_TARGET_OS_LINUX
 //  V8_TARGET_OS_MACOS
 //  V8_TARGET_OS_WIN
+//  V8_TARGET_OS_CHROMEOS
 //
 // If not set explicitly, these fall back to corresponding V8_OS_ values.
 
@@ -184,7 +185,8 @@ path. Add it with -I<path> to the command line
   && !defined(V8_TARGET_OS_IOS) \
   && !defined(V8_TARGET_OS_LINUX) \
   && !defined(V8_TARGET_OS_MACOS) \
-  && !defined(V8_TARGET_OS_WIN)
+  && !defined(V8_TARGET_OS_WIN) \
+  && !defined(V8_TARGET_OS_CHROMEOS)
 #  error No known target OS defined.
 # endif
 
@@ -195,7 +197,8 @@ path. Add it with -I<path> to the command line
   || defined(V8_TARGET_OS_IOS) \
   || defined(V8_TARGET_OS_LINUX) \
   || defined(V8_TARGET_OS_MACOS) \
-  || defined(V8_TARGET_OS_WIN)
+  || defined(V8_TARGET_OS_WIN) \
+  || defined(V8_TARGET_OS_CHROMEOS)
 #  error A target OS is defined but V8_HAVE_TARGET_OS is unset.
 # endif
 
@@ -294,6 +297,8 @@ path. Add it with -I<path> to the command line
 //  V8_HAS_ATTRIBUTE_NONNULL            - __attribute__((nonnull)) supported
 //  V8_HAS_ATTRIBUTE_NOINLINE           - __attribute__((noinline)) supported
 //  V8_HAS_ATTRIBUTE_UNUSED             - __attribute__((unused)) supported
+//  V8_HAS_ATTRIBUTE_USED               - __attribute__((used)) supported
+//  V8_HAS_ATTRIBUTE_RETAIN             - __attribute__((retain)) supported
 //  V8_HAS_ATTRIBUTE_VISIBILITY         - __attribute__((visibility)) supported
 //  V8_HAS_ATTRIBUTE_WARN_UNUSED_RESULT - __attribute__((warn_unused_result))
 //                                        supported
@@ -346,20 +351,27 @@ path. Add it with -I<path> to the command line
 # define V8_HAS_ATTRIBUTE_NONNULL (__has_attribute(nonnull))
 # define V8_HAS_ATTRIBUTE_NOINLINE (__has_attribute(noinline))
 # define V8_HAS_ATTRIBUTE_UNUSED (__has_attribute(unused))
+# define V8_HAS_ATTRIBUTE_USED (__has_attribute(used))
+# define V8_HAS_ATTRIBUTE_RETAIN (__has_attribute(retain))
 // Support for the "preserve_most" attribute is limited:
 // - 32-bit platforms do not implement it,
 // - component builds fail because _dl_runtime_resolve clobbers registers,
 // - we see crashes on arm64 on Windows (https://crbug.com/1409934), which can
 //   hopefully be fixed in the future.
+// Additionally, the initial implementation in clang <= 16 overwrote the return
+// register(s) in the epilogue of a preserve_most function, so we only use
+// preserve_most in clang >= 17 (see https://reviews.llvm.org/D143425).
 #if (defined(_M_X64) || defined(__x86_64__)            /* x64 (everywhere) */  \
      || ((defined(__AARCH64EL__) || defined(_M_ARM64)) /* arm64, but ... */    \
          && !defined(_WIN32)))                         /* not on windows */    \
-     && !defined(COMPONENT_BUILD)                      /* no component build */
+     && !defined(COMPONENT_BUILD)                      /* no component build */\
+     && __clang_major__ >= 17                          /* clang >= 17 */
 # define V8_HAS_ATTRIBUTE_PRESERVE_MOST (__has_attribute(preserve_most))
 #endif
 # define V8_HAS_ATTRIBUTE_VISIBILITY (__has_attribute(visibility))
 # define V8_HAS_ATTRIBUTE_WARN_UNUSED_RESULT \
     (__has_attribute(warn_unused_result))
+# define V8_HAS_ATTRIBUTE_WEAK (__has_attribute(weak))
 
 # define V8_HAS_CPP_ATTRIBUTE_NODISCARD (V8_HAS_CPP_ATTRIBUTE(nodiscard))
 # define V8_HAS_CPP_ATTRIBUTE_NO_UNIQUE_ADDRESS \
@@ -410,6 +422,7 @@ path. Add it with -I<path> to the command line
 # define V8_HAS_ATTRIBUTE_UNUSED 1
 # define V8_HAS_ATTRIBUTE_VISIBILITY 1
 # define V8_HAS_ATTRIBUTE_WARN_UNUSED_RESULT (!V8_CC_INTEL)
+# define V8_HAS_ATTRIBUTE_WEAK 1
 
 // [[nodiscard]] does not work together with with
 // __attribute__((visibility(""))) on GCC 7.4 which is why there is no define
@@ -455,14 +468,16 @@ path. Add it with -I<path> to the command line
 
 #ifdef DEBUG
 // In debug mode, check assumptions instead of actually adding annotations.
-# define V8_ASSUME(condition) DCHECK(condition)
+# define V8_ASSUME DCHECK
 #elif V8_HAS_BUILTIN_ASSUME
-# define V8_ASSUME(condition) __builtin_assume(condition)
+# define V8_ASSUME __builtin_assume
 #elif V8_HAS_BUILTIN_UNREACHABLE
-# define V8_ASSUME(condition) \
-  do { if (!(condition)) __builtin_unreachable(); } while (false)
+# define V8_ASSUME(condition)                  \
+  do {                                         \
+    if (!(condition)) __builtin_unreachable(); \
+  } while (false)
 #else
-# define V8_ASSUME(condition)
+# define V8_ASSUME USE
 #endif
 
 #if V8_HAS_BUILTIN_ASSUME_ALIGNED
@@ -518,9 +533,6 @@ path. Add it with -I<path> to the command line
 // A macro used to change the calling conventions to preserve all registers (no
 // caller-saved registers). Use this for cold functions called from hot
 // functions.
-// Note: The attribute is considered experimental, so apply with care. Also,
-// "preserve_most" is currently not handling the return value correctly, so only
-// use it for functions returning void (see https://reviews.llvm.org/D141020).
 // Use like:
 //   V8_NOINLINE V8_PRESERVE_MOST void UnlikelyMethod();
 #if V8_HAS_ATTRIBUTE_PRESERVE_MOST
@@ -600,6 +612,14 @@ path. Add it with -I<path> to the command line
 #define V8_WARN_UNUSED_RESULT __attribute__((warn_unused_result))
 #else
 #define V8_WARN_UNUSED_RESULT /* NOT SUPPORTED */
+#endif
+
+
+// Annotate functions/variables as weak to allow overriding the symbol.
+#if V8_HAS_ATTRIBUTE_WEAK
+#define V8_WEAK __attribute__((weak))
+#else
+#define V8_WEAK /* NOT SUPPORTED */
 #endif
 
 
@@ -742,7 +762,7 @@ V8 shared library set USING_V8_SHARED.
 #elif defined(__mips64)
 #define V8_HOST_ARCH_MIPS64 1
 #define V8_HOST_ARCH_64_BIT 1
-#elif defined(__loongarch64)
+#elif defined(__loongarch_lp64)
 #define V8_HOST_ARCH_LOONG64 1
 #define V8_HOST_ARCH_64_BIT 1
 #elif defined(__PPC64__) || defined(_ARCH_PPC64)
@@ -792,7 +812,7 @@ V8 shared library set USING_V8_SHARED.
 #define V8_TARGET_ARCH_ARM 1
 #elif defined(__mips64)
 #define V8_TARGET_ARCH_MIPS64 1
-#elif defined(__loongarch64)
+#elif defined(__loongarch_lp64)
 #define V8_TARGET_ARCH_LOONG64 1
 #elif defined(_ARCH_PPC64)
 #define V8_TARGET_ARCH_PPC64 1
@@ -926,5 +946,11 @@ V8 shared library set USING_V8_SHARED.
 #endif
 
 #undef V8_HAS_CPP_ATTRIBUTE
+
+#if !defined(V8_STATIC_ROOTS)
+#define V8_STATIC_ROOTS_BOOL false
+#else
+#define V8_STATIC_ROOTS_BOOL true
+#endif
 
 #endif  // V8CONFIG_H_
