@@ -246,9 +246,11 @@ def allocate_disjoint_files(ar_files, case_sensitive=True):
         max_count = 0
         for ar_file, count in ar_file_counts:
             ar_file_canon = ar_file if case_sensitive else ar_file.lower()
-            canon_file_set.setdefault(ar_file_canon, (ar_file, count))
+            if ar_file_canon in canon_file_set: continue
+            canon_file_set[ar_file_canon] = (ar_file, count)
             file_set.add(ar_file)
             max_count = max(max_count, count)
+
         ar_file_counts = [(ar_file, count) for ar_file, count in ar_file_counts if ar_file not in file_set]
         groups = [(i, []) for i in range(max_count)]
         for ar_file, count in canon_file_set.values():
