@@ -1,9 +1,9 @@
-name: CI
+name: Test
 
 on:
   push:
     branches:
-      - master
+    - master
   pull_request:
   workflow_dispatch:
 
@@ -12,36 +12,56 @@ jobs:
     name: Tests on ${{ matrix.go-version }} ${{ matrix.platform }}
     strategy:
       matrix:
-        go-version: [1.18.10, 1.19.5]
-        platform: [ubuntu-latest, macos-latest]
+        os: [darwin, linux]
+        arch: [x86_64, arm64]
+        go-version:
+        # Check the earliest and two trailing versions, to keep
+        # maintainance of this file reasonable.
+        - 1.17
+        - oldstable
+        - stable
+        include:
+        - os: linux
+          platform: ubuntu-latest
+        - os: darwin
+          platform: macos-latest
     runs-on: ${{ matrix.platform }}
-
     steps:
     - name: Install Go
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@v4
       with:
         go-version: ${{ matrix.go-version }}
-    - name: Checkout
-      uses: actions/checkout@v2
-    - name: Go Test
-      env:
-        CGO_CXXFLAGS: "-Werror"
-      run: go test -v -coverprofile c.out ./...
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v1
-      env:
-        OS: ${{ matrix.platform }}
-        GO: ${{ matrix.go-version }}
-      with:
-        files: ./c.out
-        env_vars: OS,GO
+
     - name: Add GOPATH to GITHUB_ENV
       run: echo "GOPATH=$(go env GOPATH)" >>"$GITHUB_ENV"
-    - name: Scan and upload FOSSA data (Linux/Mac)
+
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Run Tests With Coverage
+      run: go test -v -coverprofile coverage.out ./...
+      env:
+        CGO_CXXFLAGS: "-Werror"
+
+    - name: Upload Coverage To Codecov
+      uses: codecov/codecov-action@v3
+      if: ${{ secrets.CODECOV_TOKEN }} != ''
+      env:
+        OS: ${{ matrix.os }}
+        ARCH: ${{ matrix.arch }}
+        PLATFORM: ${{ matrix.platform }}
+        GO: ${{ matrix.go-version }}
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: ./coverage.out
+        flags: unittests
+        fail_ci_if_error: true
+        env_vars: OS,ARCH,PLATFORM,GO
+
+    - name: Scan and Upload FOSSA Data
       if: env.FOSSA_API_KEY != '' && github.ref == 'refs/heads/master'
       run: |
-        curl -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/fossas/fossa-cli/master/install.sh | sudo bash
+        curl https://raw.githubusercontent.com/fossas/fossa-cli/master/install.sh | sudo bash
         fossa analyze
       env:
         FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
-        
