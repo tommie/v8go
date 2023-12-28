@@ -205,7 +205,7 @@ def convert_to_thin_ar(src_fn, dest_fn, dest_obj_dn):
     # disjoint sets and use "ar N"...
     ar_file_names = {}
     for ar_file in ar_files:
-        ar_file_names[ar_file] ar_file_names.get(ar_file, 0) + 1
+        ar_file_names[ar_file] = ar_file_names.get(ar_file, 0) + 1
 
     ar_file_groups = []
     for ar_file, count in ar_file_names.items():
