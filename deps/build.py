@@ -203,7 +203,7 @@ def convert_to_thin_ar(src_fn, dest_fn, dest_obj_dn):
     for ar_file in ar_files:
         # llvm-ar (--clang) seems to mangle the names to lowercase on
         # extraction, while binutils ar does not.
-        ar_file_canon = ar_file if is_clang else ar_file.lower()
+        ar_file_canon = ar_file.lower() if is_clang else ar_file
         ar_file_names.setdefault(ar_file_canon, []).append(ar_file)
 
     ar_file_groups = []
@@ -225,7 +225,7 @@ def convert_to_thin_ar(src_fn, dest_fn, dest_obj_dn):
             ] + ar_files,
             cwd=v8_path)
         for ar_file in ar_files:
-            ar_file_canon = ar_file if is_clang else ar_file.lower()
+            ar_file_canon = ar_file.lower() if is_clang else ar_file
             os.rename(os.path.join(dest_obj_dn, ar_file_canon), os.path.join(dest_obj_dn, "{}.{}.o".format(1 + i, ar_file)))
 
     if os.path.exists(dest_fn):
