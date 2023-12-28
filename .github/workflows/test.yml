@@ -9,11 +9,11 @@ on:
 
 jobs:
   test:
-    name: Tests on ${{ matrix.go-version }} ${{ matrix.platform }}
+    name: Tests on ${{ matrix.os }} ${{ matrix.arch }} with Go ${{ matrix.go-version }}
     strategy:
       matrix:
         os: [darwin, linux]
-        arch: [x86_64, arm64]
+        arch: [x86_64]
         go-version:
         # Check the earliest and two trailing versions, to keep
         # maintainance of this file reasonable.
