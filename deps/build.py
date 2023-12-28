@@ -131,6 +131,11 @@ def subprocess_check_call(cmdargs, *pargs, **kwargs):
         print(sys.argv[0], ">", " ".join(cmdargs), file=sys.stderr)
     subprocess.check_call(cmd(cmdargs), *pargs, **kwargs)
 
+def subprocess_check_output_text(cmdargs, *pargs, **kwargs):
+    if args.verbose:
+        print(sys.argv[0], ">", " ".join(cmdargs), file=sys.stderr)
+    return subprocess.check_output(cmd(cmdargs), *pargs, **kwargs).decode('utf-8')
+
 def cmd(args):
     return ["cmd", "/c"] + args if is_windows else args
 
@@ -180,14 +185,43 @@ def convert_to_thin_ar(src_fn, dest_fn, dest_obj_dn):
         shutil.rmtree(dest_obj_dn)
     os.makedirs(dest_obj_dn)
 
-    subprocess_check_call(
+    # Directories may have been flattened, causing duplicate file
+    # names. ar(1) simply overwrites earlier files, causing
+    # headache-inducing "undefined symbol" errors.
+    ar_files = subprocess_check_output_text(
         [
             ar_path,
-            "x",
-            "--output", dest_obj_dn,
+            "t",
             src_fn,
         ],
         cwd=v8_path)
+    ar_files = ar_files.splitlines()
+
+    # Extracting files one-by-one is slow, so let's group them into
+    # disjoint sets and use "ar N"...
+    ar_file_counts = {}
+    for ar_file in ar_files:
+        ar_file_counts[ar_file] = ar_file_counts.get(ar_file, 0) + 1
+    ar_file_groups = []
+    for ar_file, count in ar_file_counts.items():
+        if len(ar_file_groups) < count:
+            ar_file_groups.extend([[]] * (count - len(ar_file_groups)))
+        for i in range(count):
+            ar_file_groups[i].append(ar_file)
+
+    for i, ar_files in enumerate(ar_file_groups):
+        # Undocumented: "ar N" is 1-based.
+        subprocess_check_call(
+            [
+                ar_path,
+                "xN",
+                "--output", dest_obj_dn,
+                str(1 + i),
+                src_fn,
+            ] + ar_files,
+            cwd=v8_path)
+        for ar_file in ar_files:
+            os.rename(os.path.join(dest_obj_dn, ar_file), os.path.join(dest_obj_dn, "{}.{}.o".format(1 + i, ar_file)))
 
     if os.path.exists(dest_fn):
         os.unlink(dest_fn)
@@ -197,8 +231,8 @@ def convert_to_thin_ar(src_fn, dest_fn, dest_obj_dn):
             ar_path,
             "qsc",
             "--thin",
-            dest_fn,
-        ] + [os.path.relpath(fn, dest_path) for fn in glob.glob(os.path.join(dest_obj_dn, "*"))],
+            os.path.relpath(dest_fn, dest_path),
+        ] + [os.path.relpath(fn, dest_path) for fn in sorted(glob.glob(os.path.join(dest_obj_dn, "*")))],
         cwd=dest_path)
 
 def main():
