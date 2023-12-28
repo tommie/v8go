@@ -201,7 +201,11 @@ def convert_to_thin_ar(src_fn, dest_fn, dest_obj_dn):
     # disjoint sets and use "ar N"...
     ar_file_counts = {}
     for ar_file in ar_files:
+        # At least llvm-ar (used for Darwin) seems to mangle the names
+        # to lowercase upon creation.
+        ar_file = ar_file.lower()
         ar_file_counts[ar_file] = ar_file_counts.get(ar_file, 0) + 1
+
     ar_file_groups = []
     for ar_file, count in ar_file_counts.items():
         if len(ar_file_groups) < count:
