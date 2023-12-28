@@ -134,13 +134,14 @@ func (o *Object) GetSymbol(key *Symbol) (*Value, error) {
 
 // GetInternalField gets the Value set by SetInternalField for the given index
 // or the JS undefined value if the index hadn't been set.
-// Panics if given an out of range index.
+// Panics if given an out of range index, or the field contains a Data other
+// than a Value.
 func (o *Object) GetInternalField(idx uint32) *Value {
 	rtn := C.ObjectGetInternalField(o.ptr, C.int(idx))
-	if rtn == nil {
-		panic(fmt.Errorf("index out of range [%v] with length %v", idx, o.InternalFieldCount()))
+	if rtn.value == nil {
+		panic(newJSError(rtn.error))
 	}
-	return &Value{rtn, o.ctx}
+	return &Value{rtn.value, o.ctx}
 }
 
 // GetIdx tries to get a Value at a give Object index.

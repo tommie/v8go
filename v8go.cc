@@ -399,7 +399,7 @@ void CPUProfileDelete(CPUProfile* profile) {
   Local<Template> tmpl = tmpl_ptr->ptr.Get(iso);
 
 void TemplateFreeWrapper(TemplatePtr tmpl) {
-  tmpl->ptr.Empty();  // Just does `val_ = 0;` without calling V8::DisposeGlobal
+  tmpl->ptr.Clear();  // Just does `val_ = 0;` without calling V8::DisposeGlobal
   delete tmpl;
 }
 
@@ -1493,23 +1493,32 @@ RtnValue ObjectGetAnyKey(ValuePtr ptr, ValuePtr key) {
   return rtn;
 }
 
-ValuePtr ObjectGetInternalField(ValuePtr ptr, int idx) {
+RtnValue ObjectGetInternalField(ValuePtr ptr, int idx) {
   LOCAL_OBJECT(ptr);
+  RtnValue rtn = {};
 
   if (idx >= obj->InternalFieldCount()) {
-    return nullptr;
+    rtn.error.msg =
+        CopyString("internal field index out of range");
+    return rtn;
   }
 
-  Local<Value> result = obj->GetInternalField(idx);
+  Local<Data> result = obj->GetInternalField(idx);
+  if (!result->IsValue()) {
+    rtn.error.msg =
+        CopyString("the internal field did not contain a Value");
+    return rtn;
+  }
 
   m_value* new_val = new m_value;
   new_val->id = 0;
   new_val->iso = iso;
   new_val->ctx = ctx;
   new_val->ptr =
-      Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
+      Persistent<Value, CopyablePersistentTraits<Value>>(iso, result.As<Value>());
 
-  return tracked_value(ctx, new_val);
+  rtn.value = tracked_value(ctx, new_val);
+  return rtn;
 }
 
 RtnValue ObjectGetIdx(ValuePtr ptr, uint32_t idx) {
