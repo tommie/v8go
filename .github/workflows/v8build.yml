@@ -143,11 +143,6 @@ jobs:
                   submodules: true
                   fetch-depth: 1
 
-            - name: Download Artifacts
-              uses: actions/download-artifact@v4
-              with:
-                  path: deps
-
             - id: update_v8
               name: Update to latest V8
               run: |
@@ -159,6 +154,11 @@ jobs:
                   latest_v8_version="$(git tag --points-at "$latest_v8_hash" | head -n1)"
                   git checkout "${latest_v8_version:-$latest_v8_hash}"
                   echo "latest_v8_version=${latest_v8_version:-$latest_v8_hash}" >>"$GITHUB_OUTPUT"
+
+            - name: Download Artifacts
+              uses: actions/download-artifact@v4
+              with:
+                  path: deps
 
             - id: create_pr
               name: Create PR
