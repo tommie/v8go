@@ -28,7 +28,8 @@ jobs:
               echo "latest_v8_hash=$(<deps/latest_v8_hash)" >>"$GITHUB_OUTPUT"
               echo "has_upgrade=$(git status --porcelain | grep -q . && echo y || echo n)" >>"$GITHUB_OUTPUT"
 
-        - name: Create PR
+        - id: create_pr
+          name: Create PR
           if: ${{ steps.check_v8.outputs.has_upgrade }} == 'y'
           uses: peter-evans/create-pull-request@v5
           with:
@@ -40,3 +41,7 @@ jobs:
               add-paths: deps/latest_v8_hash
               branch: workflow/v8upgrade
               delete-branch: true
+
+        - name: Create Summary
+          run: |
+              echo "PR: ${{ steps.create_pr.outputs.pull-request-url }}" >>"$GITHUB_STEP_SUMMARY"
