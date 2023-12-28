@@ -128,8 +128,8 @@ jobs:
                   name: ${{ matrix.os }}_${{ matrix.arch }}
                   if-no-files-found: error
                   path: |
-                      deps/${{ matrix.os }}_${{ matrix.arch }}/libv8.a
-                      deps/${{ matrix.os }}_${{ matrix.arch }}/obj/
+                      deps/${{ matrix.os }}_${{ matrix.arch }}/
+                      !deps/${{ matrix.os }}_${{ matrix.arch }}/vendor.go
                   retention-days: 2
 
     commit:
@@ -168,6 +168,7 @@ jobs:
                   body: Auto-generated pull request of built V8 libraries
                   add-paths: |
                       deps/*_*/libv8.a
+                      deps/*_*/obj/
                       deps/include/
                       deps/v8
                       deps/v8_hash
