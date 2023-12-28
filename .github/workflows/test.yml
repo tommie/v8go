@@ -45,8 +45,9 @@ jobs:
 
     - name: Upload Coverage To Codecov
       uses: codecov/codecov-action@v3
-      if: secrets.CODECOV_TOKEN != ''
+      if: env._CODECOV_TOKEN != ''
       env:
+        _CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN != '' }}
         OS: ${{ matrix.os }}
         ARCH: ${{ matrix.arch }}
         PLATFORM: ${{ matrix.platform }}
