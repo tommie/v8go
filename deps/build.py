@@ -18,6 +18,7 @@ parser.add_argument('--debug', dest='debug', action='store_true')
 parser.add_argument('--ccache', action='store_true')
 parser.add_argument('--clang', dest='clang', action='store_true')
 parser.add_argument('--no-clang', dest='clang', action='store_false')
+parser.add_argument('--max-file-size')
 parser.add_argument('--arch',
     dest='arch',
     action='store',
@@ -29,7 +30,7 @@ parser.add_argument(
     dest='os',
     choices=['android', 'ios', 'linux', 'darwin', 'windows'],
     default=platform.system().lower())
-parser.set_defaults(verbose=False, debug=False, ccache=False, clang=None)
+parser.set_defaults(verbose=False, debug=False, ccache=False, clang=None, max_file_size=49e6)
 args = parser.parse_args()
 
 deps_path = os.path.dirname(os.path.realpath(__file__))
@@ -168,7 +169,7 @@ def update_last_change():
     out_path = os.path.join(v8_path, "build", "util", "LASTCHANGE")
     subprocess_check_call(["python", "build/util/lastchange.py", "-o", out_path], cwd=v8_path)
 
-def convert_to_thin_ar(src_fn, dest_fn, dest_obj_dn):
+def split_ar(src_fn, dest_fn, dest_obj_dn):
     """Extracts all files from src_fn to dest_obj_dn/ and makes a thin archive at dest_fn.
 
     GitHub's file size limit is 100 MiB, and the archive is hitting that.
@@ -222,17 +223,39 @@ def convert_to_thin_ar(src_fn, dest_fn, dest_obj_dn):
             os.rename(os.path.join(dest_obj_dn, ar_file_canon), os.path.join(dest_obj_dn, "{}.{}".format(1 + j, ar_file)))
             j += 1
 
-    if os.path.exists(dest_fn):
-        os.unlink(dest_fn)
+    file_groups = [] # [(file, size)]
+    size = 0
+    for fn in sorted(glob.glob(os.path.join(dest_obj_dn, "*"))):
+        fsize = os.stat(fn).st_size
+        if not file_groups or size + fsize >= args.max_file_size:
+            file_groups.append([])
+            size = 0
+        file_groups[-1].append(os.path.relpath(fn, dest_path))
+        size += fsize
 
-    subprocess_check_call(
-        [
-            ar_path,
-            "qsc",
-            "--thin",
-            os.path.relpath(dest_fn, dest_path),
-        ] + [os.path.relpath(fn, dest_path) for fn in sorted(glob.glob(os.path.join(dest_obj_dn, "*")))],
-        cwd=dest_path)
+    dest_stem, dest_ext = os.path.splitext(dest_fn)
+    for fn in glob.glob(os.path.join(dest_path, "lib*.a")):
+        os.unlink(fn)
+
+    dest_fns = []
+    for i, files in enumerate(file_groups):
+        if len(file_groups) == 1:
+            dest_fn = "{}{}".format(dest_stem, dest_ext)
+        else:
+            dest_fn = "{}-{}{}".format(dest_stem, i, dest_ext)
+
+        dest_fns.append(os.path.relpath(dest_fn, dest_path))
+        subprocess_check_call(
+            [
+                ar_path,
+                "qsc",
+                os.path.relpath(dest_fn, dest_path),
+            ] + files,
+            cwd=dest_path)
+
+    with open(os.path.join(dest_path, "libmanifest"), "wt") as f:
+        for dest_fn in dest_fns:
+            print(dest_fn, file=f)
 
 def allocate_disjoint_files(ar_files, case_sensitive=True):
     ar_file_counts = {} # file -> count
@@ -280,11 +303,15 @@ def main():
     subprocess_check_call([ninja_path, "-v", "-C", build_path, "v8_monolith"], cwd=v8_path)
 
     dest_path = os.path.join(deps_path, os_arch())
-    convert_to_thin_ar(
-        os.path.join(build_path, "obj/libv8_monolith.a"),
-        os.path.join(dest_path, "libv8.a"),
-        os.path.join(dest_path, "obj"))
-
+    dest_obj_dn = os.path.join(dest_path, "obj")
+    try:
+        split_ar(
+            os.path.join(build_path, "obj/libv8_monolith.a"),
+            os.path.join(dest_path, "libv8.a"),
+            dest_obj_dn)
+    finally:
+        if os.path.exists(dest_obj_dn):
+            shutil.rmtree(dest_obj_dn)
 
 if __name__ == "__main__":
     main()

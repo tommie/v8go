@@ -7,7 +7,15 @@ package v8go
 //go:generate clang-format -i --verbose -style=Chromium v8go.h v8go.cc
 
 // #cgo CXXFLAGS: -fno-rtti -fPIC -std=c++17 -DV8_COMPRESS_POINTERS -DV8_31BIT_SMIS_ON_64BIT_ARCH -I${SRCDIR}/deps/include -Wall -DV8_ENABLE_SANDBOX
-// #cgo LDFLAGS: -pthread -lv8
+// #cgo LDFLAGS: -pthread
+// // Begin Generated Libs
+// #cgo linux,amd64 LDFLAGS: -lv8
+// #cgo linux,arm64 LDFLAGS: -lv8
+// #cgo android,arm64 LDFLAGS: -lv8
+// #cgo android,amd64 LDFLAGS: -lv8
+// #cgo darwin,amd64 LDFLAGS: -lv8
+// #cgo darwin,arm64 LDFLAGS: -lv8
+// // End Generated Libs
 // #cgo libgcompat LDFLAGS: -lgcompat
 // #cgo android,amd64 LDFLAGS: -L${SRCDIR}/deps/android_amd64
 // #cgo android,arm64 LDFLAGS: -L${SRCDIR}/deps/android_arm64
@@ -21,9 +29,11 @@ import "C"
 // contain V8 libraries and headers which otherwise would be ignored.
 // DO NOT REMOVE
 import (
+	_ "rogchap.com/v8go/deps/android_amd64"
+	_ "rogchap.com/v8go/deps/android_arm64"
+	_ "rogchap.com/v8go/deps/darwin_amd64"
 	_ "rogchap.com/v8go/deps/darwin_arm64"
-	_ "rogchap.com/v8go/deps/darwin_x86_64"
 	_ "rogchap.com/v8go/deps/include"
+	_ "rogchap.com/v8go/deps/linux_amd64"
 	_ "rogchap.com/v8go/deps/linux_arm64"
-	_ "rogchap.com/v8go/deps/linux_x86_64"
 )

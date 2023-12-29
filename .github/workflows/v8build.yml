@@ -160,6 +160,9 @@ jobs:
               with:
                   path: deps
 
+            - name: Update LDFLAGS in cgo.go
+              run: ./deps/update_cgo.py
+
             - id: create_pr
               name: Create PR
               uses: peter-evans/create-pull-request@v5
@@ -168,8 +171,8 @@ jobs:
                   title: Add built V8 libraries at ${{ steps.update_v8.outputs.latest_v8_version }}
                   body: Auto-generated pull request of built V8 libraries
                   add-paths: |
-                      deps/*_*/libv8.a
-                      deps/*_*/obj/**
+                      deps/*_*/libv8*.a
+                      deps/*_*/libmanifest
                       deps/include/**
                       deps/v8
                       deps/v8_hash
