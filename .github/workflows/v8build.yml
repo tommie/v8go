@@ -1,6 +1,10 @@
 name: V8 Build
 
-on: workflow_dispatch
+on:
+    push:
+        branches:
+        - workflow/v8upgrade
+    workflow_dispatch:
 
 jobs:
     build_common:
