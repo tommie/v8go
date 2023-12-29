@@ -424,7 +424,8 @@ int TemplateSetAnyValue(TemplatePtr ptr,
   if (!local_key->IsName()) {
     return false;
   }
-  tmpl->Set(local_key.As<Name>(), val->ptr.Get(iso), (PropertyAttribute)attributes);
+  tmpl->Set(local_key.As<Name>(), val->ptr.Get(iso),
+            (PropertyAttribute)attributes);
   return true;
 }
 
@@ -449,7 +450,8 @@ int TemplateSetAnyTemplate(TemplatePtr ptr,
   if (!local_key->IsName()) {
     return false;
   }
-  tmpl->Set(Local<Name>::Cast(local_key), obj->ptr.Get(iso), (PropertyAttribute)attributes);
+  tmpl->Set(Local<Name>::Cast(local_key), obj->ptr.Get(iso),
+            (PropertyAttribute)attributes);
   return true;
 }
 
@@ -973,7 +975,9 @@ RtnValue NewValueBigIntFromWords(IsolatePtr iso,
   return rtn;
 }
 
-ValuePtr NewValueError(IsolatePtr iso, ErrorTypeIndex idx, const char* message) {
+ValuePtr NewValueError(IsolatePtr iso,
+                       ErrorTypeIndex idx,
+                       const char* message) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   Local<Context> local_ctx = ctx->ptr.Get(iso);
   Context::Scope context_scope(local_ctx);
@@ -981,32 +985,32 @@ ValuePtr NewValueError(IsolatePtr iso, ErrorTypeIndex idx, const char* message) 
   Local<String> local_msg = String::NewFromUtf8(iso, message).ToLocalChecked();
   Local<Value> v;
   switch (idx) {
-  case ERROR_RANGE:
-    v = Exception::RangeError(local_msg);
-    break;
-  case ERROR_REFERENCE:
-    v = Exception::ReferenceError(local_msg);
-    break;
-  case ERROR_SYNTAX:
-    v = Exception::SyntaxError(local_msg);
-    break;
-  case ERROR_TYPE:
-    v = Exception::TypeError(local_msg);
-    break;
-  case ERROR_WASM_COMPILE:
-    v = Exception::WasmCompileError(local_msg);
-    break;
-  case ERROR_WASM_LINK:
-    v = Exception::WasmLinkError(local_msg);
-    break;
-  case ERROR_WASM_RUNTIME:
-    v = Exception::WasmRuntimeError(local_msg);
-    break;
-  case ERROR_GENERIC:
-    v = Exception::Error(local_msg);
-    break;
-  default:
-    return nullptr;
+    case ERROR_RANGE:
+      v = Exception::RangeError(local_msg);
+      break;
+    case ERROR_REFERENCE:
+      v = Exception::ReferenceError(local_msg);
+      break;
+    case ERROR_SYNTAX:
+      v = Exception::SyntaxError(local_msg);
+      break;
+    case ERROR_TYPE:
+      v = Exception::TypeError(local_msg);
+      break;
+    case ERROR_WASM_COMPILE:
+      v = Exception::WasmCompileError(local_msg);
+      break;
+    case ERROR_WASM_LINK:
+      v = Exception::WasmLinkError(local_msg);
+      break;
+    case ERROR_WASM_RUNTIME:
+      v = Exception::WasmRuntimeError(local_msg);
+      break;
+    case ERROR_GENERIC:
+      v = Exception::Error(local_msg);
+      break;
+    default:
+      return nullptr;
   }
   m_value* val = new m_value;
   val->id = 0;
@@ -1498,15 +1502,13 @@ RtnValue ObjectGetInternalField(ValuePtr ptr, int idx) {
   RtnValue rtn = {};
 
   if (idx >= obj->InternalFieldCount()) {
-    rtn.error.msg =
-        CopyString("internal field index out of range");
+    rtn.error.msg = CopyString("internal field index out of range");
     return rtn;
   }
 
   Local<Data> result = obj->GetInternalField(idx);
   if (!result->IsValue()) {
-    rtn.error.msg =
-        CopyString("the internal field did not contain a Value");
+    rtn.error.msg = CopyString("the internal field did not contain a Value");
     return rtn;
   }
 
@@ -1514,8 +1516,8 @@ RtnValue ObjectGetInternalField(ValuePtr ptr, int idx) {
   new_val->id = 0;
   new_val->iso = iso;
   new_val->ctx = ctx;
-  new_val->ptr =
-      Persistent<Value, CopyablePersistentTraits<Value>>(iso, result.As<Value>());
+  new_val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, result.As<Value>());
 
   rtn.value = tracked_value(ctx, new_val);
   return rtn;
@@ -1583,41 +1585,41 @@ ValuePtr BuiltinSymbol(IsolatePtr iso, SymbolIndex idx) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   Local<Symbol> sym;
   switch (idx) {
-  case SYMBOL_ASYNC_ITERATOR:
-    sym = Symbol::GetAsyncIterator(iso);
-    break;
-  case SYMBOL_HAS_INSTANCE:
-    sym = Symbol::GetHasInstance(iso);
-    break;
-  case SYMBOL_IS_CONCAT_SPREADABLE:
-    sym = Symbol::GetIsConcatSpreadable(iso);
-    break;
-  case SYMBOL_ITERATOR:
-    sym = Symbol::GetIterator(iso);
-    break;
-  case SYMBOL_MATCH:
-    sym = Symbol::GetMatch(iso);
-    break;
-  case SYMBOL_REPLACE:
-    sym = Symbol::GetReplace(iso);
-    break;
-  case SYMBOL_SEARCH:
-    sym = Symbol::GetSearch(iso);
-    break;
-  case SYMBOL_SPLIT:
-    sym = Symbol::GetSplit(iso);
-    break;
-  case SYMBOL_TO_PRIMITIVE:
-    sym = Symbol::GetToPrimitive(iso);
-    break;
-  case SYMBOL_TO_STRING_TAG:
-    sym = Symbol::GetToStringTag(iso);
-    break;
-  case SYMBOL_UNSCOPABLES:
-    sym = Symbol::GetUnscopables(iso);
-    break;
-  default:
-    return nullptr;
+    case SYMBOL_ASYNC_ITERATOR:
+      sym = Symbol::GetAsyncIterator(iso);
+      break;
+    case SYMBOL_HAS_INSTANCE:
+      sym = Symbol::GetHasInstance(iso);
+      break;
+    case SYMBOL_IS_CONCAT_SPREADABLE:
+      sym = Symbol::GetIsConcatSpreadable(iso);
+      break;
+    case SYMBOL_ITERATOR:
+      sym = Symbol::GetIterator(iso);
+      break;
+    case SYMBOL_MATCH:
+      sym = Symbol::GetMatch(iso);
+      break;
+    case SYMBOL_REPLACE:
+      sym = Symbol::GetReplace(iso);
+      break;
+    case SYMBOL_SEARCH:
+      sym = Symbol::GetSearch(iso);
+      break;
+    case SYMBOL_SPLIT:
+      sym = Symbol::GetSplit(iso);
+      break;
+    case SYMBOL_TO_PRIMITIVE:
+      sym = Symbol::GetToPrimitive(iso);
+      break;
+    case SYMBOL_TO_STRING_TAG:
+      sym = Symbol::GetToStringTag(iso);
+      break;
+    case SYMBOL_UNSCOPABLES:
+      sym = Symbol::GetUnscopables(iso);
+      break;
+    default:
+      return nullptr;
   }
   m_value* val = new m_value;
   val->id = 0;
@@ -1633,7 +1635,6 @@ const char* SymbolDescription(ValuePtr ptr) {
   Local<Value> descr = sym->Description(iso);
   String::Utf8Value utf8(iso, descr);
   return CopyString(utf8);
-
 }
 
 /********** Promise **********/
