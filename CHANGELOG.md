@@ -4,16 +4,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v0.10.0] - 2023-04-10
+## [v0.10.0] - 2023-12-29
 
 ### Changed
 - Required Go version changed to 1.17 (needed for SharedArrayBuffer support)
+- Forked from rogchap.com/v8go
+- x86_64 is now referred to as amd64 in V8 builds, conforming to `GOARCH`
 
 ### Added
 - Support for getting the underlying data (as a `[]byte`) from a SharedArrayBuffer
+- Support for `Symbol`
+- Support for `FunctionCallback` to return an error
+- Support for exceptions as Go errors
+- Support for Android on amd64 and arm64
 
 ### Fixed
-- Upgrade to V8 11.1.277.13
+- Upgrade to V8 12.0.267.10
 
 
 ## [v0.9.0] - 2023-03-30
