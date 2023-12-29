@@ -56,7 +56,7 @@ func TestFunctionTemplate_generates_values(t *testing.T) {
 	defer iso.Dispose()
 	global := v8.NewObjectTemplate(iso)
 	printfn := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
-		fmt.Printf("%+v\n", info.Args())
+		t.Logf("%+v\n", info.Args())
 		return nil
 	})
 	global.Set("print", printfn, v8.ReadOnly)
@@ -76,7 +76,7 @@ func TestFunctionTemplate_releases_values(t *testing.T) {
 	global := v8.NewObjectTemplate(iso)
 	printfn := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
 		defer info.Release()
-		fmt.Printf("%+v\n", info.Args())
+		t.Logf("%+v\n", info.Args())
 		return nil
 	})
 	global.Set("print", printfn, v8.ReadOnly)
