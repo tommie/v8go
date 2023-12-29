@@ -1,6 +1,9 @@
 name: Code Format
 
 on:
+  push:
+    branches:
+    - master
   pull_request:
   workflow_dispatch:
 
