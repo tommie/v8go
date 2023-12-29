@@ -3,11 +3,7 @@
 <a href="https://github.com/rogchap/v8go/releases"><img src="https://img.shields.io/github/v/release/rogchap/v8go" alt="Github release"></a>
 [![Go Report Card](https://goreportcard.com/badge/rogchap.com/v8go)](https://goreportcard.com/report/rogchap.com/v8go)
 [![Go Reference](https://pkg.go.dev/badge/rogchap.com/v8go.svg)](https://pkg.go.dev/rogchap.com/v8go)
-[![CI](https://github.com/rogchap/v8go/workflows/CI/badge.svg)](https://github.com/rogchap/v8go/actions?query=workflow%3ACI)
-![V8 Build](https://github.com/rogchap/v8go/workflows/V8%20Build/badge.svg)
-[![codecov](https://codecov.io/gh/rogchap/v8go/branch/master/graph/badge.svg?token=VHZwzGm3dV)](https://codecov.io/gh/rogchap/v8go)
-[![FOSSA Status](https://app.fossa.com/api/projects/custom%2B22862%2Fgit%40github.com%3Arogchap%2Fv8go.git.svg?type=shield)](https://app.fossa.com/projects/custom%2B22862%2Fgit%40github.com%3Arogchap%2Fv8go.git?ref=badge_shield)
-[![#v8go Slack Channel](https://img.shields.io/badge/slack-%23v8go-4A154B?logo=slack)](https://gophers.slack.com/channels/v8go)
+[![Test](https://github.com/tommie/v8go/actions/workflows/test.yml/badge.svg)](https://github.com/tommie/v8go/actions/workflows/test.yml)
 
 <img src="gopher.jpg" width="200px" alt="V8 Gopher based on original artwork from the amazing Renee French" />
 
