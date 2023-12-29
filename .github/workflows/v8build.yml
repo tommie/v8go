@@ -156,7 +156,7 @@ jobs:
                   echo "latest_v8_version=${latest_v8_version:-$latest_v8_hash}" >>"$GITHUB_OUTPUT"
 
             - name: Remove old static libraries
-              run: "rm -fr deps/*_*"
+              run: "find deps -maxdepth 2 -type f -name libmanifest | xargs -rn1 dirname | xargs -r rm -fr"
 
             - name: Download Artifacts
               uses: actions/download-artifact@v4
