@@ -18,6 +18,7 @@ parser.add_argument('--debug', default=False, action='store_true')
 parser.add_argument('--ccache', default=False, action='store_true')
 parser.add_argument('--clang', action='store_true')
 parser.add_argument('--no-clang', dest='clang', action='store_false')
+parser.set_defaults(clang=None)
 # GitHub file size limits: warning at 50 MB, hard limit at 100 MB.
 # Symbol indices can add 15% in the final .ar, so we need margin.
 parser.add_argument('--max-file-size', default=int(40e6))
