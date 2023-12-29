@@ -20,8 +20,12 @@ def get_all_libs(manifest_glob):
         yield os_arch, libs
 
 def format_ldflags_libs(os_arch_libs):
-    for (os, arch), libs in os_arch_libs:
-        yield "// #cgo {},{} LDFLAGS: {}".format(
+    for (os, arch), libs in sorted(os_arch_libs):
+        # Since libraries are split without caring about dependencies,
+        # we need to make it a group.
+        #
+        # Go explicitly allows start-group: https://cs.opensource.google/go/go/+/master:src/cmd/go/internal/work/security.go;l=205;drc=bc9da01e9d7de25f04173f7122e09fe0996aaa05
+        yield "// #cgo {},{} LDFLAGS: -Wl,--start-group {} -Wl,--end-group".format(
             os,
             arch,
             " ".join("-l{}".format(lib.replace(".a", "").replace("libv8", "v8")) for lib in libs),

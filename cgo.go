@@ -9,12 +9,12 @@ package v8go
 // #cgo CXXFLAGS: -fno-rtti -fPIC -std=c++17 -DV8_COMPRESS_POINTERS -DV8_31BIT_SMIS_ON_64BIT_ARCH -I${SRCDIR}/deps/include -Wall -DV8_ENABLE_SANDBOX
 // #cgo LDFLAGS: -pthread
 // // Begin Generated Libs
-// #cgo android,amd64 LDFLAGS: -lv8-0 -lv8-1 -lv8-2
-// #cgo darwin,arm64 LDFLAGS: -lv8-0 -lv8-1
-// #cgo android,arm64 LDFLAGS: -lv8-0 -lv8-1 -lv8-2
-// #cgo linux,amd64 LDFLAGS: -lv8-0 -lv8-1 -lv8-2
-// #cgo linux,arm64 LDFLAGS: -lv8-0 -lv8-1 -lv8-2
-// #cgo darwin,amd64 LDFLAGS: -lv8-0 -lv8-1
+// #cgo android,amd64 LDFLAGS: -Wl,--start-group -lv8-0 -lv8-1 -lv8-2 -Wl,--end-group
+// #cgo android,arm64 LDFLAGS: -Wl,--start-group -lv8-0 -lv8-1 -lv8-2 -Wl,--end-group
+// #cgo darwin,amd64 LDFLAGS: -Wl,--start-group -lv8-0 -lv8-1 -Wl,--end-group
+// #cgo darwin,arm64 LDFLAGS: -Wl,--start-group -lv8-0 -lv8-1 -Wl,--end-group
+// #cgo linux,amd64 LDFLAGS: -Wl,--start-group -lv8-0 -lv8-1 -lv8-2 -Wl,--end-group
+// #cgo linux,arm64 LDFLAGS: -Wl,--start-group -lv8-0 -lv8-1 -lv8-2 -Wl,--end-group
 // // End Generated Libs
 // #cgo libgcompat LDFLAGS: -lgcompat
 // #cgo android,amd64 LDFLAGS: -L${SRCDIR}/deps/android_amd64
