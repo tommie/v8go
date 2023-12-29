@@ -21,7 +21,7 @@ jobs:
       uses: ncipollo/release-action@v1
       with:
         commit: ${{ github.ref }}
-        tag_name: ${{ steps.changelog.outputs.version }}
+        tag: ${{ steps.changelog.outputs.version }}
         body: |
           Full changelog ⇒ [${{ steps.extract.outputs.version }}](${{ steps.extract.outputs.url }})
         draft: true
