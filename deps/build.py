@@ -13,12 +13,14 @@ current_arch = platform.uname()[4].lower().replace("x86_64", "amd64")
 default_arch = current_arch if current_arch in valid_archs else None
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--verbose', '-v', action='store_true')
-parser.add_argument('--debug', dest='debug', action='store_true')
-parser.add_argument('--ccache', action='store_true')
-parser.add_argument('--clang', dest='clang', action='store_true')
+parser.add_argument('--verbose', '-v', default=False, action='store_true')
+parser.add_argument('--debug', default=False, action='store_true')
+parser.add_argument('--ccache', default=False, action='store_true')
+parser.add_argument('--clang', action='store_true')
 parser.add_argument('--no-clang', dest='clang', action='store_false')
-parser.add_argument('--max-file-size')
+# GitHub file size limits: warning at 50 MB, hard limit at 100 MB.
+# Symbol indices can add 15% in the final .ar, so we need margin.
+parser.add_argument('--max-file-size', default=int(40e6))
 parser.add_argument('--arch',
     dest='arch',
     action='store',
@@ -30,7 +32,6 @@ parser.add_argument(
     dest='os',
     choices=['android', 'ios', 'linux', 'darwin', 'windows'],
     default=platform.system().lower())
-parser.set_defaults(verbose=False, debug=False, ccache=False, clang=None, max_file_size=49e6)
 args = parser.parse_args()
 
 deps_path = os.path.dirname(os.path.realpath(__file__))
