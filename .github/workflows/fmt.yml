@@ -1,18 +1,24 @@
-name: Format Code
+name: Code Format
 
 on:
   pull_request:
   workflow_dispatch:
 
 jobs:
-  build:
+  fmt:
+    name: Check Code Format and Style
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
 
     - name: go fmt
       run: go fmt
+
+    - name: go vet
+      run: go vet
 
     - name: go generate (clang-format)
       run: go generate
