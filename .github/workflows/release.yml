@@ -28,10 +28,10 @@ jobs:
     - name: Create Release
       uses: ncipollo/release-action@v1
       with:
-        commit: ${{ github.ref }}
+        commit: ${{ github.sha }}
         tag: ${{ steps.changelog.outputs.version }}
         body: |
-          Full changelog ⇒ [${{ steps.extract.outputs.version }}](${{ steps.extract.outputs.url }})
+          Full changelog ⇒ [${{ steps.changelog.outputs.version }}](${{ steps.changelog.outputs.url }})
         draft: true
         allowUpdates: true
         updateOnlyUnreleased: true
