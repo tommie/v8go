@@ -155,6 +155,9 @@ jobs:
                   git checkout "${latest_v8_version:-$latest_v8_hash}"
                   echo "latest_v8_version=${latest_v8_version:-$latest_v8_hash}" >>"$GITHUB_OUTPUT"
 
+            - name: Remove old static libraries
+              run: "rm -fr deps/*_*"
+
             - name: Download Artifacts
               uses: actions/download-artifact@v4
               with:
@@ -162,9 +165,6 @@ jobs:
 
             - name: Update LDFLAGS in cgo.go
               run: ./deps/update_cgo.py
-
-            - name: "Transition: remove thin archive files"
-              run: "rm -fr deps/*_*/obj"
 
             - id: create_pr
               name: Create PR
@@ -176,6 +176,7 @@ jobs:
                   add-paths: |
                       deps/*_*/libv8*.a
                       deps/*_*/libmanifest
+                      deps/*_*/obj/**
                       deps/include/**
                       deps/v8
                       deps/v8_hash
