@@ -174,7 +174,7 @@ jobs:
                   title: Add built V8 libraries at ${{ steps.update_v8.outputs.latest_v8_version }}
                   body: Auto-generated pull request of built V8 libraries
                   add-paths: |
-                      deps/cgo.go
+                      cgo.go
                       deps/*_*/libv8*.a
                       deps/*_*/libmanifest
                       deps/*_*/obj/**
