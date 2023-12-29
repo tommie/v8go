@@ -11,8 +11,8 @@ package v8go
 // // Begin Generated Libs
 // #cgo android,amd64 LDFLAGS: -Wl,--start-group -lv8-0 -lv8-1 -lv8-2 -Wl,--end-group
 // #cgo android,arm64 LDFLAGS: -Wl,--start-group -lv8-0 -lv8-1 -lv8-2 -Wl,--end-group
-// #cgo darwin,amd64 LDFLAGS: -Wl,--start-group -lv8-0 -lv8-1 -Wl,--end-group
-// #cgo darwin,arm64 LDFLAGS: -Wl,--start-group -lv8-0 -lv8-1 -Wl,--end-group
+// #cgo darwin,amd64 LDFLAGS: -lv8-0 -lv8-1
+// #cgo darwin,arm64 LDFLAGS: -lv8-0 -lv8-1
 // #cgo linux,amd64 LDFLAGS: -Wl,--start-group -lv8-0 -lv8-1 -lv8-2 -Wl,--end-group
 // #cgo linux,arm64 LDFLAGS: -Wl,--start-group -lv8-0 -lv8-1 -lv8-2 -Wl,--end-group
 // // End Generated Libs
