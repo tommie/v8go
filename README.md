@@ -26,6 +26,7 @@ Major differences include
   * We now build everything at once.
     Originally, the build pipeline left the master branch inconsistent between header files and libraries of individual architectures.
   * The library builder maintains a single PR, avoiding PR blow-up.
+  * Using ccache, based on https://github.com/kuoruan/libv8.
 
 ## Usage
 
