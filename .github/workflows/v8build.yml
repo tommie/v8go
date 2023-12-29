@@ -179,6 +179,7 @@ jobs:
                       deps/*_*/libmanifest
                       deps/*_*/obj/**
                       deps/include/**
+                      deps/depot_tools
                       deps/v8
                       deps/v8_hash
                   branch: workflow/v8build
