@@ -20,8 +20,25 @@ jobs:
 
         version=$(sed -e 's;^##\s\+\[\(v[0-9.]\+\)\].*;\1; p ; d' CHANGELOG.md | head -n 1)
 
+        (
+          echo "Full changelog ⇒ [$version](https://github.com/${{ github.repository }}/blob/$version/CHANGELOG.md)"
+
+          awk -v version="$version" '
+            /^##\s+\[.*?\]\s/ && $2 != "[" version "]" {
+              inside = 0;
+            }
+            inside && (inside == 2 || $0) {
+              gsub(/^#/, "");
+              print;
+              if ($0) { inside = 2; }
+            }
+            /^##\s+\[.*?\]\s/ && $2 == "[" version "]" {
+             inside = 1;
+            }' CHANGELOG.md | \
+            sed -Ez '$ s/\n+$/\n/'
+        ) >releasenotes.md
+
         echo "version=$version" >>"$GITHUB_OUTPUT"
-        echo "url=https://github.com/${{ github.repository }}/blob/$version/CHANGELOG.md" >>"$GITHUB_OUTPUT"
 
     - id: create_release
       name: Create Release
@@ -29,8 +46,7 @@ jobs:
       with:
         commit: ${{ github.sha }}
         tag: ${{ steps.changelog.outputs.version }}
-        body: |
-          Full changelog ⇒ [${{ steps.changelog.outputs.version }}](${{ steps.changelog.outputs.url }})
+        bodyFile: releasenotes.md
         draft: true
         allowUpdates: true
         updateOnlyUnreleased: true
