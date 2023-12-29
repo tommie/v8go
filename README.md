@@ -7,6 +7,22 @@
 
 <img src="gopher.jpg" width="200px" alt="V8 Gopher based on original artwork from the amazing Renee French" />
 
+## Relation to `rogchap.com/v8go`
+
+This is a fork of https://github.com/rogchap/v8go at v0.9.0.
+
+Major differences include
+
+* Android amd64/arm64 support.
+* Works with the new Chromium release dashboard (used to find what the stable version of V8 is).
+* Actually upgrades V8. See https://github.com/rogchap/v8go/issues/399.
+* [Support](https://github.com/rogchap/v8go/pull/194) for JS Symbols.
+* [Support](https://github.com/rogchap/v8go/pull/195) for native exceptions and `FunctionCallback` returning an error.
+* A rebuilt build pipeline, being more consistent.
+  * We now build everything at once.
+    Originally, the build pipeline left the master branch inconsistent between header files and libraries of individual architectures.
+  * The library builder maintains a single PR, avoiding PR blow-up.
+
 ## Usage
 
 ```go
