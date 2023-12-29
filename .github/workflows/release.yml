@@ -7,21 +7,25 @@ on:
 
 jobs:
   release:
+    name: Release
     runs-on: ubuntu-latest
     steps:
-    - name: Get version tag
-      id: version
-      run: echo "::set-output name=tag::${GITHUB_REF/refs\/tags\//}"
-    - name: Get changelog url
-      id: changelog
-      run: echo "${{ steps.version.outputs.tag }}---$(date +'%Y-%m-%d')" | sed -e 's/\.//g' | awk '{print "::set-output name=url::https://github.com/rogchap/v8go/blob/master/CHANGELOG.md#" $1}'
+    - name: Get Changelog Information
+      id: extract
+      run: |
+        tag=${GITHUB_REF/refs\/tags\//}
+        echo "tag=$tag" >>"$GITHUB_OUTPUT"
+
+        heading=$(echo "$tag---$(date +'%Y-%m-%d')" | sed -e 's/\.//g')
+        echo "url=https://github.com/${{ github.repository }}/blob/master/CHANGELOG.md#$heading" >>"$GITHUB_OUTPUT"
+
     - name: Create release
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ steps.version.outputs.tag }}
-        release_name: ${{ steps.version.outputs.tag }}
-        body: Full changelog ⇒ [${{ steps.version.outputs.tag }}](${{ steps.changelog.outputs.url }})
+        tag_name: ${{ steps.extract.outputs.tag }}
+        release_name: ${{ steps.extract.outputs.tag }}
+        body: Full changelog ⇒ [${{ steps.extract.outputs.tag }}](${{ steps.extract.outputs.url }})
         draft: true
         prerelease: false

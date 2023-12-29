@@ -1,11 +1,11 @@
 # Execute JavaScript from Go
 
-<a href="https://github.com/rogchap/v8go/releases"><img src="https://img.shields.io/github/v/release/rogchap/v8go" alt="Github release"></a>
+<a href="https://github.com/tommie/v8go/releases"><img src="https://img.shields.io/github/v/release/tommie/v8go" alt="Github release"></a>
 [![Go Report Card](https://goreportcard.com/badge/github.com/tommie/v8go)](https://goreportcard.com/report/github.com/tommie/v8go)
 [![Go Reference](https://pkg.go.dev/badge/github.com/tommie/v8go.svg)](https://pkg.go.dev/github.com/tommie/v8go)
 [![Test](https://github.com/tommie/v8go/actions/workflows/test.yml/badge.svg)](https://github.com/tommie/v8go/actions/workflows/test.yml)
 
-<img src="gopher.jpg" width="200px" alt="V8 Gopher based on original artwork from the amazing Renee French" />
+<img src="gopher.jpg" width="200px" alt="V8 Gopher based on original artwork from the amazing Renee French" style="float:right" />
 
 ## Relation to `rogchap.com/v8go`
 
@@ -15,7 +15,11 @@ Major differences include
 
 * Android amd64/arm64 support.
 * Works with the new Chromium release dashboard (used to find what the stable version of V8 is).
-* Actually upgrades V8. See https://github.com/rogchap/v8go/issues/399.
+* Actually upgrades V8.
+  See https://github.com/rogchap/v8go/issues/399.
+* Splits the v8 static libraries to work around the [GitHub file size limit](https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-large-files-on-github#file-size-limits) of 100 MB.
+  The splitter doesn't care about dependencies, so binutils `ld` requires `--start-group` around them.
+  Notably, the XCode `ld` doesn't care about ordering.
 * [Support](https://github.com/rogchap/v8go/pull/194) for JS Symbols.
 * [Support](https://github.com/rogchap/v8go/pull/195) for native exceptions and `FunctionCallback` returning an error.
 * A rebuilt build pipeline, being more consistent.
@@ -204,7 +208,7 @@ please join the [**#v8go**](https://gophers.slack.com/channels/v8go) channel on 
 
 ### Windows
 
-There used to be Windows binary support. For further information see, [PR #234](https://github.com/rogchap/v8go/pull/234).
+There used to be Windows binary support. For further information see, [rogchap PR #234](https://github.com/rogchap/v8go/pull/234).
 
 The v8go library would welcome contributions from anyone able to get an external windows
 build of the V8 library linking with v8go, using the version of V8 checked out in the
@@ -233,7 +237,7 @@ This project also aims to keep up-to-date with the latest (stable) release of V8
 
 ## License
 
-[![FOSSA Status](https://app.fossa.com/api/projects/custom%2B22862%2Fgit%40github.com%3Arogchap%2Fv8go.git.svg?type=large)](https://app.fossa.com/projects/custom%2B22862%2Fgit%40github.com%3Arogchap%2Fv8go.git?ref=badge_large)
+[![FOSSA Status](https://app.fossa.com/api/projects/custom%2B22862%2Fgit%40github.com%3Atommie%2Fv8go.git.svg?type=large)](https://app.fossa.com/projects/custom%2B22862%2Fgit%40github.com%3Atommie%2Fv8go.git?ref=badge_large)
 
 ## Development
 
@@ -248,18 +252,14 @@ This project also aims to keep up-to-date with the latest (stable) release of V8
 
 ### Upgrading the V8 binaries
 
-We have the [upgradev8](https://github.com/rogchap/v8go/.github/workflow/v8upgrade.yml) workflow.
+We have the [v8upgrade](https://github.com/tommie/v8go/.github/workflow/v8upgrade.yml) workflow.
 The workflow is triggered every day or manually.
+When run, it finds the current stable V8 version on https://chromiumdash.appspot.com/ and updates `deps/latest_v8_hash`.
+If it differs from before, it creates a PR.
 
-If the current [v8_version](https://github.com/rogchap/v8go/deps/v8_version) is different from the latest stable version, the workflow takes care of fetching the latest stable v8 files and copying them into `deps/include`. The last step of the workflow opens a new PR with the branch name `v8_upgrade/<v8-version>` with all the changes.
-
-The next steps are:
-
-1) The build is not yet triggered automatically. To trigger it manually, go to the [V8
-Build](https://github.com/rogchap/v8go/actions?query=workflow%3A%22V8+Build%22) Github Action, Select "Run workflow",
-and select your pushed branch eg. `v8_upgrade/<v8-version>`.
-1) Once built, this should open 3 PRs against your branch to add the `libv8.a` for Linux (for x86_64) and macOS for x86_64 and arm64; merge
-these PRs into your branch. You are now ready to raise the PR against `master` with the latest version of V8.
+The [v8build](https://github.com/tommie/v8go/.github/workflow/v8build.yml) workflow upgrades V8 to the `deps/latest_v8_hash`, writes `deps/v8_hash` and builds new libraries.
+It is triggered by the `v8upgrade` PR (actually a push to its PR branch,) or being run manually.
+This also creates a PR, and the upgrade PR should be merged first.
 
 ### Flushing after C/C++ standard library printing for debugging
 
