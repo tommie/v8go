@@ -7,9 +7,9 @@ import shutil
 import subprocess
 import sys
 
-valid_archs = ['arm64', 'x86_64']
-# "x86_64" is called "amd64" on Windows
-current_arch = platform.uname()[4].lower().replace("amd64", "x86_64")
+valid_archs = ['arm64', 'amd64']
+# "amd64" is called "x86_64" on everything but Windows.
+current_arch = platform.uname()[4].lower().replace("x86_64", "amd64")
 default_arch = current_arch if current_arch in valid_archs else None
 
 parser = argparse.ArgumentParser()
@@ -146,7 +146,7 @@ def v8_os():
     return args.os.replace('darwin', 'mac')
 
 def v8_arch():
-    if args.arch == "x86_64":
+    if args.arch == "amd64":
         return "x64"
     return args.arch
 

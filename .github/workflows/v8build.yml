@@ -39,7 +39,7 @@ jobs:
             fail-fast: false
             matrix:
                 os: [android, darwin, linux]
-                arch: [x86_64, arm64]
+                arch: [amd64, arm64]
                 include:
                     - os: android
                       platform: ubuntu-latest
