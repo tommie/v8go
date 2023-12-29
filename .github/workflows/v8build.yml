@@ -163,6 +163,9 @@ jobs:
             - name: Update LDFLAGS in cgo.go
               run: ./deps/update_cgo.py
 
+            - name: "Transition: remove thin archive files"
+              run: "rm -fr deps/*_*/obj"
+
             - id: create_pr
               name: Create PR
               uses: peter-evans/create-pull-request@v5
