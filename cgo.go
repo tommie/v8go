@@ -29,11 +29,11 @@ import "C"
 // contain V8 libraries and headers which otherwise would be ignored.
 // DO NOT REMOVE
 import (
-	_ "rogchap.com/v8go/deps/android_amd64"
-	_ "rogchap.com/v8go/deps/android_arm64"
-	_ "rogchap.com/v8go/deps/darwin_amd64"
-	_ "rogchap.com/v8go/deps/darwin_arm64"
-	_ "rogchap.com/v8go/deps/include"
-	_ "rogchap.com/v8go/deps/linux_amd64"
-	_ "rogchap.com/v8go/deps/linux_arm64"
+	_ "github.com/tommie/v8go/deps/android_amd64"
+	_ "github.com/tommie/v8go/deps/android_arm64"
+	_ "github.com/tommie/v8go/deps/darwin_amd64"
+	_ "github.com/tommie/v8go/deps/darwin_arm64"
+	_ "github.com/tommie/v8go/deps/include"
+	_ "github.com/tommie/v8go/deps/linux_amd64"
+	_ "github.com/tommie/v8go/deps/linux_arm64"
 )
