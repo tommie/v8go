@@ -8,12 +8,20 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+
     - name: Get Changelog Information
       id: changelog
       run: |
+        set -o pipefail
+
         version_date=$(sed -e 's;^##\s\+\[\(v[0-9.]\+\)\]\(\s\|-\)*\([0-9-]\+\);\1 \3; p ; d' CHANGELOG.md | head -n 1)
         version=${version_date% *}
         date=${version_date#* }
+
         echo "version=$version" >>"$GITHUB_OUTPUT"
         echo "url=https://github.com/${{ github.repository }}/blob/master/CHANGELOG.md#${version//./}---$date" >>"$GITHUB_OUTPUT"
 
