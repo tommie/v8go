@@ -15,8 +15,6 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-      with:
-        fetch-depth: 1
 
     - name: Set Up Workspace
       # Submodules shouldn't cause a download.
@@ -39,6 +37,9 @@ jobs:
 
         # This is the latest commit affecting any file in the submodules.
         # Thus, this workflow is idempotent.
+        #
+        # It requires the full commit history. If checkout uses fetch-depth=1,
+        # this always returns ${{ github.sha }}.
         sha="$(git log -n 1 --pretty=format:%H -- "${submods[@]}")"
 
         echo "submodules=${submods[*]}" >>"$GITHUB_OUTPUT"
