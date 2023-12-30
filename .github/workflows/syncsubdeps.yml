@@ -33,7 +33,7 @@ jobs:
         echo "sha=$sha" >>"$GITHUB_OUTPUT"
         echo "short-sha=${sha::8}" >>"$GITHUB_OUTPUT"
 
-   - name: Set Up Workspace
+    - name: Set Up Workspace
       # Submodules shouldn't cause a download.
       # TODO: figure out why this isn't enough.
       run: |
