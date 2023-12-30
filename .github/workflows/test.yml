@@ -45,7 +45,9 @@ jobs:
         go work init . $(ls ./deps/*_*/cgo.go | xargs -r dirname)
 
     - name: Run Tests With Coverage
-      run: go test -v -coverprofile coverage.out ./...
+      run: |
+        # https://github.com/tommie/v8go/actions/runs/7363603520/job/20043211523 shows that TestCPUProfileNode can be flaky.
+        go test -v -coverprofile coverage.out ./... || go test -v -coverprofile coverage.out ./...
       env:
         CGO_CXXFLAGS: "-Werror"
 
