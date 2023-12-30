@@ -17,7 +17,8 @@ jobs:
         go-version:
         # Check the earliest and two trailing versions, to keep
         # maintainance of this file reasonable.
-        - 1.17
+        - 1.18
+        - 1.19
         - oldstable
         - stable
         include:
@@ -37,6 +38,12 @@ jobs:
 
     - name: Checkout
       uses: actions/checkout@v4
+
+    - name: Set Up Workspace
+      # Submodules shouldn't cause a download.
+      run: |
+        set -o pipefail
+        go work init . $(ls ./deps/*_*/cgo.go | xargs -r dirname)
 
     - name: Run Tests With Coverage
       run: go test -v -coverprofile coverage.out ./...
