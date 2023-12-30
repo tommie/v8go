@@ -1,0 +1,12 @@
+github.com/tommie/v8go/deps/android_amd64 v0.0.0-20231230100618-7370d03fcda3 h1:a4nMLaoseAYgEbWADFmEj6c06OiPvQsFUs24qNVSRbE=
+github.com/tommie/v8go/deps/android_amd64 v0.0.0-20231230100618-7370d03fcda3/go.mod h1:P3Y430vJQICpWshYTlJ4F7d80w5CQfWG+y1Av72oYiI=
+github.com/tommie/v8go/deps/android_arm64 v0.0.0-20231230100618-7370d03fcda3 h1:J3kwUe2wvmJJKpzLxu0AtpOtxuUcj28USnSw+pG2hu4=
+github.com/tommie/v8go/deps/android_arm64 v0.0.0-20231230100618-7370d03fcda3/go.mod h1:VoiPjUf1OwfkR/KS0D6PLF1axid06DuCptoyTkDKHiI=
+github.com/tommie/v8go/deps/darwin_amd64 v0.0.0-20231230100618-7370d03fcda3 h1:jrg7Efoq74lZjPHtjJ/ak5FtV/Tp6LRZ8gew9dAR2cg=
+github.com/tommie/v8go/deps/darwin_amd64 v0.0.0-20231230100618-7370d03fcda3/go.mod h1:rnquNHGZ2NABmOB0KxdkoZr2oaECO2XWOcgHqRO7P7Y=
+github.com/tommie/v8go/deps/darwin_arm64 v0.0.0-20231230100618-7370d03fcda3 h1:MbaHR6QuRkugLCSInzAAyCggSwmqz+KW3C92LaZNJm8=
+github.com/tommie/v8go/deps/darwin_arm64 v0.0.0-20231230100618-7370d03fcda3/go.mod h1:nXZZ5Y/Nhe0guNiFf66Nfs4ELgYlOsyYx4gD1HnGIeA=
+github.com/tommie/v8go/deps/linux_amd64 v0.0.0-20231230100618-7370d03fcda3 h1:pb6ELR3+XRJmUqDM51gHRg87z6rJvMzm9pJqO86dp+Y=
+github.com/tommie/v8go/deps/linux_amd64 v0.0.0-20231230100618-7370d03fcda3/go.mod h1:x+ZODfvTFg4K3B1cUQEiXWd0BbRxzZbxMR3P79eHc+M=
+github.com/tommie/v8go/deps/linux_arm64 v0.0.0-20231230100618-7370d03fcda3 h1:bPfGUlNy2iCPbLOEk5bCXAWQEHn/H7gYSeiVm09dFZg=
+github.com/tommie/v8go/deps/linux_arm64 v0.0.0-20231230100618-7370d03fcda3/go.mod h1:RRqUJUvKTf8jnA3reWNlunWV3Bg3yJSbasm6j6UDBHc=
