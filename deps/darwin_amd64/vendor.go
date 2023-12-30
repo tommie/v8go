@@ -1,3 +1,3 @@
-// Package darwin_x86_64 is required to provide support for vendoring modules
+// Package darwin_amd64 is required to provide support for vendoring modules
 // DO NOT REMOVE
-package darwin_x86_64
+package darwin_amd64
