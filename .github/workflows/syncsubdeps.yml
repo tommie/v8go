@@ -24,7 +24,8 @@ jobs:
         set -o pipefail
         go work init . $(ls ./deps/*_*/cgo.go | xargs -r dirname)
 
-    - name: Update go.mod
+    - id: info
+      name: Extract Information
       run: |
         set -o pipefail
         submods=(
@@ -32,16 +33,23 @@ jobs:
               xargs -r dirname | \
               xargs -rn1 basename | \
               while read os_arch; do
-                echo "github.com/${{ github.repository }}/deps/$os_arch@${{ github.sha }}"
+                echo "github.com/${{ github.repository }}/deps/$os_arch"
               done)
         )
-        go get "${submods[@]}"
 
-    - id: info
-      name: Extract Information
-      run: |
-        sha="${{ github.sha }}"
+        # This is the latest commit affecting any file in the submodules.
+        # Thus, this workflow is idempotent.
+        sha="$(git log -n 1 --pretty=format:%H "${submods[@]}")"
+
+        echo "submodules=${submods[*]}" >>"$GITHUB_OUTPUT"
+        echo "sha=$sha" >>"$GITHUB_OUTPUT"
         echo "short-sha=${sha::8}" >>"$GITHUB_OUTPUT"
+
+    - name: Update go.mod
+      run: |
+        sha="${{ steps.info.outputs.sha }}"
+        submods=( $(for submod in ${{ steps.info.outputs.submodules }}; do echo "$submod@$sha" ; done) )
+        go get "${submods[@]}"
 
     - id: create_pr
       name: Create PR
