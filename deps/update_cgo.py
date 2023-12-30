@@ -7,7 +7,7 @@ argp = argparse.ArgumentParser()
 argp.add_argument("--root-module", default="github.com/tommie/v8go")
 argp.add_argument("--cgo-path-template", default="cgo_{os}_{arch}.go")
 argp.add_argument("--manifest-paths", default="deps/*_*/libmanifest")
-argp.add_argument("--min-go-version", default="1.17")
+argp.add_argument("--min-go-version", default="1.19")
 args = argp.parse_args()
 
 def get_libs(manifest_path):
