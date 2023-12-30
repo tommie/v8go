@@ -15,36 +15,30 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-
-    - name: Set Up Workspace
-      # Submodules shouldn't cause a download.
-      run: |
-        set -o pipefail
-        go work init . $(ls ./deps/*_*/cgo.go | xargs -r dirname)
+      with:
+        # Our git log in deps/ requires an arbitrarily deep history.
+        fetch-depth: 0
 
     - id: info
       name: Extract Information
       run: |
         set -o pipefail
-        submods=(
-          $(find deps -maxdepth 2 -type f -name libmanifest | \
-              xargs -r dirname | \
-              xargs -rn1 basename | \
-              while read os_arch; do
-                echo "deps/$os_arch"
-              done)
-        )
+        submods=( $(ls deps/*_*/cgo.go | xargs -r dirname) )
 
         # This is the latest commit affecting any file in the submodules.
         # Thus, this workflow is idempotent.
-        #
-        # It requires the full commit history. If checkout uses fetch-depth=1,
-        # this always returns ${{ github.sha }}.
         sha="$(git log -n 1 --pretty=format:%H -- "${submods[@]}")"
 
         echo "submodules=${submods[*]}" >>"$GITHUB_OUTPUT"
         echo "sha=$sha" >>"$GITHUB_OUTPUT"
         echo "short-sha=${sha::8}" >>"$GITHUB_OUTPUT"
+
+   - name: Set Up Workspace
+      # Submodules shouldn't cause a download.
+      # TODO: figure out why this isn't enough.
+      run: |
+        submods=( ${{ steps.info.outputs.submodules }} )
+        go work init . "${submods[@]}"
 
     - name: Update go.mod
       run: |
