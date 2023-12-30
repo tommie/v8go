@@ -20,10 +20,12 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Go Test
+    - name: Build Test
       env:
         CC: clang
         CXX: clang++
       run: |
         go test -c --tags leakcheck
-        ./v8go.test
+
+    - name: Run Test
+      run: ./v8go.test
