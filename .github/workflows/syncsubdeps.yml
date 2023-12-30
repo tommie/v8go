@@ -1,6 +1,11 @@
 name: Sync Submodule Dependencies
 
 on:
+  push:
+    branches:
+    - master
+    paths:
+    - "deps/*_*/**"
   workflow_dispatch:
 
 jobs:
