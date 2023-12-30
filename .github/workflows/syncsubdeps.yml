@@ -33,13 +33,13 @@ jobs:
               xargs -r dirname | \
               xargs -rn1 basename | \
               while read os_arch; do
-                echo "github.com/${{ github.repository }}/deps/$os_arch"
+                echo "deps/$os_arch"
               done)
         )
 
         # This is the latest commit affecting any file in the submodules.
         # Thus, this workflow is idempotent.
-        sha="$(git log -n 1 --pretty=format:%H "${submods[@]}")"
+        sha="$(git log -n 1 --pretty=format:%H -- "${submods[@]}")"
 
         echo "submodules=${submods[*]}" >>"$GITHUB_OUTPUT"
         echo "sha=$sha" >>"$GITHUB_OUTPUT"
@@ -48,7 +48,7 @@ jobs:
     - name: Update go.mod
       run: |
         sha="${{ steps.info.outputs.sha }}"
-        submods=( $(for submod in ${{ steps.info.outputs.submodules }}; do echo "$submod@$sha" ; done) )
+        submods=( $(for submod in ${{ steps.info.outputs.submodules }}; do echo "github.com/${{ github.repository }}/$submod@$sha" ; done) )
         go get "${submods[@]}"
 
     - id: create_pr
