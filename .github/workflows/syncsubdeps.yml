@@ -1,0 +1,46 @@
+name: Sync Submodule Dependencies
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sync:
+    name: Sync
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+
+    - name: Update go.mod
+      run: |
+        find deps -maxdepth 2 -type f -name libmanifest | \
+          xargs -r dirname | \
+          xargs -rn1 basename | \
+          while read os_arch; do
+            go get "github.com/${{ github.repository }}/deps/$os_arch@${{ github.sha }}"
+          done
+
+    - id: info
+      name: Extract Information
+      run: |
+        sha="${{ github.sha }}"
+        echo "short-sha=${sha::8}" >>"$GITHUB_OUTPUT"
+
+    - id: create_pr
+      name: Create PR
+      uses: peter-evans/create-pull-request@v5
+      with:
+          commit-message: Bump go.mod to latest submodules (${{ steps.info.outputs.short-sha }})
+          title: Bump go.mod to latest submodules (${{ steps.info.outputs.short-sha }})
+          body: Auto-generated pull request from workflows/syncsubdeps.
+          add-paths: |
+              go.mod
+              go.sum
+          branch: workflow/syncsubdeps
+          delete-branch: true
+
+    - name: Create Summary
+      run: |
+          echo "PR: ${{ steps.create_pr.outputs.pull-request-url }}" >>"$GITHUB_STEP_SUMMARY"
