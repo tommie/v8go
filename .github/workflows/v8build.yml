@@ -187,6 +187,7 @@ jobs:
                       deps/v8
                       deps/v8_hash
                   branch: workflow/v8build
+                  reviewers: tommie
                   delete-branch: true
 
             - name: Create Summary
