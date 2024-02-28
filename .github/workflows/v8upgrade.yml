@@ -40,6 +40,7 @@ jobs:
                   Code changes will happen on the next run of the build workflow.
               add-paths: deps/latest_v8_hash
               branch: workflow/v8upgrade
+              reviewers: tommie
               delete-branch: true
 
         - name: Create Summary
