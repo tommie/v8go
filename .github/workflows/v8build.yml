@@ -175,7 +175,7 @@ jobs:
 
             - id: create_pr
               name: Create PR
-              uses: peter-evans/create-pull-request@v5
+              uses: peter-evans/create-pull-request@v6
               with:
                   commit-message: Add built V8 libraries at ${{ steps.update_v8.outputs.latest_v8_version }}
                   title: Add built V8 libraries at ${{ steps.update_v8.outputs.latest_v8_version }}
