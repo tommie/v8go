@@ -3,7 +3,10 @@ name: V8 Build
 on:
     push:
         branches:
+        - master
         - workflow/v8upgrade
+        paths:
+        - deps/latest_v8_hash
     workflow_dispatch:
 
 jobs:
