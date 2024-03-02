@@ -57,6 +57,7 @@ jobs:
               go.mod
               go.sum
           branch: workflow/syncsubdeps
+          reviewers: tommie
           delete-branch: true
 
     - name: Create Summary
