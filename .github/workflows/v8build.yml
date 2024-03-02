@@ -184,7 +184,6 @@ jobs:
                       cgo.go
                       deps/*_*/libv8*.a
                       deps/*_*/libmanifest
-                      deps/*_*/obj/**
                       deps/include/**
                       deps/depot_tools
                       deps/v8
