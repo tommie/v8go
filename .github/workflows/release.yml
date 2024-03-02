@@ -47,7 +47,7 @@ jobs:
         commit: ${{ github.sha }}
         tag: ${{ steps.changelog.outputs.version }}
         bodyFile: releasenotes.md
-        draft: true
+        draft: false
         allowUpdates: true
         updateOnlyUnreleased: true
 
