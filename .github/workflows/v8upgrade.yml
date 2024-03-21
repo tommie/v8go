@@ -28,21 +28,19 @@ jobs:
               echo "latest_v8_hash=$(<deps/latest_v8_hash)" >>"$GITHUB_OUTPUT"
               echo "has_upgrade=$(git status --porcelain | grep -q . && echo y || echo n)" >>"$GITHUB_OUTPUT"
 
-        - id: create_pr
-          name: Create PR
+        - id: commit
+          name: Commit
           if: ${{ steps.check_v8.outputs.has_upgrade }} == 'y'
-          uses: peter-evans/create-pull-request@v6
+          uses: EndBug/add-and-commit@v9
           with:
-              commit-message: "Records new V8 release: ${{ steps.check_v8.outputs.latest_v8_hash }}"
-              title: "Records new V8 release: ${{ steps.check_v8.outputs.latest_v8_hash }}"
-              body: |
+              add: deps/latest_v8_hash
+              fetch: false
+              message: |
+                  Records new V8 release: ${{ steps.check_v8.outputs.latest_v8_hash }}
+                  
                   This is an automated bump of the V8 release hash based on the Chromium dashboard.
                   Code changes will happen on the next run of the build workflow.
-              add-paths: deps/latest_v8_hash
-              branch: workflow/v8upgrade
-              reviewers: tommie
-              delete-branch: true
 
         - name: Create Summary
           run: |
-              echo "PR: ${{ steps.create_pr.outputs.pull-request-url }}" >>"$GITHUB_STEP_SUMMARY"
+              echo "Commit: https://github.com/tommie/v8go/commit/${{ steps.commit.outputs.commit_long_sha }}" >>"$GITHUB_STEP_SUMMARY"
