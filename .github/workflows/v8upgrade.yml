@@ -9,6 +9,9 @@ jobs:
     upgrade:
         name: Upgrade V8
         runs-on: ubuntu-latest
+        outputs:
+          has_upgrade: ${{ steps.check_v8.outputs.has_upgrade }}
+          latest_v8_hash: ${{ steps.check_v8.outputs.latest_v8_hash }}
         steps:
         - name: Install Utilities
           run: |
@@ -48,9 +51,11 @@ jobs:
     build:
         name: Run V8 Build
         needs: upgrade
+        if: ${{ needs.upgrade.outputs.has_upgrade }} == 'y'
         uses: ./.github/workflows/v8build.yml
 
     syncsubdeps:
         name: Run Sync Submodule Dependencies
         needs: build
+        if: ${{ needs.upgrade.outputs.has_upgrade }} == 'y'
         uses: ./.github/workflows/syncsubdeps.yml
