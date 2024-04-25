@@ -44,3 +44,13 @@ jobs:
         - name: Create Summary
           run: |
               echo "Commit: https://github.com/tommie/v8go/commit/${{ steps.commit.outputs.commit_long_sha }}" >>"$GITHUB_STEP_SUMMARY"
+
+    build:
+        name: Run V8 Build
+        needs: upgrade
+        uses: ./.github/workflows/v8build.yml
+
+    syncsubdeps:
+        name: Run Sync Submodule Dependencies
+        needs: build
+        uses: ./.github/workflows/syncsubdeps.yml
