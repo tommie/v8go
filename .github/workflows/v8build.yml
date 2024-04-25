@@ -63,7 +63,7 @@ jobs:
 
             - name: Install setuptools
               if: matrix.platform == 'macos-latest'
-              run: python3 -m ensurepip --default-pip && python3 -m pip install --upgrade setuptools
+              run: python3 -m pip install --upgrade setuptools
               env:
                 # https://stackoverflow.com/a/76469774
                 PIP_BREAK_SYSTEM_PACKAGES: '1'
