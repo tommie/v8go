@@ -52,6 +52,11 @@ jobs:
           run: |
               echo "Commit: https://github.com/tommie/v8go/commit/${{ steps.commit.outputs.commit_long_sha }}" >>"$GITHUB_STEP_SUMMARY"
 
+        - name: Create Summary (no upgrade)
+          if: ${{ steps.commit.outputs.committed != 'true' }}
+          run: |
+              echo "No V8 upgrade available." >>"$GITHUB_STEP_SUMMARY"
+
     build:
         name: Run V8 Build
         needs: upgrade
