@@ -8,6 +8,7 @@ on:
         paths:
         - deps/latest_v8_hash
     workflow_dispatch:
+    workflow_call:
 
 jobs:
     build_common:
