@@ -45,8 +45,10 @@ jobs:
                   Code changes will happen on the next run of the build workflow.
 
         - name: Create Summary
-          if: ${{ steps.commit.outputs.committed }}
+          if: ${{ steps.commit.outputs.committed }} == 'true'
           run: |
+              cat "$GITHUB_OUTPUT"
+              echo "C ${{ steps.commit.outputs.committed }}"
               echo "Commit: https://github.com/tommie/v8go/commit/${{ steps.commit.outputs.commit_long_sha }}" >>"$GITHUB_STEP_SUMMARY"
 
     build:
