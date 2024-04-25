@@ -63,8 +63,8 @@ jobs:
         if: ${{ needs.upgrade.outputs.committed == 'true' }}
         uses: ./.github/workflows/v8build.yml
 
-    syncsubdeps:
-        name: Run Sync Submodule Dependencies
-        needs: build
-        if: ${{ needs.upgrade.outputs.committed == 'true' }}
-        uses: ./.github/workflows/syncsubdeps.yml
+    #syncsubdeps:
+    #    name: Run Sync Submodule Dependencies
+    #    needs: build
+    #    if: ${{ needs.upgrade.outputs.committed == 'true' }}
+    #    uses: ./.github/workflows/syncsubdeps.yml
