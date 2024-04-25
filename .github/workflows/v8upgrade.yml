@@ -10,6 +10,7 @@ jobs:
         name: Upgrade V8
         runs-on: ubuntu-latest
         outputs:
+          committed: ${{ steps.commit.outputs.committed }}
           has_upgrade: ${{ steps.check_v8.outputs.has_upgrade }}
           latest_v8_hash: ${{ steps.check_v8.outputs.latest_v8_hash }}
         steps:
@@ -29,11 +30,13 @@ jobs:
               set -o pipefail
               wget -q -O- "https://chromiumdash.appspot.com/fetch_releases?channel=Stable&platform=Linux&num=1&offset=0" | jq -r ".[0].hashes.v8" >deps/latest_v8_hash
               echo "latest_v8_hash=$(<deps/latest_v8_hash)" >>"$GITHUB_OUTPUT"
-              echo "has_upgrade=$(git status --porcelain | grep -q . && echo y || echo n)" >>"$GITHUB_OUTPUT"
+              echo "has_upgrade=$(git status --porcelain | grep -q . && echo true || echo false)" >>"$GITHUB_OUTPUT"
+              git status --porcelain
+              cat "$GITHUB_OUTPUT"
 
         - id: commit
           name: Commit
-          if: ${{ steps.check_v8.outputs.has_upgrade }} == 'y'
+          if: ${{ steps.check_v8.outputs.has_upgrade == 'true' }}
           uses: EndBug/add-and-commit@v9
           with:
               add: deps/latest_v8_hash
@@ -45,20 +48,18 @@ jobs:
                   Code changes will happen on the next run of the build workflow.
 
         - name: Create Summary
-          if: ${{ steps.commit.outputs.committed }} == 'true'
+          if: ${{ steps.commit.outputs.committed == 'true' }}
           run: |
-              cat "$GITHUB_OUTPUT"
-              echo "C ${{ steps.commit.outputs.committed }}"
               echo "Commit: https://github.com/tommie/v8go/commit/${{ steps.commit.outputs.commit_long_sha }}" >>"$GITHUB_STEP_SUMMARY"
 
     build:
         name: Run V8 Build
         needs: upgrade
-        if: ${{ needs.upgrade.outputs.has_upgrade }} == 'y'
+        if: ${{ needs.upgrade.outputs.committed == 'true' }}
         uses: ./.github/workflows/v8build.yml
 
     syncsubdeps:
         name: Run Sync Submodule Dependencies
         needs: build
-        if: ${{ needs.upgrade.outputs.has_upgrade }} == 'y'
+        if: ${{ needs.upgrade.outputs.committed == 'true' }}
         uses: ./.github/workflows/syncsubdeps.yml
