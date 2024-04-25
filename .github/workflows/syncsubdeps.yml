@@ -47,20 +47,19 @@ jobs:
         submods=( $(for submod in ${{ steps.info.outputs.submodules }}; do echo "github.com/${{ github.repository }}/$submod@$sha" ; done) )
         go get "${submods[@]}"
 
-    - id: create_pr
-      name: Create PR
-      uses: peter-evans/create-pull-request@v5
+    - id: commit
+      name: Commit
+      uses: EndBug/add-and-commit@v9
       with:
-          commit-message: Bump go.mod to latest submodules (${{ steps.info.outputs.short-sha }})
-          title: Bump go.mod to latest submodules (${{ steps.info.outputs.short-sha }})
-          body: Auto-generated pull request from workflows/syncsubdeps.
-          add-paths: |
+          add: |
               go.mod
               go.sum
-          branch: workflow/syncsubdeps
-          reviewers: tommie
-          delete-branch: true
+          fetch: false
+          message: |
+            Bump go.mod to latest submodules (${{ steps.info.outputs.short-sha }})
+
+            Auto-generated pull request from workflows/syncsubdeps.
 
     - name: Create Summary
       run: |
-          echo "PR: ${{ steps.create_pr.outputs.pull-request-url }}" >>"$GITHUB_STEP_SUMMARY"
+          echo "Commit: https://github.com/tommie/v8go/commit/${{ steps.commit.outputs.commit_long_sha }}" >>"$GITHUB_STEP_SUMMARY"
