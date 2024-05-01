@@ -177,25 +177,23 @@ jobs:
             - name: Update LDFLAGS in cgo.go
               run: ./deps/update_cgo.py
 
-            - id: create_pr
-              name: Create PR
-              uses: peter-evans/create-pull-request@v6
+            - id: commit
+              name: Commit
+              uses: EndBug/add-and-commit@v9
               with:
-                  commit-message: Add built V8 libraries at ${{ steps.update_v8.outputs.latest_v8_version }}
-                  title: Add built V8 libraries at ${{ steps.update_v8.outputs.latest_v8_version }}
-                  body: Auto-generated pull request of built V8 libraries
-                  add-paths: |
-                      cgo.go
-                      deps/*_*/libv8*.a
-                      deps/*_*/libmanifest
-                      deps/include/**
-                      deps/depot_tools
-                      deps/v8
-                      deps/v8_hash
-                  branch: workflow/v8build
-                  reviewers: tommie
-                  delete-branch: true
+                  add: deps/latest_v8_hash
+                  fetch: false
+                  message: |
+                      Add built V8 libraries at ${{ steps.update_v8.outputs.latest_v8_version }}
+
+                      Auto-generated pull request of built V8 libraries
 
             - name: Create Summary
+              if: ${{ steps.commit.outputs.committed == 'true' }}
               run: |
-                  echo "PR: ${{ steps.create_pr.outputs.pull-request-url }}" >>"$GITHUB_STEP_SUMMARY"
+                  echo "Commit: https://github.com/tommie/v8go/commit/${{ steps.commit.outputs.commit_long_sha }}" >>"$GITHUB_STEP_SUMMARY"
+
+            - name: Create Summary (no upgrade)
+              if: ${{ steps.commit.outputs.committed != 'true' }}
+              run: |
+                  echo "No commit necessary." >>"$GITHUB_STEP_SUMMARY"
