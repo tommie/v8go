@@ -25,7 +25,7 @@ Major differences include
 * A rebuilt build pipeline, being more consistent.
   * We now build everything at once.
     Originally, the build pipeline left the master branch inconsistent between header files and libraries of individual architectures.
-  * The library builder maintains a single PR, avoiding PR blow-up.
+  * The library builder commits directly, without a PR, avoiding PR blow-up.
   * Using ccache, based on https://github.com/kuoruan/libv8.
 
 ## Usage
@@ -217,14 +217,10 @@ build of the V8 library linking with v8go, using the version of V8 checked out i
 involve passing a linker flag when building v8go (e.g. using the `CGO_LDFLAGS` environment
 variable.
 
-## V8 dependency
+## V8 Dependency
 
-V8 version: **9.0.257.18** (April 2021)
-
-In order to make `v8go` usable as a standard Go package, prebuilt static libraries of V8
-are included for Linux and macOS. you *should not* require to build V8 yourself.
-
-Due to security concerns of binary blobs hiding malicious code, the V8 binary is built via CI *ONLY*.
+See `deps/v8/` for the version of V8 we're currently on.
+In order to make `v8go` usable as a standard Go package, prebuilt static libraries of V8 are included for Linux and macOS. you *should not* require to build V8 yourself.
 
 ## Project Goals
 
@@ -256,11 +252,23 @@ This project also aims to keep up-to-date with the latest (stable) release of V8
 We have the [v8upgrade](https://github.com/tommie/v8go/.github/workflow/v8upgrade.yml) workflow.
 The workflow is triggered every day or manually.
 When run, it finds the current stable V8 version on https://chromiumdash.appspot.com/ and updates `deps/latest_v8_hash`.
-If it differs from before, it creates a PR.
+If it differs from before, it commits the change and runs `v8build`.
 
 The [v8build](https://github.com/tommie/v8go/.github/workflow/v8build.yml) workflow upgrades V8 to the `deps/latest_v8_hash`, writes `deps/v8_hash` and builds new libraries.
-It is triggered by the `v8upgrade` PR (actually a push to its PR branch,) or being run manually.
-This also creates a PR, and the upgrade PR should be merged first.
+It is triggered by the `v8upgrade` workflow, or being run manually.
+This also commits changes directly.
+Then it runs `syncsubdeps`.
+
+The [syncsubdeps](https://github.com/tommie/v8go/.github/workflow/syncsubdeps.yml) workflow updates the `go.mod` file to point to the new commit.
+Each architecture in `deps/` is its own Go module.
+This is needed to work around size constraints in Go module handling due to the large libv8 files.
+But we still want them to be consistent across builds, something that needs to happen after the built files have been committed.
+Once this is done, the upgrade is complete.
+
+Releasing the library is a matter of running the [release](https://github.com/tommie/v8go/.github/workflow/release.yml) workflow.
+It reads `CHANGELOG.md`, creates a Git tag and a GitHub release.
+The tag is what matters for Go modules, and the GitHub release is useful for notifications.
+Making a release is currently manual.
 
 ### Flushing after C/C++ standard library printing for debugging
 

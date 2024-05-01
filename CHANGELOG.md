@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.12.0] - 2024-05-01
+
+### Changed
+- Auto-bumped V8 to c546005d65b58039ccaf3f81be3772eee45454f9.
+- The build workflows commit directly, instead of creating PRs.
+
+### Fixed
+- Release tags need to include the patch number.
+  Thank you for the report, @GraphR00t.
+  (https://github.com/tommie/v8go/issues/62)
+
 ## [v0.11] - 2024-03-02
 
 ### Changed
