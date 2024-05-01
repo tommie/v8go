@@ -147,6 +147,8 @@ jobs:
         name: Commit Built Artifacts
         needs: [build, build_common]
         runs-on: ubuntu-latest
+        outputs:
+            committed: ${{ steps.commit.outputs.committed }}
         steps:
             - name: Checkout
               uses: actions/checkout@v4
@@ -197,3 +199,9 @@ jobs:
               if: ${{ steps.commit.outputs.committed != 'true' }}
               run: |
                   echo "No commit necessary." >>"$GITHUB_STEP_SUMMARY"
+
+    syncsubdeps:
+        name: Run Sync Submodule Dependencies
+        needs: commit
+        if: ${{ needs.commit.outputs.committed == 'true' }}
+        uses: ./.github/workflows/syncsubdeps.yml
