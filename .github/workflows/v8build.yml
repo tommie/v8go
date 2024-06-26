@@ -183,7 +183,14 @@ jobs:
               name: Commit
               uses: EndBug/add-and-commit@v9
               with:
-                  add: deps/latest_v8_hash
+                  add: |
+                      - cgo.go
+                      - deps/*_*/libv8*.a
+                      - deps/*_*/libmanifest
+                      - deps/include/**
+                      - deps/depot_tools
+                      - deps/v8
+                      - deps/v8_hash
                   fetch: false
                   message: |
                       Add built V8 libraries at ${{ steps.update_v8.outputs.latest_v8_version }}
