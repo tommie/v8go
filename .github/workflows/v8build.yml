@@ -25,9 +25,8 @@ jobs:
               run: |
                   latest_v8_hash="$(<deps/latest_v8_hash)"
                   cd deps/v8
-                  git fetch origin "$latest_v8_hash"
-                  latest_v8_version="$(git tag --points-at "$latest_v8_hash" | head -n1)"
-                  git checkout "${latest_v8_version:-$latest_v8_hash}"
+                  git fetch --depth=1 origin "$latest_v8_hash"
+                  git checkout "$latest_v8_hash"
 
             - name: Create include files
               run: cd deps && ./build_common.py
@@ -94,9 +93,8 @@ jobs:
               run: |
                   latest_v8_hash="$(<deps/latest_v8_hash)"
                   cd deps/v8
-                  git fetch origin "$latest_v8_hash"
-                  latest_v8_version="$(git tag --points-at "$latest_v8_hash" | head -n1)"
-                  git checkout "${latest_v8_version:-$latest_v8_hash}"
+                  git fetch --depth=1 origin "$latest_v8_hash"
+                  git checkout "$latest_v8_hash"
 
             - name: Configure CCache
               run: |
@@ -163,8 +161,11 @@ jobs:
                   echo "$latest_v8_hash" >deps/v8_hash
 
                   cd deps/v8
-                  git fetch origin "$latest_v8_hash"
-                  latest_v8_version="$(git tag --points-at "$latest_v8_hash" | head -n1)"
+                  git fetch --depth=1 origin "$latest_v8_hash"
+                  # --tags is slow, so we do it separately for debugability.
+                  git fetch --tags origin
+                  # V8 also adds a <version>-pgo tag we don't care about.
+                  latest_v8_version="$(git tag --points-at "$latest_v8_hash" | grep -v -- '-pgo' | head -n1)"
                   git checkout "${latest_v8_version:-$latest_v8_hash}"
                   echo "latest_v8_version=${latest_v8_version:-$latest_v8_hash}" >>"$GITHUB_OUTPUT"
 
@@ -183,7 +184,7 @@ jobs:
               run: |
                   ./tools/modifychangelog.py \
                     --unchanged '- Auto-bumped V8 .*' \
-                    --changed "- Auto-bumped V8 to $(<deps/latest_v8_hash)." \
+                    --changed "- Auto-bumped V8 to ${{ steps.update_v8.outputs.latest_v8_version }}." \
                     --inplace \
                     CHANGELOG.md
 
@@ -209,6 +210,8 @@ jobs:
             - name: Create Summary
               if: ${{ steps.commit.outputs.committed == 'true' }}
               run: |
+                  echo "V8 Commit: $(<deps/latest_v8_hash)" >>"$GITHUB_STEP_SUMMARY"
+                  echo "V8 Version: ${{ steps.update_v8.outputs.latest_v8_version }}" >>"$GITHUB_STEP_SUMMARY"
                   echo "Commit: https://github.com/tommie/v8go/commit/${{ steps.commit.outputs.commit_long_sha }}" >>"$GITHUB_STEP_SUMMARY"
 
             - name: Create Summary (no upgrade)
