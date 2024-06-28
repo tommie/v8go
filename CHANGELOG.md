@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+## [v0.13.1] - 2024-06-28
+
 ### Added
 - Made scheduled V8 rebuilding and releases fully automatic.
 
