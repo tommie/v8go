@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+### Fixed
+- The build broke because CopyablePersistentTraits was removed in V8 4683daaf774982b1aa0e46ae38f2bdf9c995c90d.
+- Removed bad release 0.13.0.
+
 ## [v0.13.0] - 2024-06-28
 
 ### Changed
