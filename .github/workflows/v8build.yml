@@ -224,3 +224,11 @@ jobs:
         needs: commit
         if: ${{ needs.commit.outputs.committed == 'true' }}
         uses: ./.github/workflows/syncsubdeps.yml
+
+    release:
+        name: Make A Release
+        needs: [commit, syncsubdeps]
+        if: ${{ needs.commit.outputs.committed == 'true' }}
+        uses: ./.github/workflows/release.yml
+        with:
+          version: '+0.1.0'
