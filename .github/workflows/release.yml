@@ -25,8 +25,17 @@ on:
         type: string
 
 jobs:
+  test:
+    name: Test
+    uses: ./.github/workflows/test.yml
+
+  leakcheck:
+    name: Test (leakcheck)
+    uses: ./.github/workflows/leakcheck.yml
+
   release:
     name: Release
+    needs: [test, leakcheck]
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
