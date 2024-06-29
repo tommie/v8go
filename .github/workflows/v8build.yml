@@ -231,4 +231,5 @@ jobs:
         if: ${{ needs.commit.outputs.committed == 'true' }}
         uses: ./.github/workflows/release.yml
         with:
+          draft: false
           version: '+0.1.0'
