@@ -98,6 +98,7 @@ jobs:
       with:
         add: CHANGELOG.md
         fetch: false
+        push: origin HEAD:${{ github.ref_name }}
         message: |
           Update changelog to ${{ steps.changelog.outputs.version }}
 
