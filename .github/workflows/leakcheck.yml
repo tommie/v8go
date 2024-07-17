@@ -7,6 +7,11 @@ on:
   pull_request:
   workflow_dispatch:
   workflow_call:
+    inputs:
+      sha:
+        description: "The commit to check out at. Defaults to the parent workflow's github.sha."
+        required: false
+        type: string
 
 jobs:
   test:
@@ -20,6 +25,8 @@ jobs:
 
     - name: Checkout
       uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.sha }}
 
     - name: Set Up Workspace
       # Submodules shouldn't cause a download.

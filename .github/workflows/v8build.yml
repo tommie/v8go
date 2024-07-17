@@ -9,6 +9,15 @@ on:
         - deps/latest_v8_hash
     workflow_dispatch:
     workflow_call:
+        inputs:
+            sha:
+                description: "The commit to check out at. Defaults to the parent workflow's github.sha."
+                required: false
+                type: string
+        outputs:
+            sha:
+                description: The resulting SHA commitish.
+                value: ${{ jobs.release.outputs.sha }}
 
 jobs:
     build_common:
@@ -20,6 +29,7 @@ jobs:
               with:
                   submodules: true
                   fetch-depth: 1
+                  ref: ${{ inputs.sha }}
 
             - name: Update to latest V8
               run: |
@@ -88,6 +98,7 @@ jobs:
               with:
                   submodules: true
                   fetch-depth: 1
+                  ref: ${{ inputs.sha }}
 
             - name: Update to latest V8
               run: |
@@ -147,12 +158,14 @@ jobs:
         runs-on: ubuntu-latest
         outputs:
             committed: ${{ steps.commit.outputs.committed }}
+            sha: ${{ steps.commit.outputs.commit_long_sha }}
         steps:
             - name: Checkout
               uses: actions/checkout@v4
               with:
                   submodules: true
                   fetch-depth: 1
+                  ref: ${{ inputs.sha }}
 
             - id: update_v8
               name: Update to latest V8
@@ -224,6 +237,8 @@ jobs:
         needs: commit
         if: ${{ needs.commit.outputs.committed == 'true' }}
         uses: ./.github/workflows/syncsubdeps.yml
+        with:
+            sha: ${{ needs.commit.outputs.sha }}
 
     release:
         name: Make A Release
@@ -233,3 +248,4 @@ jobs:
         with:
           draft: false
           version: '+0.1.0'
+          sha: ${{ needs.syncsubdeps.outputs.sha }}

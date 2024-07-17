@@ -11,6 +11,7 @@ jobs:
         runs-on: ubuntu-latest
         outputs:
           committed: ${{ steps.commit.outputs.committed }}
+          sha: ${{ steps.commit.outputs.commit_long_sha }}
           has_upgrade: ${{ steps.check_v8.outputs.has_upgrade }}
           latest_v8_hash: ${{ steps.check_v8.outputs.latest_v8_hash }}
         steps:
@@ -62,3 +63,5 @@ jobs:
         needs: upgrade
         if: ${{ needs.upgrade.outputs.committed == 'true' }}
         uses: ./.github/workflows/v8build.yml
+        with:
+            sha: ${{ needs.upgrade.outputs.sha }}

@@ -8,17 +8,30 @@ on:
     - "deps/*_*/**"
   workflow_dispatch:
   workflow_call:
+    inputs:
+      sha:
+        description: "The commit to check out at. Defaults to the parent workflow's github.sha."
+        required: false
+        type: string
+    outputs:
+      sha:
+        description: The resulting SHA commitish.
+        value: ${{ jobs.sync.outputs.sha }}
 
 jobs:
   sync:
     name: Sync
     runs-on: ubuntu-latest
+    outputs:
+      committed: ${{ steps.commit.outputs.committed }}
+      sha: ${{ steps.commit.outputs.commit_long_sha }}
     steps:
     - name: Checkout
       uses: actions/checkout@v4
       with:
         # Our git log in deps/ requires an arbitrarily deep history.
         fetch-depth: 0
+        ref: ${{ inputs.sha }}
 
     - id: info
       name: Extract Information

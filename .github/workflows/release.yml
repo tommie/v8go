@@ -19,29 +19,45 @@ on:
         default: false
         required: true
         type: boolean
+      sha:
+        description: "The commit to check out at. Defaults to the parent workflow's github.sha."
+        required: false
+        type: string
       version:
         description: The version to release as. If it starts with a plus, it is relative to the previous release.
         required: true
         type: string
+    outputs:
+      sha:
+        description: The resulting SHA commitish.
+        value: ${{ jobs.release.outputs.sha }}
 
 jobs:
   test:
     name: Test
     uses: ./.github/workflows/test.yml
+    with:
+      sha: ${{ inputs.sha }}
 
   leakcheck:
     name: Test (leakcheck)
     uses: ./.github/workflows/leakcheck.yml
+    with:
+      sha: ${{ inputs.sha }}
 
   release:
     name: Release
     needs: [test, leakcheck]
     runs-on: ubuntu-latest
+    outputs:
+      committed: ${{ steps.commit_changelog.outputs.committed }}
+      sha: ${{ steps.commit_changelog.outputs.commit_long_sha }}
     steps:
     - name: Checkout
       uses: actions/checkout@v4
       with:
         fetch-depth: 1
+        ref: ${{ inputs.sha }}
 
     - name: Mark Release In Changelog
       if: ${{ inputs.version }}
