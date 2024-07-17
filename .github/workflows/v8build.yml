@@ -1,10 +1,6 @@
 name: V8 Build
 
 on:
-  push:
-    branches:
-    - master
-    - workflow/v8upgrade
   workflow_dispatch:
   workflow_call:
     inputs:
