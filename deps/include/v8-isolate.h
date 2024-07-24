@@ -277,12 +277,6 @@ class V8_EXPORT Isolate {
     bool allow_atomics_wait = true;
 
     /**
-     * Termination is postponed when there is no active SafeForTerminationScope.
-     */
-    V8_DEPRECATED("All code should be safe for termination")
-    bool only_terminate_in_safe_scope = false;
-
-    /**
      * The following parameters describe the offsets for addressing type info
      * for wrapped API objects and are used by the fast C API
      * (for details see v8-fast-api-calls.h).
@@ -388,21 +382,6 @@ class V8_EXPORT Isolate {
     internal::Address previous_stack_height_;
 
     friend class internal::ThreadLocalTop;
-  };
-
-  /**
-   * This scope allows terminations inside direct V8 API calls and forbid them
-   * inside any recursive API calls without explicit SafeForTerminationScope.
-   */
-  class V8_EXPORT V8_NODISCARD SafeForTerminationScope {
-   public:
-    V8_DEPRECATED("All code should be safe for termination")
-    explicit SafeForTerminationScope(v8::Isolate* v8_isolate) {}
-    ~SafeForTerminationScope() {}
-
-    // Prevent copying of Scope objects.
-    SafeForTerminationScope(const SafeForTerminationScope&) = delete;
-    SafeForTerminationScope& operator=(const SafeForTerminationScope&) = delete;
   };
 
   /**
@@ -564,6 +543,8 @@ class V8_EXPORT Isolate {
     kWasmExnRef = 138,
     kWasmTypedFuncRef = 139,
     kInvalidatedStringWrapperToPrimitiveProtector = 140,
+    kDocumentAllLegacyCall = 141,
+    kDocumentAllLegacyConstruct = 142,
 
     // If you add new values here, you'll also need to update Chromium's:
     // web_feature.mojom, use_counter_callback.cc, and enums.xml. V8 changes to
@@ -691,6 +672,11 @@ class V8_EXPORT Isolate {
    * is accessed.
    */
   void SetPrepareStackTraceCallback(PrepareStackTraceCallback callback);
+
+  /**
+   * Get the stackTraceLimit property of Error.
+   */
+  int GetStackTraceLimit();
 
 #if defined(V8_OS_WIN)
   /**
@@ -1362,24 +1348,6 @@ class V8_EXPORT Isolate {
    * case of a crash.
    */
   void SetAddCrashKeyCallback(AddCrashKeyCallback);
-
-  /**
-   * Optional notification that the embedder is idle.
-   * V8 uses the notification to perform garbage collection.
-   * This call can be used repeatedly if the embedder remains idle.
-   * Returns true if the embedder should stop calling IdleNotificationDeadline
-   * until real work has been done.  This indicates that V8 has done
-   * as much cleanup as it will be able to do.
-   *
-   * The deadline_in_seconds argument specifies the deadline V8 has to finish
-   * garbage collection work. deadline_in_seconds is compared with
-   * MonotonicallyIncreasingTime() and should be based on the same timebase as
-   * that function. There is no guarantee that the actual work will be done
-   * within the time limit.
-   */
-  V8_DEPRECATED(
-      "Use MemoryPressureNotification() to influence the GC schedule.")
-  bool IdleNotificationDeadline(double deadline_in_seconds);
 
   /**
    * Optional notification that the system is running low on memory.

@@ -11,7 +11,9 @@
 
 #include <atomic>
 #include <iterator>
+#include <limits>
 #include <memory>
+#include <optional>
 #include <type_traits>
 
 #include "v8config.h"  // NOLINT(build/include_directory)
@@ -87,7 +89,10 @@ struct SmiTagging<4> {
     // Truncate and shift down (requires >> to be sign extending).
     return static_cast<int32_t>(static_cast<uint32_t>(value)) >> shift_bits;
   }
-  V8_INLINE static constexpr bool IsValidSmi(intptr_t value) {
+
+  template <class T, typename std::enable_if_t<std::is_integral_v<T> &&
+                                               std::is_signed_v<T>>* = nullptr>
+  V8_INLINE static constexpr bool IsValidSmi(T value) {
     // Is value in range [kSmiMinValue, kSmiMaxValue].
     // Use unsigned operations in order to avoid undefined behaviour in case of
     // signed integer overflow.
@@ -96,7 +101,15 @@ struct SmiTagging<4> {
            (static_cast<uintptr_t>(kSmiMaxValue) -
             static_cast<uintptr_t>(kSmiMinValue));
   }
-#ifndef V8_HOST_ARCH_64_BIT
+
+  template <class T,
+            typename std::enable_if_t<std::is_integral_v<T> &&
+                                      std::is_unsigned_v<T>>* = nullptr>
+  V8_INLINE static constexpr bool IsValidSmi(T value) {
+    static_assert(kSmiMaxValue <= std::numeric_limits<uintptr_t>::max());
+    return value <= static_cast<uintptr_t>(kSmiMaxValue);
+  }
+
   // Same as the `intptr_t` version but works with int64_t on 32-bit builds
   // without slowing down anything else.
   V8_INLINE static constexpr bool IsValidSmi(int64_t value) {
@@ -105,7 +118,11 @@ struct SmiTagging<4> {
            (static_cast<uint64_t>(kSmiMaxValue) -
             static_cast<uint64_t>(kSmiMinValue));
   }
-#endif
+
+  V8_INLINE static constexpr bool IsValidSmi(uint64_t value) {
+    static_assert(kSmiMaxValue <= std::numeric_limits<uint64_t>::max());
+    return value <= static_cast<uint64_t>(kSmiMaxValue);
+  }
 };
 
 // Smi constants for systems where tagged pointer is a 64-bit value.
@@ -122,9 +139,20 @@ struct SmiTagging<8> {
     // Shift down and throw away top 32 bits.
     return static_cast<int>(static_cast<intptr_t>(value) >> shift_bits);
   }
-  V8_INLINE static constexpr bool IsValidSmi(intptr_t value) {
+
+  template <class T, typename std::enable_if_t<std::is_integral_v<T> &&
+                                               std::is_signed_v<T>>* = nullptr>
+  V8_INLINE static constexpr bool IsValidSmi(T value) {
     // To be representable as a long smi, the value must be a 32-bit integer.
     return (value == static_cast<int32_t>(value));
+  }
+
+  template <class T,
+            typename std::enable_if_t<std::is_integral_v<T> &&
+                                      std::is_unsigned_v<T>>* = nullptr>
+  V8_INLINE static constexpr bool IsValidSmi(T value) {
+    return (static_cast<uintptr_t>(value) ==
+            static_cast<uintptr_t>(static_cast<int32_t>(value)));
   }
 };
 
@@ -331,6 +359,33 @@ using CppHeapPointer_t = Address;
 constexpr CppHeapPointer_t kNullCppHeapPointer = 0;
 constexpr CppHeapPointerHandle kNullCppHeapPointerHandle = 0;
 
+constexpr uint64_t kCppHeapPointerMarkBit = 1ULL;
+constexpr uint64_t kCppHeapPointerTagShift = 1;
+constexpr uint64_t kCppHeapPointerPayloadShift = 16;
+
+#ifdef V8_COMPRESS_POINTERS
+// CppHeapPointers use a dedicated pointer table. These constants control the
+// size and layout of the table. See the corresponding constants for the
+// external pointer table for further details.
+constexpr size_t kCppHeapPointerTableReservationSize =
+    kExternalPointerTableReservationSize;
+constexpr uint32_t kCppHeapPointerIndexShift = kExternalPointerIndexShift;
+
+constexpr int kCppHeapPointerTableEntrySize = 8;
+constexpr int kCppHeapPointerTableEntrySizeLog2 = 3;
+constexpr size_t kMaxCppHeapPointers =
+    kCppHeapPointerTableReservationSize / kCppHeapPointerTableEntrySize;
+static_assert((1 << (32 - kCppHeapPointerIndexShift)) == kMaxCppHeapPointers,
+              "kCppHeapPointerTableReservationSize and "
+              "kCppHeapPointerIndexShift don't match");
+
+#else  // !V8_COMPRESS_POINTERS
+
+// Needed for the V8.SandboxedCppHeapPointersCount histogram.
+constexpr size_t kMaxCppHeapPointers = 0;
+
+#endif  // V8_COMPRESS_POINTERS
+
 // See `ExternalPointerHandle` for the main documentation. The difference to
 // `ExternalPointerHandle` is that the handle always refers to a
 // (external pointer, size) tuple. The handles are used in combination with a
@@ -437,7 +492,7 @@ static_assert((1 << (32 - kExternalBufferHandleShift)) ==
 // extension (MTE) which would use bits [56, 60).
 //
 // External pointer tables are also available even when the sandbox is off but
-// pointer compression is on. In that case, the mechanism can be used to easy
+// pointer compression is on. In that case, the mechanism can be used to ease
 // alignment requirements as it turns unaligned 64-bit raw pointers into
 // aligned 32-bit indices. To "opt-in" to the external pointer table mechanism
 // for this purpose, instead of using the ExternalPointer accessors one needs to
@@ -452,7 +507,7 @@ constexpr uint64_t kExternalPointerTagShift = 48;
 // These are sorted so that tags can be grouped together and it can efficiently
 // be checked if a tag belongs to a given group. See for example the
 // IsSharedExternalPointerType routine.
-constexpr uint64_t kAllExternalPointerTypeTags[] = {
+constexpr uint64_t kAllTagsForAndBasedTypeChecking[] = {
     0b00001111, 0b00010111, 0b00011011, 0b00011101, 0b00011110, 0b00100111,
     0b00101011, 0b00101101, 0b00101110, 0b00110011, 0b00110101, 0b00110110,
     0b00111001, 0b00111010, 0b00111100, 0b01000111, 0b01001011, 0b01001101,
@@ -466,8 +521,8 @@ constexpr uint64_t kAllExternalPointerTypeTags[] = {
     0b11001100, 0b11010001, 0b11010010, 0b11010100, 0b11011000, 0b11100001,
     0b11100010, 0b11100100, 0b11101000, 0b11110000};
 
-#define TAG(i)                                                    \
-  ((kAllExternalPointerTypeTags[i] << kExternalPointerTagShift) | \
+#define TAG(i)                                                        \
+  ((kAllTagsForAndBasedTypeChecking[i] << kExternalPointerTagShift) | \
    kExternalPointerMarkBit)
 
 // clang-format off
@@ -956,19 +1011,35 @@ class Internals {
     return PlatformSmiTagging::SmiToInt(value);
   }
 
+  V8_INLINE static constexpr Address AddressToSmi(Address value) {
+    return (value << (kSmiTagSize + PlatformSmiTagging::kSmiShiftSize)) |
+           kSmiTag;
+  }
+
   V8_INLINE static constexpr Address IntToSmi(int value) {
-    return internal::IntToSmi(value);
+    return AddressToSmi(static_cast<Address>(value));
   }
 
-  V8_INLINE static constexpr bool IsValidSmi(intptr_t value) {
+  template <typename T,
+            typename std::enable_if_t<std::is_integral_v<T>>* = nullptr>
+  V8_INLINE static constexpr Address IntegralToSmi(T value) {
+    return AddressToSmi(static_cast<Address>(value));
+  }
+
+  template <typename T,
+            typename std::enable_if_t<std::is_integral_v<T>>* = nullptr>
+  V8_INLINE static constexpr bool IsValidSmi(T value) {
     return PlatformSmiTagging::IsValidSmi(value);
   }
 
-#ifndef V8_HOST_ARCH_64_BIT
-  V8_INLINE static constexpr bool IsValidSmi(int64_t value) {
-    return PlatformSmiTagging::IsValidSmi(value);
+  template <typename T,
+            typename std::enable_if_t<std::is_integral_v<T>>* = nullptr>
+  static constexpr std::optional<Address> TryIntegralToSmi(T value) {
+    if (V8_LIKELY(PlatformSmiTagging::IsValidSmi(value))) {
+      return {AddressToSmi(static_cast<Address>(value))};
+    }
+    return {};
   }
-#endif
 
 #if V8_STATIC_ROOTS_BOOL
   V8_INLINE static bool is_identical(Address obj, Tagged_t constant) {
