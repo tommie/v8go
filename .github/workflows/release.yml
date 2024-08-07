@@ -109,7 +109,12 @@ jobs:
       run: |
         changelog='${{ steps.commit_changelog.outputs.commit_long_sha }}'
         original='${{ github.sha }}'
-        echo "commit=${changelog:-$original}" >>"$GITHUB_OUTPUT"
+
+        # When using push: origin HEAD:x, the status output looks like "HEAD x".
+        commit_sha="${changelog:-$original}"
+        commit_sha="${commit_sha#HEAD }"
+
+        echo "commit=$commit_sha" >>"$GITHUB_OUTPUT"
 
     - id: create_release
       name: Create Release
