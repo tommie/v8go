@@ -29,7 +29,13 @@ jobs:
         set -o pipefail
         wget -q -O- "https://chromiumdash.appspot.com/fetch_releases?channel=Stable&platform=Linux&num=1&offset=0" | jq -r ".[0].hashes.v8" >deps/v8_hash
         echo "latest_v8_hash=$(<deps/v8_hash)" >>"$GITHUB_OUTPUT"
-        echo "has_upgrade=$(git status --porcelain | grep -q . && echo true || echo false)" >>"$GITHUB_OUTPUT"
+        bad_reason="$(awk -vhash="$(<deps/v8_hash)" '!$0 { next; } $1 == hash { $1 = ""; print substr($0, 2); }' deps/bad_v8_hashes)"
+        if [ -n "$bad_reason" ]; then
+          echo "has_upgrade=false" >>"$GITHUB_OUTPUT"
+          echo "reason=$bad_reason" >>"$GITHUB_OUTPUT"
+        else
+          echo "has_upgrade=$(git status --porcelain | grep -q . && echo true || echo false)" >>"$GITHUB_OUTPUT"
+        fi
 
     - name: Create Summary
       if: ${{ steps.check_v8.outputs.has_upgrade == 'true' }}
@@ -40,6 +46,9 @@ jobs:
       if: ${{ steps.check_v8.outputs.has_upgrade != 'true' }}
       run: |
         echo "No V8 upgrade available." >>"$GITHUB_STEP_SUMMARY"
+        if [ -n "${{ steps.check_v8.outputs.reason }}" ]; then
+          echo "Reason: ${{ steps.check_v8.outputs.reason }}" >>"$GITHUB_STEP_SUMMARY"
+        fi
 
   build:
     name: Run V8 Build
