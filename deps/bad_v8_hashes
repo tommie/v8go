@@ -3,6 +3,8 @@
 # that are not allowed in .github/workflows/v8upgrade.
 #
 # Hash-lines and empty lines are ignored.
-# The first column is a hash, and the second is a reason.
+# The first column is a hash, and the following are a reason.
+# Reverse chronological order.
 
+56d087b1521413bad8a5fcdacd19375a845c650f Linux GCC ARM64 still broken (https://github.com/tommie/v8go/issues/66)
 e6286d70c55da94a8e12658918989b9b9dc325c8 Linux GCC ARM64 broken (https://github.com/tommie/v8go/issues/66)
