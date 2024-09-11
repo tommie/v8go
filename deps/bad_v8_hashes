@@ -1,11 +1,11 @@
-# File with V8 hashes (see
-# https://chromiumdash.appspot.com/fetch_releases?channel=Stable&platform=Linux&num=1&offset=0)
+# File with V8 hashes (see https://chromiumdash.appspot.com/fetch_releases?channel=Stable&platform=Linux&num=1&offset=0)
 # that are not allowed in .github/workflows/v8upgrade.
 #
 # Hash-lines and empty lines are ignored.
 # The first column is a hash, and the following are a reason.
 # Reverse chronological order.
 
+6f774f929205be0a49cf861b8d73a92655e1dd36 Linux GCC ARM64 still broken (https://github.com/tommie/v8go/issues/66)
 12114d5aceeb3b3379b3e1a2140ea1f76dc94ecf Linux GCC ARM64 still broken (https://github.com/tommie/v8go/issues/66)
 56d087b1521413bad8a5fcdacd19375a845c650f Linux GCC ARM64 still broken (https://github.com/tommie/v8go/issues/66)
 e6286d70c55da94a8e12658918989b9b9dc325c8 Linux GCC ARM64 broken (https://github.com/tommie/v8go/issues/66)
