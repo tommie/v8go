@@ -231,7 +231,7 @@ using MessageCallback = void (*)(Local<Message> message, Local<Value> data);
 
 // --- Tracing ---
 
-enum LogEventStatus : int { kStart = 0, kEnd = 1, kStamp = 2 };
+enum LogEventStatus : int { kStart = 0, kEnd = 1, kLog = 2 };
 using LogEventCallback = void (*)(const char* name,
                                   int /* LogEventStatus */ status);
 
@@ -339,6 +339,14 @@ using JavaScriptCompileHintsMagicEnabledCallback =
 using WasmJSPIEnabledCallback = bool (*)(Local<Context> context);
 
 /**
+ * Import phases in import requests.
+ */
+enum class ModuleImportPhase {
+  kSource,
+  kEvaluation,
+};
+
+/**
  * HostImportModuleDynamicallyCallback is called when we
  * require the embedder to load a module. This is used as part of the dynamic
  * import syntax.
@@ -351,7 +359,7 @@ using WasmJSPIEnabledCallback = bool (*)(Local<Context> context);
  * The import_attributes are import attributes for this request in the form:
  * [key1, value1, key2, value2, ...] where the keys and values are of type
  * v8::String. Note, unlike the FixedArray passed to ResolveModuleCallback and
- * returned from ModuleRequest::GetImportAssertions(), this array does not
+ * returned from ModuleRequest::GetImportAttributes(), this array does not
  * contain the source Locations of the attributes.
  *
  * The embedder must compile, instantiate, evaluate the Module, and

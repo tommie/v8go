@@ -31,6 +31,8 @@ path. Add it with -I<path> to the command line
 # include <TargetConditionals.h>
 #elif defined(__linux__)
 # include <features.h>
+#elif defined(__MVS__)
+# include "zos-base.h"
 #endif
 
 
@@ -91,6 +93,7 @@ path. Add it with -I<path> to the command line
 //  V8_OS_STARBOARD     - Starboard (platform abstraction for Cobalt)
 //  V8_OS_AIX           - AIX
 //  V8_OS_WIN           - Microsoft Windows
+//  V8_OS_ZOS           - z/OS
 
 #if defined(__ANDROID__)
 # define V8_OS_ANDROID 1
@@ -171,6 +174,11 @@ path. Add it with -I<path> to the command line
 #elif defined(_WIN32)
 # define V8_OS_WIN 1
 # define V8_OS_STRING "windows"
+
+#elif defined(__MVS__)
+# define V8_OS_POSIX 1
+# define V8_OS_ZOS 1
+# define V8_OS_STRING "zos"
 #endif
 
 // -----------------------------------------------------------------------------
@@ -384,8 +392,14 @@ path. Add it with -I<path> to the command line
 # define V8_HAS_ATTRIBUTE_WEAK (__has_attribute(weak))
 
 # define V8_HAS_CPP_ATTRIBUTE_NODISCARD (V8_HAS_CPP_ATTRIBUTE(nodiscard))
+#if defined(V8_CC_MSVC)
+# define V8_HAS_CPP_ATTRIBUTE_NO_UNIQUE_ADDRESS       \
+    (V8_HAS_CPP_ATTRIBUTE(msvc::no_unique_address) || \
+     V8_HAS_CPP_ATTRIBUTE(no_unique_address))
+#else
 # define V8_HAS_CPP_ATTRIBUTE_NO_UNIQUE_ADDRESS \
     (V8_HAS_CPP_ATTRIBUTE(no_unique_address))
+#endif
 
 # define V8_HAS_BUILTIN_ADD_OVERFLOW (__has_builtin(__builtin_add_overflow))
 # define V8_HAS_BUILTIN_ASSUME (__has_builtin(__builtin_assume))
@@ -684,7 +698,15 @@ path. Add it with -I<path> to the command line
 // [[no_unique_address]] comes in C++20 but supported in clang with
 // -std >= c++11.
 #if V8_HAS_CPP_ATTRIBUTE_NO_UNIQUE_ADDRESS
+#if defined(V8_CC_MSVC) && V8_HAS_CPP_ATTRIBUTE(msvc::no_unique_address)
+// Unfortunately MSVC ignores [[no_unique_address]] (see
+// https://devblogs.microsoft.com/cppblog/msvc-cpp20-and-the-std-cpp20-switch/#msvc-extensions-and-abi),
+// and clang-cl matches it for ABI compatibility reasons. We need to prefer
+// [[msvc::no_unique_address]] when available if we actually want any effect.
+#define V8_NO_UNIQUE_ADDRESS [[msvc::no_unique_address]]
+#else
 #define V8_NO_UNIQUE_ADDRESS [[no_unique_address]]
+#endif
 #else
 #define V8_NO_UNIQUE_ADDRESS /* NOT SUPPORTED */
 #endif

@@ -1110,6 +1110,12 @@ class V8_EXPORT HeapProfiler {
       bool hide_internals = true, bool capture_numeric_value = false);
 
   /**
+   * Obtains list of Detached JS Wrapper Objects. This functon calls garbage
+   * collection, then iterates over traced handles in the isolate
+   */
+  std::vector<v8::Local<v8::Value>> GetDetachedJSWrapperObjects();
+
+  /**
    * Starts tracking of heap objects population statistics. After calling
    * this method, all heap objects relocations done by the garbage collector
    * are being registered.
@@ -1197,6 +1203,18 @@ class V8_EXPORT HeapProfiler {
                                         void* data);
 
   void SetGetDetachednessCallback(GetDetachednessCallback callback, void* data);
+
+  /**
+   * Returns whether the heap profiler is currently taking a snapshot.
+   */
+  bool IsTakingSnapshot();
+
+  /**
+   * Allocates a copy of the provided string within the heap snapshot generator
+   * and returns a pointer to the copy. May only be called during heap snapshot
+   * generation.
+   */
+  const char* CopyNameForHeapSnapshot(const char* name);
 
   /**
    * Default value of persistent handle class ID. Must not be used to
