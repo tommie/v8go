@@ -251,12 +251,13 @@ This project also aims to keep up-to-date with the latest (stable) release of V8
 
 We have the [v8upgrade](https://github.com/tommie/v8go/.github/workflow/v8upgrade.yml) workflow.
 The workflow is triggered every day or manually.
-When run, it finds the current stable V8 version on https://chromiumdash.appspot.com/ and updates `deps/latest_v8_hash`.
-If it differs from before, it commits the change and runs `v8build`.
+When run, it finds the current stable V8 version on https://chromiumdash.appspot.com/.
+If the new version is different from `deps/v8_hash`, it runs `v8build` and `release`.
 
-The [v8build](https://github.com/tommie/v8go/.github/workflow/v8build.yml) workflow upgrades V8 to the `deps/latest_v8_hash`, writes `deps/v8_hash` and builds new libraries.
+The [v8build](https://github.com/tommie/v8go/.github/workflow/v8build.yml) workflow upgrades V8 and builds the libraries.
 It is triggered by the `v8upgrade` workflow, or being run manually.
-This also commits changes directly.
+Each architecture is a separate job, storing build artifacts that are picked up by the Commit job.
+This job updates the master branch.
 Then it runs `syncsubdeps`.
 
 The [syncsubdeps](https://github.com/tommie/v8go/.github/workflow/syncsubdeps.yml) workflow updates the `go.mod` file to point to the new commit.
@@ -268,7 +269,7 @@ Once this is done, the upgrade is complete.
 Releasing the library is a matter of running the [release](https://github.com/tommie/v8go/.github/workflow/release.yml) workflow.
 It reads `CHANGELOG.md`, creates a Git tag and a GitHub release.
 The tag is what matters for Go modules, and the GitHub release is useful for notifications.
-Making a release is currently manual.
+Releases happen automatically for upgrades.
 
 ### Flushing after C/C++ standard library printing for debugging
 
