@@ -27,6 +27,12 @@ jobs:
     outputs:
       v8_hash: ${{ steps.update_v8.outputs.v8_hash }}
     steps:
+    - name: Remove GCC 14
+      run: |
+        # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=115119
+        sudo apt-get purge -yq gcc-14 g++-14 libstdc++-14-dev
+        sudo apt-get autopurge -yq
+        
     - name: Checkout
       uses: actions/checkout@v4
       with:
@@ -74,6 +80,12 @@ jobs:
           platform: macos-latest
     runs-on: ${{ matrix.platform }}
     steps:
+    - name: Remove GCC 14
+      run: |
+        # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=115119
+        sudo apt-get purge -yq gcc-14 g++-14 libstdc++-14-dev
+        sudo apt-get autopurge -yq
+        
     - name: Install g++-aarch64-linux-gnu
       if: matrix.os == 'linux' && matrix.arch == 'arm64'
       run: sudo apt update && sudo apt install g++-aarch64-linux-gnu -y
