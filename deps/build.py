@@ -76,6 +76,7 @@ v8_target_cpu="%s"
 clang_use_chrome_plugins=false
 use_custom_libcxx=false
 use_sysroot=false
+use_glib=false
 symbol_level=%s
 strip_debug_info=%s
 is_component_build=false
