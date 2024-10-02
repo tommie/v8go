@@ -30,8 +30,8 @@ jobs:
     - name: Remove GCC 14
       run: |
         # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=115119
-        apt purge -yq gcc-14 g++-14 libstdc++-dev-14
-        apt autopurge -yq
+        sudo apt-get purge -yq gcc-14 g++-14 libstdc++-dev-14
+        sudo apt-get autopurge -yq
         
     - name: Checkout
       uses: actions/checkout@v4
@@ -83,8 +83,8 @@ jobs:
     - name: Remove GCC 14
       run: |
         # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=115119
-        apt purge -yq gcc-14 g++-14 libstdc++-dev-14
-        apt autopurge -yq
+        sudo apt-get purge -yq gcc-14 g++-14 libstdc++-dev-14
+        sudo apt-get autopurge -yq
         
     - name: Install g++-aarch64-linux-gnu
       if: matrix.os == 'linux' && matrix.arch == 'arm64'
