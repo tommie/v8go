@@ -18,15 +18,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Install Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: stable
-
     - name: Checkout
       uses: actions/checkout@v4
       with:
         ref: ${{ inputs.sha }}
+
+    - name: Install Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: stable
 
     - name: Set Up Workspace
       # Submodules shouldn't cause a download.

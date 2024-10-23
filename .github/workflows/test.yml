@@ -33,6 +33,11 @@ jobs:
           platform: macos-latest
     runs-on: ${{ matrix.platform }}
     steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.sha }}
+
     - name: Install Go
       uses: actions/setup-go@v5
       with:
@@ -40,11 +45,6 @@ jobs:
 
     - name: Add GOPATH to GITHUB_ENV
       run: echo "GOPATH=$(go env GOPATH)" >>"$GITHUB_ENV"
-
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        ref: ${{ inputs.sha }}
 
     - name: Set Up Workspace
       # Submodules shouldn't cause a download.
