@@ -45,6 +45,13 @@ jobs:
 
         echo "v8_hash=$latest_v8_hash" >>"$GITHUB_OUTPUT"
 
+    - name: Apply Patches
+      run: |
+        for f in patches/*.patch; do
+          echo "Apply $f"
+          patch -p1 -i "$f"
+        done
+
     - name: Create include files
       run: cd deps && ./build_common.py
 
@@ -114,6 +121,13 @@ jobs:
         cd deps/v8
         git fetch --depth=1 origin "$latest_v8_hash"
         git checkout "$latest_v8_hash"
+
+    - name: Apply Patches
+      run: |
+        for f in patches/*.patch; do
+          echo "Apply $f"
+          patch -p1 -i "$f"
+        done
 
     - name: Configure CCache
       run: |
