@@ -1430,7 +1430,7 @@ struct MaybeDefineIteratorConcept {};
 template <typename Iterator>
 struct MaybeDefineIteratorConcept<
     Iterator, std::enable_if_t<kHaveIteratorConcept<Iterator>>> {
-  using iterator_concept = Iterator::iterator_concept;
+  using iterator_concept = typename Iterator::iterator_concept;
 };
 // Otherwise fall back to `std::iterator_traits<Iterator>` if possible.
 template <typename Iterator>
@@ -1443,7 +1443,7 @@ struct MaybeDefineIteratorConcept<
   // TODO(pkasting): Add this unconditionally after dropping support for old
   // libstdc++ versions.
 #if __has_include(<ranges>)
-  using iterator_concept = std::iterator_traits<Iterator>::iterator_concept;
+  using iterator_concept = typename std::iterator_traits<Iterator>::iterator_concept;
 #endif
 };
 
