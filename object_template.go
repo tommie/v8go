@@ -10,6 +10,7 @@ import "C"
 import (
 	"errors"
 	"runtime"
+	"unsafe"
 )
 
 // PropertyAttribute are the attribute flags for a property on an Object.
@@ -64,6 +65,49 @@ func (o *ObjectTemplate) NewInstance(ctx *Context) (*Object, error) {
 // template will have.
 func (o *ObjectTemplate) SetInternalFieldCount(fieldCount uint32) {
 	C.ObjectTemplateSetInternalFieldCount(o.ptr, C.int(fieldCount))
+}
+
+func (o *ObjectTemplate) SetAccessorProperty(
+	key string,
+	get *FunctionTemplate,
+	set *FunctionTemplate,
+	attributes PropertyAttribute,
+) {
+	ckey := C.CString(key)
+	defer C.free(unsafe.Pointer(ckey))
+	var (
+		getter C.TemplatePtr
+		setter C.TemplatePtr
+	)
+	if get != nil {
+		getter = get.ptr
+	}
+	if set != nil {
+		setter = set.ptr
+	}
+	C.ObjectTemplateSetAccessorProperty(o.ptr, ckey, getter, setter, C.int(attributes))
+}
+
+// SetAccessorPropertyCallback is a simplified version of SetAccessorProperty
+// that automatically create the [FunctionTemplate] for the callbacks when the
+// caller doesn't need the template(s).
+func (o *ObjectTemplate) SetAccessorPropertyCallback(
+	key string,
+	get FunctionCallbackWithError,
+	set FunctionCallbackWithError,
+	attributes PropertyAttribute,
+) {
+	var (
+		getter *FunctionTemplate
+		setter *FunctionTemplate
+	)
+	if get != nil {
+		getter = NewFunctionTemplateWithError(o.iso, get)
+	}
+	if set != nil {
+		setter = NewFunctionTemplateWithError(o.iso, set)
+	}
+	o.SetAccessorProperty(key, getter, setter, attributes)
 }
 
 // InternalFieldCount returns the number of internal fields that instances of this
