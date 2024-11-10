@@ -110,6 +110,23 @@ func (tmpl *FunctionTemplate) GetFunction(ctx *Context) *Function {
 	return &Function{val}
 }
 
+// InstanceTemplate gets the [ObjectTemplate] that is used for new object
+// instances created when this function is used as a constructor.
+//
+// Any values created on this will be [own properties] on the instance, not the
+// prototype.
+//
+// See also: https://v8.github.io/api/head/classv8_1_1FunctionTemplate.html
+// [own properties]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/hasOwnProperty
+func (tmpl *FunctionTemplate) InstanceTemplate() *ObjectTemplate {
+	result := &template{
+		ptr: C.FunctionTemplateInstanceTemplate(tmpl.ptr),
+		iso: tmpl.iso,
+	}
+	runtime.SetFinalizer(result, (*template).finalizer)
+	return &ObjectTemplate{result}
+}
+
 // Note that ideally `thisAndArgs` would be split into two separate arguments, but they were combined
 // to workaround an ERROR_COMMITMENT_LIMIT error on windows that was detected in CI.
 //

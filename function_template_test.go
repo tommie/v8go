@@ -129,16 +129,22 @@ func TestFunctionTemplateGetFunction(t *testing.T) {
 		iso := v8.NewIsolate()
 		defer iso.Dispose()
 
-		tmpl := v8.NewFunctionTemplateWithError(iso, func(info *v8.FunctionCallbackInfo) (*v8.Value, error) {
-			return nil, fmt.Errorf("fake error")
-		})
+		tmpl := v8.NewFunctionTemplateWithError(
+			iso,
+			func(info *v8.FunctionCallbackInfo) (*v8.Value, error) {
+				return nil, fmt.Errorf("fake error")
+			},
+		)
 		global := v8.NewObjectTemplate(iso)
 		global.Set("foo", tmpl)
 
 		ctx := v8.NewContext(iso, global)
 		defer ctx.Close()
 
-		ret, err := ctx.RunScript("(() => { try { foo(); return null; } catch (e) { return e; } })()", "")
+		ret, err := ctx.RunScript(
+			"(() => { try { foo(); return null; } catch (e) { return e; } })()",
+			"",
+		)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -153,16 +159,22 @@ func TestFunctionTemplateGetFunction(t *testing.T) {
 		iso := v8.NewIsolate()
 		defer iso.Dispose()
 
-		tmpl := v8.NewFunctionTemplateWithError(iso, func(info *v8.FunctionCallbackInfo) (*v8.Value, error) {
-			return nil, v8.NewError(iso, "fake error")
-		})
+		tmpl := v8.NewFunctionTemplateWithError(
+			iso,
+			func(info *v8.FunctionCallbackInfo) (*v8.Value, error) {
+				return nil, v8.NewError(iso, "fake error")
+			},
+		)
 		global := v8.NewObjectTemplate(iso)
 		global.Set("foo", tmpl)
 
 		ctx := v8.NewContext(iso, global)
 		defer ctx.Close()
 
-		ret, err := ctx.RunScript("(() => { try { foo(); return null; } catch (e) { return e; } })()", "")
+		ret, err := ctx.RunScript(
+			"(() => { try { foo(); return null; } catch (e) { return e; } })()",
+			"",
+		)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -198,6 +210,42 @@ func TestFunctionCallbackInfoThis(t *testing.T) {
 	v, _ := this.Get("name")
 	if v.String() != "foobar" {
 		t.Errorf("expected this.name to be foobar, but got %q", v)
+	}
+}
+
+func TestFunctionTemplate_instance_template(t *testing.T) {
+	t.Parallel()
+
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+
+	constructor := v8.NewFunctionTemplate(iso,
+		// A constructore doesn't need to return a value
+		func(info *v8.FunctionCallbackInfo) *v8.Value { return nil })
+	constructor.InstanceTemplate().
+		Set("getBar", v8.NewFunctionTemplateWithError(iso, func(info *v8.FunctionCallbackInfo) (*v8.Value, error) {
+			return v8.NewValue(iso, "Bar")
+		}))
+	global := v8.NewObjectTemplate(iso)
+	global.Set("Foo", constructor)
+	ctx := v8.NewContext(iso, global)
+	defer ctx.Close()
+
+	val, err := ctx.RunScript("const foo = new Foo(); foo.getBar()", "")
+	if err != nil || val == nil {
+		t.Fatal("Script error", err)
+	}
+	if val.String() != "Bar" {
+		t.Errorf("Unexpected value. Expected 'Bar'. Got: '%s'", val.String())
+	}
+
+	// The function is an "own property" of the instance, and the only one
+	val, err = ctx.RunScript(`Object.getOwnPropertyNames(foo).join(",")`, "")
+	if err != nil || val == nil {
+		t.Fatal("Script error", err)
+	}
+	if val.String() != "getBar" {
+		t.Errorf("Unexpected value. Expected 'getBar'. Got: '%s'", val.String())
 	}
 }
 
