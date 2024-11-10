@@ -127,6 +127,15 @@ func (tmpl *FunctionTemplate) InstanceTemplate() *ObjectTemplate {
 	return &ObjectTemplate{result}
 }
 
+func (tmpl *FunctionTemplate) PrototypeTemplate() *ObjectTemplate {
+	result := &template{
+		ptr: C.FunctionTemplatePrototypeTemplate(tmpl.ptr),
+		iso: tmpl.iso,
+	}
+	runtime.SetFinalizer(result, (*template).finalizer)
+	return &ObjectTemplate{result}
+}
+
 // Note that ideally `thisAndArgs` would be split into two separate arguments, but they were combined
 // to workaround an ERROR_COMMITMENT_LIMIT error on windows that was detected in CI.
 //

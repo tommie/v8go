@@ -249,6 +249,49 @@ func TestFunctionTemplate_instance_template(t *testing.T) {
 	}
 }
 
+func TestFunctionTemplate_prototype_template(t *testing.T) {
+	t.Parallel()
+
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+
+	constructor := v8.NewFunctionTemplate(iso,
+		// This works as a constructor, so we don't need to return any values.
+		func(info *v8.FunctionCallbackInfo) *v8.Value { return nil })
+	constructor.PrototypeTemplate().
+		Set("getBar", v8.NewFunctionTemplateWithError(iso,
+			func(info *v8.FunctionCallbackInfo) (*v8.Value, error) {
+				return v8.NewValue(iso, "Bar")
+			}))
+	global := v8.NewObjectTemplate(iso)
+	global.Set("Foo", constructor)
+
+	ctx := v8.NewContext(iso, global)
+	defer ctx.Close()
+
+	val, err := ctx.RunScript("const foo = new Foo(); foo.getBar()", "")
+	if err != nil || val == nil {
+		t.Fatal("Script error", err)
+	}
+	if val.String() != "Bar" {
+		t.Fatalf("Unexpected value. Expected 'Bar'. Got: '%s'", val.String())
+	}
+
+	// The prototype has _two_ own properties, constructor and getBar. Filter out
+	// the constructor (don't want an implementation detail of the ordering to
+	// break the test)
+	val, err = ctx.RunScript(`
+		Object.getOwnPropertyNames(Foo.prototype)
+			.filter(x => x!='constructor')
+			.join(', ')`, "")
+	if err != nil || val == nil {
+		t.Fatal("Script error", err)
+	}
+	if val.String() != "getBar" {
+		t.Fatalf("Unexpected value. Expected 'getBar'. Got: '%s'", val.String())
+	}
+}
+
 func ExampleFunctionTemplate() {
 	iso := v8.NewIsolate()
 	defer iso.Dispose()
