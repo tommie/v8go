@@ -524,7 +524,7 @@ class V8_EXPORT Isolate {
     kDurationFormat = 117,
     kInvalidatedNumberStringNotRegexpLikeProtector = 118,
     kOBSOLETE_RegExpUnicodeSetIncompatibilitiesWithUnicodeMode = 119,
-    kImportAssertionDeprecatedSyntax = 120,
+    kOBSOLETE_ImportAssertionDeprecatedSyntax = 120,
     kLocaleInfoObsoletedGetters = 121,
     kLocaleInfoFunctions = 122,
     kCompileHintsMagicAll = 123,
@@ -671,6 +671,18 @@ class V8_EXPORT Isolate {
    */
   void SetHostImportModuleDynamicallyCallback(
       HostImportModuleDynamicallyCallback callback);
+
+  /**
+   * This specifies the callback called by the upcoming dynamic
+   * import() and import.source() language feature to load modules.
+   *
+   * This API is experimental and is expected to be changed or removed in the
+   * future. The callback is currently only called when for source-phase
+   * imports. Evaluation-phase imports use the existing
+   * HostImportModuleDynamicallyCallback callback.
+   */
+  void SetHostImportModuleWithPhaseDynamicallyCallback(
+      HostImportModuleWithPhaseDynamicallyCallback callback);
 
   /**
    * This specifies the callback called by the upcoming import.meta
@@ -962,6 +974,14 @@ class V8_EXPORT Isolate {
    * has been handled does it become legal to invoke JavaScript operations.
    */
   Local<Value> ThrowException(Local<Value> exception);
+
+  /**
+   * Returns true if an exception was thrown but not processed yet by an
+   * exception handler on JavaScript side or by v8::TryCatch handler.
+   *
+   * This is an experimental feature and may still change significantly.
+   */
+  bool HasPendingException();
 
   using GCCallback = void (*)(Isolate* isolate, GCType type,
                               GCCallbackFlags flags);

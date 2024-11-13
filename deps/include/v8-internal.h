@@ -160,15 +160,15 @@ struct SmiTagging<8> {
                                                std::is_signed_v<T>>* = nullptr>
   V8_INLINE static constexpr bool IsValidSmi(T value) {
     // To be representable as a long smi, the value must be a 32-bit integer.
-    return (value == static_cast<int32_t>(value));
+    return std::numeric_limits<int32_t>::min() <= value &&
+           value <= std::numeric_limits<int32_t>::max();
   }
 
   template <class T,
             typename std::enable_if_t<std::is_integral_v<T> &&
                                       std::is_unsigned_v<T>>* = nullptr>
   V8_INLINE static constexpr bool IsValidSmi(T value) {
-    return (static_cast<uintptr_t>(value) ==
-            static_cast<uintptr_t>(static_cast<int32_t>(value)));
+    return value <= std::numeric_limits<int32_t>::max();
   }
 };
 
@@ -963,8 +963,10 @@ class Internals {
       kIsolateCppHeapPointerTableOffset + kExternalPointerTableSize;
   static const int kIsolateTrustedPointerTableOffset =
       kIsolateTrustedCageBaseOffset + kApiSystemPointerSize;
-  static const int kIsolateApiCallbackThunkArgumentOffset =
+  static const int kIsolateSharedTrustedPointerTableAddressOffset =
       kIsolateTrustedPointerTableOffset + kTrustedPointerTableSize;
+  static const int kIsolateApiCallbackThunkArgumentOffset =
+      kIsolateSharedTrustedPointerTableAddressOffset + kApiSystemPointerSize;
 #else
   static const int kIsolateApiCallbackThunkArgumentOffset =
       kIsolateCppHeapPointerTableOffset + kExternalPointerTableSize;
@@ -1047,7 +1049,7 @@ class Internals {
 
   // Soft limit for AdjustAmountofExternalAllocatedMemory. Trigger an
   // incremental GC once the external memory reaches this limit.
-  static constexpr int kExternalAllocationSoftLimit = 64 * 1024 * 1024;
+  static constexpr size_t kExternalAllocationSoftLimit = 64 * 1024 * 1024;
 
 #ifdef V8_MAP_PACKING
   static const uintptr_t kMapWordMetadataMask = 0xffffULL << 48;
