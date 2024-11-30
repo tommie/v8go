@@ -10,9 +10,9 @@
 #include <cstring>
 #include <iostream>
 #include <sstream>
-#include <string>
 #include <unordered_map>
 #include <vector>
+#include "utils.h"
 
 #include "_cgo_export.h"
 
@@ -48,21 +48,6 @@ struct m_template {
 struct m_unboundScript {
   Persistent<UnboundScript> ptr;
 };
-
-const char* CopyString(std::string str) {
-  int len = str.length();
-  char* mem = (char*)malloc(len + 1);
-  memcpy(mem, str.data(), len);
-  mem[len] = 0;
-  return mem;
-}
-
-const char* CopyString(String::Utf8Value& value) {
-  if (value.length() == 0) {
-    return nullptr;
-  }
-  return CopyString(std::string(*value, value.length()));
-}
 
 static RtnError ExceptionError(TryCatch& try_catch,
                                Isolate* iso,
