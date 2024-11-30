@@ -29,9 +29,7 @@ struct m_template {
   Persistent<Template> ptr;
 };
 
-static RtnError ExceptionError(TryCatch& try_catch,
-                               Isolate* iso,
-                               Local<Context> ctx) {
+RtnError ExceptionError(TryCatch& try_catch, Isolate* iso, Local<Context> ctx) {
   HandleScope handle_scope(iso);
 
   RtnError rtn = {nullptr, nullptr, nullptr};

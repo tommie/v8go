@@ -7,4 +7,22 @@ typedef struct {
   const char* stack;
 } RtnError;
 
+#ifdef __cplusplus
+
+#include "deps/include/v8-local-handle.h"
+
+namespace v8 {
+class Isolate;
+class Context;
+class TryCatch;
+}  // namespace v8
+
+extern "C" {
+
+extern RtnError ExceptionError(v8::TryCatch& try_catch,
+                               v8::Isolate* iso,
+                               v8::Local<v8::Context> ctx);
+}
+
+#endif
 #endif
