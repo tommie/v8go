@@ -4,24 +4,23 @@
 
 #ifndef V8GO_H
 #define V8GO_H
+
+#include "isolate.h"
+
 #ifdef __cplusplus
 
 #include "libplatform/libplatform.h"
 #include "v8-profiler.h"
 #include "v8.h"
 
-typedef v8::Isolate* IsolatePtr;
 typedef v8::CpuProfiler* CpuProfilerPtr;
 typedef v8::CpuProfile* CpuProfilePtr;
 typedef const v8::CpuProfileNode* CpuProfileNodePtr;
-typedef v8::ScriptCompiler::CachedData* ScriptCompilerCachedDataPtr;
 
 extern "C" {
 #else
 
 // Opaque to cgo, but useful to treat it as a pointer to a distinct type
-typedef struct v8Isolate v8Isolate;
-typedef v8Isolate* IsolatePtr;
 
 typedef struct v8CpuProfiler v8CpuProfiler;
 typedef v8CpuProfiler* CpuProfilerPtr;
@@ -32,8 +31,6 @@ typedef v8CpuProfile* CpuProfilePtr;
 typedef struct v8CpuProfileNode v8CpuProfileNode;
 typedef const v8CpuProfileNode* CpuProfileNodePtr;
 
-typedef struct v8ScriptCompilerCachedData v8ScriptCompilerCachedData;
-typedef const v8ScriptCompilerCachedData* ScriptCompilerCachedDataPtr;
 #endif
 
 #include "errors.h"
@@ -46,11 +43,6 @@ typedef v8BackingStore* BackingStorePtr;
 
 #include <stddef.h>
 #include <stdint.h>
-
-// ScriptCompiler::CompileOptions values
-extern const int ScriptCompilerNoCompileOptions;
-extern const int ScriptCompilerConsumeCodeCache;
-extern const int ScriptCompilerEagerCompile;
 
 typedef struct m_ctx m_ctx;
 typedef struct m_template m_template;
@@ -82,18 +74,6 @@ typedef enum {
   SYMBOL_TO_STRING_TAG,
   SYMBOL_UNSCOPABLES,
 } SymbolIndex;
-
-typedef struct {
-  ScriptCompilerCachedDataPtr ptr;
-  const uint8_t* data;
-  int length;
-  int rejected;
-} ScriptCompilerCachedData;
-
-typedef struct {
-  ScriptCompilerCachedData cachedData;
-  int compileOption;
-} CompileOptions;
 
 typedef struct {
   CpuProfilerPtr ptr;
@@ -134,39 +114,12 @@ typedef struct {
 } RtnString;
 
 typedef struct {
-  size_t total_heap_size;
-  size_t total_heap_size_executable;
-  size_t total_physical_size;
-  size_t total_available_size;
-  size_t used_heap_size;
-  size_t heap_size_limit;
-  size_t malloced_memory;
-  size_t external_memory;
-  size_t peak_malloced_memory;
-  size_t number_of_native_contexts;
-  size_t number_of_detached_contexts;
-} IsolateHStatistics;
-
-typedef struct {
   const uint64_t* word_array;
   int word_count;
   int sign_bit;
 } ValueBigInt;
 
 extern void Init();
-extern IsolatePtr NewIsolate();
-extern void IsolatePerformMicrotaskCheckpoint(IsolatePtr ptr);
-extern void IsolateDispose(IsolatePtr ptr);
-extern void IsolateTerminateExecution(IsolatePtr ptr);
-extern int IsolateIsExecutionTerminating(IsolatePtr ptr);
-extern IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr);
-
-extern ValuePtr IsolateThrowException(IsolatePtr iso, ValuePtr value);
-
-extern RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso_ptr,
-                                                    const char* source,
-                                                    const char* origin,
-                                                    CompileOptions options);
 extern ScriptCompilerCachedData* UnboundScriptCreateCodeCache(
     IsolatePtr iso_ptr,
     UnboundScriptPtr us_ptr);
