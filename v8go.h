@@ -37,6 +37,7 @@ typedef const v8ScriptCompilerCachedData* ScriptCompilerCachedDataPtr;
 #endif
 
 #include "errors.h"
+#include "unbound_script.h"
 #include "value.h"
 
 // Opaque to both C and C++
@@ -53,11 +54,9 @@ extern const int ScriptCompilerEagerCompile;
 
 typedef struct m_ctx m_ctx;
 typedef struct m_template m_template;
-typedef struct m_unboundScript m_unboundScript;
 
 typedef m_ctx* ContextPtr;
 typedef m_template* TemplatePtr;
-typedef m_unboundScript* UnboundScriptPtr;
 
 typedef enum {
   ERROR_RANGE = 1,
@@ -83,12 +82,6 @@ typedef enum {
   SYMBOL_TO_STRING_TAG,
   SYMBOL_UNSCOPABLES,
 } SymbolIndex;
-
-typedef struct {
-  UnboundScriptPtr ptr;
-  int cachedDataRejected;
-  RtnError error;
-} RtnUnboundScript;
 
 typedef struct {
   ScriptCompilerCachedDataPtr ptr;

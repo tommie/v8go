@@ -38,10 +38,6 @@ struct m_template {
   Persistent<Template> ptr;
 };
 
-struct m_unboundScript {
-  Persistent<UnboundScript> ptr;
-};
-
 static RtnError ExceptionError(TryCatch& try_catch,
                                Isolate* iso,
                                Local<Context> ctx) {
