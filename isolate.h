@@ -8,8 +8,13 @@
 #include "deps/include/v8-isolate.h"
 #include "v8-script.h"
 
+typedef struct m_ctx m_ctx;
 typedef v8::Isolate* IsolatePtr;
 typedef v8::ScriptCompiler::CachedData* ScriptCompilerCachedDataPtr;
+
+static inline m_ctx* isolateInternalContext(v8::Isolate* iso) {
+  return static_cast<m_ctx*>(iso->GetData(0));
+}
 
 extern "C" {
 #else
