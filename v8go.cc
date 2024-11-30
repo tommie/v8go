@@ -16,6 +16,8 @@
 
 #include "_cgo_export.h"
 
+#include "context.h"
+
 using namespace v8;
 
 auto default_platform = platform::NewDefaultPlatform();
@@ -24,14 +26,6 @@ ArrayBuffer::Allocator* default_allocator;
 const int ScriptCompilerNoCompileOptions = ScriptCompiler::kNoCompileOptions;
 const int ScriptCompilerConsumeCodeCache = ScriptCompiler::kConsumeCodeCache;
 const int ScriptCompilerEagerCompile = ScriptCompiler::kEagerCompile;
-
-struct m_ctx {
-  Isolate* iso;
-  std::unordered_map<long, m_value*> vals;
-  std::vector<m_unboundScript*> unboundScripts;
-  Persistent<Context> ptr;
-  long nextValId;
-};
 
 struct m_template {
   Isolate* iso;

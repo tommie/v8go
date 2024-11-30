@@ -5,7 +5,7 @@
 // #include "libplatform/libplatform.h"
 #include <memory>
 
-#include "v8-isolate.h"
+#include "deps/include/v8-isolate.h"
 #include "v8-script.h"
 
 typedef v8::Isolate* IsolatePtr;

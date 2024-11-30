@@ -5,6 +5,7 @@
 #ifndef V8GO_H
 #define V8GO_H
 
+#include "context.h"
 #include "isolate.h"
 
 #ifdef __cplusplus
@@ -44,10 +45,8 @@ typedef v8BackingStore* BackingStorePtr;
 #include <stddef.h>
 #include <stdint.h>
 
-typedef struct m_ctx m_ctx;
 typedef struct m_template m_template;
 
-typedef m_ctx* ContextPtr;
 typedef m_template* TemplatePtr;
 
 typedef enum {
@@ -138,7 +137,6 @@ extern ContextPtr NewContext(IsolatePtr iso_ptr,
                              TemplatePtr global_template_ptr,
                              int ref);
 extern int ContextRetainedValueCount(ContextPtr ctx);
-extern void ContextFree(ContextPtr ptr);
 extern RtnValue RunScript(ContextPtr ctx_ptr,
                           const char* source,
                           const char* origin);
