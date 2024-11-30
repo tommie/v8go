@@ -33,13 +33,6 @@ struct m_ctx {
   long nextValId;
 };
 
-struct m_value {
-  long id;
-  Isolate* iso;
-  m_ctx* ctx;
-  Global<Value> ptr;
-};
-
 struct m_template {
   Isolate* iso;
   Persistent<Template> ptr;
