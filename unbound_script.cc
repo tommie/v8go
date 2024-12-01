@@ -2,8 +2,8 @@
 
 #include "unbound_script.h"
 #include "context-macros.h"
+#include "context.h"
 #include "isolate.h"
-#include "v8go.h"
 
 namespace v8 {
 class Isolate;

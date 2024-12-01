@@ -93,12 +93,6 @@ typedef struct {
 } CPUProfile;
 
 extern void Init();
-extern ScriptCompilerCachedData* UnboundScriptCreateCodeCache(
-    IsolatePtr iso_ptr,
-    UnboundScriptPtr us_ptr);
-extern void ScriptCompilerCachedDataDelete(
-    ScriptCompilerCachedData* cached_data);
-extern RtnValue UnboundScriptRun(ContextPtr ctx_ptr, UnboundScriptPtr us_ptr);
 
 extern CPUProfiler* NewCPUProfiler(IsolatePtr iso_ptr);
 extern void CPUProfilerDispose(CPUProfiler* ptr);
