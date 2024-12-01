@@ -1,12 +1,16 @@
 #ifndef V8GO_UNBOUND_SCRIPT_H
 #define V8GO_UNBOUND_SCRIPT_H
 
+#include <inttypes.h>
+#include <stdint.h>
 #include "errors.h"
 #include "interop.h"
 
 #ifdef __cplusplus
 
-#include <memory>
+// If we could forward declare v8::ScriptCompiler::CachedData, we wouldn't need
+// this include. But appears not to be possible.
+// https://stackoverflow.com/a/1021809/158483
 #include "deps/include/v8-script.h"
 
 namespace v8 {

@@ -1,20 +1,19 @@
 #ifndef V8GO_ISOLATE_H
 #define V8GO_ISOLATE_H
+
+#include "unbound_script.h"
+
 #ifdef __cplusplus
 
 // #include "libplatform/libplatform.h"
 #include <memory>
 
-#include "deps/include/v8-isolate.h"
-#include "v8-script.h"
+namespace v8 {
+class Isolate;
+}
 
 typedef struct m_ctx m_ctx;
 typedef v8::Isolate* IsolatePtr;
-typedef v8::ScriptCompiler::CachedData* ScriptCompilerCachedDataPtr;
-
-static inline m_ctx* isolateInternalContext(v8::Isolate* iso) {
-  return static_cast<m_ctx*>(iso->GetData(0));
-}
 
 extern "C" {
 #else
@@ -22,15 +21,11 @@ extern "C" {
 typedef struct v8Isolate v8Isolate;
 typedef v8Isolate* IsolatePtr;
 
-typedef struct v8ScriptCompilerCachedData v8ScriptCompilerCachedData;
-typedef const v8ScriptCompilerCachedData* ScriptCompilerCachedDataPtr;
-
 #endif
 
 #include <stddef.h>
 #include <stdint.h>
 
-#include "unbound_script.h"
 #include "value.h"
 
 // ScriptCompiler::CompileOptions values
@@ -78,6 +73,9 @@ extern RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso_ptr,
   Locker locker(iso);                \
   Isolate::Scope isolate_scope(iso); \
   HandleScope handle_scope(iso);
+
+#define INTERNAL_CONTEXT(iso) \
+  m_cm_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0));
 
 #endif
 

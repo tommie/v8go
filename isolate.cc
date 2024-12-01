@@ -59,7 +59,8 @@ void IsolateDispose(IsolatePtr iso) {
   if (iso == nullptr) {
     return;
   }
-  ContextFree(isolateInternalContext(iso));
+  auto ctx = static_cast<m_ctx*>(iso->GetData(0));
+  ContextFree(ctx);
 
   iso->Dispose();
 }
