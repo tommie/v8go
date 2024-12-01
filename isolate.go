@@ -5,7 +5,6 @@
 package v8go
 
 // #include <stdlib.h>
-// #include "v8go.h"
 // #include "isolate.h"
 import "C"
 
