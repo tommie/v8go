@@ -22,7 +22,20 @@ extern "C" {
 extern RtnError ExceptionError(v8::TryCatch& try_catch,
                                v8::Isolate* iso,
                                v8::Local<v8::Context> ctx);
-}
+#endif
 
+typedef enum {
+  ERROR_RANGE = 1,
+  ERROR_REFERENCE,
+  ERROR_SYNTAX,
+  ERROR_TYPE,
+  ERROR_WASM_COMPILE,
+  ERROR_WASM_LINK,
+  ERROR_WASM_RUNTIME,
+  ERROR_GENERIC,
+} ErrorTypeIndex;
+
+#ifdef __cplusplus
+}
 #endif
 #endif

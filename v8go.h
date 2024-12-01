@@ -6,6 +6,7 @@
 #define V8GO_H
 
 #include "context.h"
+#include "errors.h"
 #include "interop.h"
 #include "isolate.h"
 
@@ -35,7 +36,6 @@ typedef const v8CpuProfileNode* CpuProfileNodePtr;
 
 #endif
 
-#include "errors.h"
 #include "unbound_script.h"
 #include "value.h"
 
@@ -49,17 +49,6 @@ typedef v8BackingStore* BackingStorePtr;
 typedef struct m_template m_template;
 
 typedef m_template* TemplatePtr;
-
-typedef enum {
-  ERROR_RANGE = 1,
-  ERROR_REFERENCE,
-  ERROR_SYNTAX,
-  ERROR_TYPE,
-  ERROR_WASM_COMPILE,
-  ERROR_WASM_LINK,
-  ERROR_WASM_RUNTIME,
-  ERROR_GENERIC,
-} ErrorTypeIndex;
 
 typedef enum {
   SYMBOL_ASYNC_ITERATOR = 1,
