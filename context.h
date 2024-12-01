@@ -31,21 +31,16 @@ extern "C" {
 
 typedef struct m_ctx m_ctx;
 typedef m_ctx* ContextPtr;
+typedef struct m_value m_value;
+typedef m_value* ValuePtr;
 
 #endif
+
 extern void ContextFree(ContextPtr ctx);
+extern ValuePtr ContextGlobal(ContextPtr ctx_ptr);
 
 #ifdef __cplusplus
 }  // extern "C"
-
-#define LOCAL_CONTEXT(ctx)                      \
-  Isolate* iso = ctx->iso;                      \
-  Locker locker(iso);                           \
-  Isolate::Scope isolate_scope(iso);            \
-  HandleScope handle_scope(iso);                \
-  TryCatch try_catch(iso);                      \
-  Local<Context> local_ctx = ctx->ptr.Get(iso); \
-  Context::Scope context_scope(local_ctx);
 
 #endif
 

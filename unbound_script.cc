@@ -1,7 +1,7 @@
 /********** UnboundScript & ScriptCompilerCachedData **********/
 
 #include "unbound_script.h"
-#include "context.h"
+#include "context-macros.h"
 #include "isolate.h"
 #include "v8go.h"
 

@@ -14,7 +14,7 @@
 
 #include "_cgo_export.h"
 
-#include "context.h"
+#include "context-macros.h"
 
 using namespace v8;
 
