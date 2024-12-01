@@ -5,7 +5,7 @@
 package v8go
 
 // #include <stdlib.h>
-// #include "v8go.h"
+// #include "errors.h"
 import "C"
 import (
 	"fmt"
