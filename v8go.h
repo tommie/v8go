@@ -129,13 +129,6 @@ extern CPUProfile* CPUProfilerStopProfiling(CPUProfiler* ptr,
                                             const char* title);
 extern void CPUProfileDelete(CPUProfile* ptr);
 
-extern ContextPtr NewContext(IsolatePtr iso_ptr,
-                             TemplatePtr global_template_ptr,
-                             int ref);
-extern int ContextRetainedValueCount(ContextPtr ctx);
-extern RtnValue RunScript(ContextPtr ctx_ptr,
-                          const char* source,
-                          const char* origin);
 extern RtnValue JSONParse(ContextPtr ctx_ptr, const char* str);
 const char* JSONStringify(ContextPtr ctx_ptr, ValuePtr val_ptr);
 

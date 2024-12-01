@@ -18,6 +18,7 @@ static inline m_ctx* isolateInternalContext(v8::Isolate* iso) {
 
 extern "C" {
 #else
+
 typedef struct v8Isolate v8Isolate;
 typedef v8Isolate* IsolatePtr;
 
