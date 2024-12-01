@@ -6,6 +6,7 @@
 #define V8GO_H
 
 #include "context.h"
+#include "interop.h"
 #include "isolate.h"
 
 #ifdef __cplusplus
@@ -100,11 +101,6 @@ typedef struct {
   int64_t startTime;
   int64_t endTime;
 } CPUProfile;
-
-typedef struct {
-  ValuePtr value;
-  RtnError error;
-} RtnValue;
 
 typedef struct {
   const char* data;

@@ -1,6 +1,8 @@
 #ifndef V8GO_CONTEXT_H
 #define V8GO_CONTEXT_H
 
+#include "interop.h"
+
 #ifdef __cplusplus
 
 #include <unordered_map>
