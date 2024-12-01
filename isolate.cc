@@ -20,10 +20,6 @@ extern "C" {
   Isolate::Scope isolate_scope(iso); \
   HandleScope handle_scope(iso);
 
-#define ISOLATE_SCOPE_INTERNAL_CONTEXT(iso) \
-  ISOLATE_SCOPE(iso);                       \
-  m_ctx* ctx = isolateInternalContext(iso);
-
 void Init() {
 #ifdef _WIN32
   V8::InitializeExternalStartupData(".");

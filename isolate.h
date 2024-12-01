@@ -32,13 +32,6 @@ typedef const v8ScriptCompilerCachedData* ScriptCompilerCachedDataPtr;
 #include "unbound_script.h"
 #include "value.h"
 
-typedef struct {
-  ScriptCompilerCachedDataPtr ptr;
-  const uint8_t* data;
-  int length;
-  int rejected;
-} ScriptCompilerCachedData;
-
 // ScriptCompiler::CompileOptions values
 extern const int ScriptCompilerNoCompileOptions;
 extern const int ScriptCompilerConsumeCodeCache;
