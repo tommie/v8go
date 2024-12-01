@@ -107,9 +107,6 @@ extern CPUProfile* CPUProfilerStopProfiling(CPUProfiler* ptr,
                                             const char* title);
 extern void CPUProfileDelete(CPUProfile* ptr);
 
-extern RtnValue JSONParse(ContextPtr ctx_ptr, const char* str);
-const char* JSONStringify(ContextPtr ctx_ptr, ValuePtr val_ptr);
-
 extern void TemplateFreeWrapper(TemplatePtr ptr);
 extern void TemplateSetValue(TemplatePtr ptr,
                              const char* name,

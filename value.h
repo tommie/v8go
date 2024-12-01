@@ -47,7 +47,6 @@ typedef struct {
 } RtnString;
 
 void ValueRelease(ValuePtr ptr);
-extern void* ValueToExternal(ValuePtr prt);
 extern RtnString ValueToString(ValuePtr ptr);
 const uint32_t* ValueToArrayIndex(ValuePtr ptr);
 int ValueToBoolean(ValuePtr ptr);
@@ -130,7 +129,6 @@ extern RtnValue NewValueBigIntFromWords(IsolatePtr iso_ptr,
 extern ValuePtr NewValueError(IsolatePtr iso_ptr,
                               ErrorTypeIndex idx,
                               const char* message);
-extern ValuePtr NewValueExternal(IsolatePtr iso_ptr, void* v);
 
 const char* ExceptionGetMessageString(ValuePtr ptr);
 
