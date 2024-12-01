@@ -8,13 +8,12 @@
 
 #include <cstdlib>
 #include <cstring>
-#include <unordered_map>
-#include <vector>
 #include "utils.h"
 
 #include "_cgo_export.h"
 
 #include "context-macros.h"
+#include "isolate-macros.h"
 #include "template-macros.h"
 #include "template.h"
 
