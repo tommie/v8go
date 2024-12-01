@@ -37,6 +37,16 @@ extern void ContextFree(ContextPtr ctx);
 
 #ifdef __cplusplus
 }  // extern "C"
+
+#define LOCAL_CONTEXT(ctx)                      \
+  Isolate* iso = ctx->iso;                      \
+  Locker locker(iso);                           \
+  Isolate::Scope isolate_scope(iso);            \
+  HandleScope handle_scope(iso);                \
+  TryCatch try_catch(iso);                      \
+  Local<Context> local_ctx = ctx->ptr.Get(iso); \
+  Context::Scope context_scope(local_ctx);
+
 #endif
 
 #endif

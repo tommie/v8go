@@ -556,15 +556,6 @@ RtnValue FunctionTemplateGetFunction(TemplatePtr ptr, ContextPtr ctx) {
 
 /********** Context **********/
 
-#define LOCAL_CONTEXT(ctx)                      \
-  Isolate* iso = ctx->iso;                      \
-  Locker locker(iso);                           \
-  Isolate::Scope isolate_scope(iso);            \
-  HandleScope handle_scope(iso);                \
-  TryCatch try_catch(iso);                      \
-  Local<Context> local_ctx = ctx->ptr.Get(iso); \
-  Context::Scope context_scope(local_ctx);
-
 ContextPtr NewContext(IsolatePtr iso,
                       TemplatePtr global_template_ptr,
                       int ref) {
