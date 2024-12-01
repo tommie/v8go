@@ -15,17 +15,14 @@
 #include "_cgo_export.h"
 
 #include "context-macros.h"
+#include "template-macros.h"
+#include "template.h"
 
 using namespace v8;
 
 const int ScriptCompilerNoCompileOptions = ScriptCompiler::kNoCompileOptions;
 const int ScriptCompilerConsumeCodeCache = ScriptCompiler::kConsumeCodeCache;
 const int ScriptCompilerEagerCompile = ScriptCompiler::kEagerCompile;
-
-struct m_template {
-  Isolate* iso;
-  Persistent<Template> ptr;
-};
 
 m_unboundScript* tracked_unbound_script(m_ctx* ctx, m_unboundScript* us) {
   ctx->unboundScripts.push_back(us);
@@ -217,13 +214,6 @@ void CPUProfileDelete(CPUProfile* profile) {
 }
 
 /********** Template **********/
-
-#define LOCAL_TEMPLATE(tmpl_ptr)     \
-  Isolate* iso = tmpl_ptr->iso;      \
-  Locker locker(iso);                \
-  Isolate::Scope isolate_scope(iso); \
-  HandleScope handle_scope(iso);     \
-  Local<Template> tmpl = tmpl_ptr->ptr.Get(iso);
 
 void TemplateFreeWrapper(TemplatePtr tmpl) {
   tmpl->ptr.Clear();  // Just does `val_ = 0;` without calling V8::DisposeGlobal
