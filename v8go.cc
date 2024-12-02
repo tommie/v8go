@@ -22,9 +22,6 @@ using namespace v8;
 const int ScriptCompilerNoCompileOptions = ScriptCompiler::kNoCompileOptions;
 const int ScriptCompilerConsumeCodeCache = ScriptCompiler::kConsumeCodeCache;
 const int ScriptCompilerEagerCompile = ScriptCompiler::kEagerCompile;
-static inline m_ctx* isolateInternalContext(v8::Isolate* iso) {
-  return static_cast<m_ctx*>(iso->GetData(0));
-}
 
 m_unboundScript* tracked_unbound_script(m_ctx* ctx, m_unboundScript* us) {
   ctx->unboundScripts.push_back(us);
