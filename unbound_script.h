@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <stdint.h>
 #include "errors.h"
+#include "forward-declarations.h"
 #include "interop.h"
 
 #ifdef __cplusplus
@@ -15,7 +16,6 @@
 
 namespace v8 {
 class UnboundScript;
-class Isolate;
 }  // namespace v8
 
 struct m_unboundScript {
@@ -23,16 +23,12 @@ struct m_unboundScript {
 };
 
 typedef v8::ScriptCompiler::CachedData* ScriptCompilerCachedDataPtr;
-typedef v8::Isolate* IsolatePtr;
 
 extern "C" {
 #else
 
 typedef struct v8ScriptCompilerCachedData v8ScriptCompilerCachedData;
 typedef const v8ScriptCompilerCachedData* ScriptCompilerCachedDataPtr;
-
-typedef struct v8Isolate v8Isolate;
-typedef v8Isolate* IsolatePtr;
 
 #endif
 

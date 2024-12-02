@@ -1,20 +1,10 @@
 #ifndef V8GO_SYMBOL_H
 #define V8GO_SYMBOL_H
 
+#include "forward-declarations.h"
+
 #ifdef __cplusplus
-
-namespace v8 {
-class Isolate;
-}
-
-typedef v8::Isolate* IsolatePtr;
-
 extern "C" {
-#else
-
-typedef struct v8Isolate v8Isolate;
-typedef v8Isolate* IsolatePtr;
-
 #endif
 
 typedef struct m_value m_value;
