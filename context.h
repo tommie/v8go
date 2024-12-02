@@ -31,9 +31,6 @@ extern m_value* tracked_value(m_ctx* ctx, m_value* val);
 extern "C" {
 #else
 
-typedef struct m_value m_value;
-typedef m_value* ValuePtr;
-
 #endif
 
 typedef struct m_template m_template;

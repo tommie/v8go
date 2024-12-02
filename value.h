@@ -1,6 +1,7 @@
 #ifndef V8GO_VALUE_H
 #define V8GO_VALUE_H
 
+#include "forward-declarations.h"
 #include "interop.h"
 #include "isolate.h"
 
@@ -31,8 +32,6 @@ typedef struct m_value m_value;
 
 typedef struct v8BackingStore v8BackingStore;
 typedef v8BackingStore* BackingStorePtr;
-
-typedef m_value* ValuePtr;
 
 typedef struct {
   const uint64_t* word_array;

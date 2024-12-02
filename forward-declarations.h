@@ -12,9 +12,14 @@
 //
 // This can speed up compilation significantly, when used cleverly.
 
+// It's not necessary to have forward declarations in a shared file; they can
+// easily be redeclared where needed. Some of these are not _so_ trivial thouch,
+// so types that are declared in may files may be extracted here.
+
 #ifdef __cplusplus
 
-// Create types available to C++ implementation code.
+// This block is visible when C++ code is compiled. Create the forward
+// declarations in the namespace and class name they belong.
 
 namespace v8 {
 class Isolate;
@@ -26,20 +31,24 @@ extern "C" {
 
 #else
 
-// Go code can't use C++ types, so declare these as structs. For these types,
-// we create specific pointer types for them, such that Go code can use the
-// pointers.
+// This block is visible when compiling Go code.
+
+// Go code can't use C++ types and namespace, so their full type isn't declared,
+// only as anonymous structs. Go only needs to know that it uses pointers to
+// these types; but not the full definitions of those types.
 
 typedef struct v8Isolate v8Isolate;
 
 #endif
 
 typedef struct m_ctx m_ctx;
+typedef struct m_value m_value;
 
 // Pointer types. Go code needs explicit pointer types to use pointers from
 // C-code
 typedef v8Isolate* IsolatePtr;
 typedef m_ctx* ContextPtr;
+typedef m_value* ValuePtr;
 
 #ifdef __cplusplus
 }  // extern "C"
