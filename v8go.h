@@ -51,20 +51,6 @@ typedef struct m_template m_template;
 
 typedef m_template* TemplatePtr;
 
-typedef enum {
-  SYMBOL_ASYNC_ITERATOR = 1,
-  SYMBOL_HAS_INSTANCE,
-  SYMBOL_IS_CONCAT_SPREADABLE,
-  SYMBOL_ITERATOR,
-  SYMBOL_MATCH,
-  SYMBOL_REPLACE,
-  SYMBOL_SEARCH,
-  SYMBOL_SPLIT,
-  SYMBOL_TO_PRIMITIVE,
-  SYMBOL_TO_STRING_TAG,
-  SYMBOL_UNSCOPABLES,
-} SymbolIndex;
-
 typedef struct {
   CpuProfilerPtr ptr;
   IsolatePtr iso;
@@ -146,9 +132,6 @@ int ObjectHasIdx(ValuePtr ptr, uint32_t idx);
 int ObjectDelete(ValuePtr ptr, const char* key);
 int ObjectDeleteAnyKey(ValuePtr ptr, ValuePtr key);
 int ObjectDeleteIdx(ValuePtr ptr, uint32_t idx);
-
-ValuePtr BuiltinSymbol(IsolatePtr iso_ptr, SymbolIndex idx);
-const char* SymbolDescription(ValuePtr ptr);
 
 extern RtnValue NewPromiseResolver(ContextPtr ctx_ptr);
 extern ValuePtr PromiseResolverGetPromise(ValuePtr ptr);

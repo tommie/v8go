@@ -13,7 +13,6 @@ static inline m_ctx* isolateInternalContext(v8::Isolate* iso) {
   Isolate::Scope isolate_scope(iso); \
   HandleScope handle_scope(iso);
 
-#define INTERNAL_CONTEXT(iso) \
-  m_cm_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0));
+#define INTERNAL_CONTEXT(iso) m_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0));
 
 #endif
