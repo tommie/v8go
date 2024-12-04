@@ -1,12 +1,24 @@
 #ifndef V8GO_ISOLATE_H
 #define V8GO_ISOLATE_H
 
-#include "forward-declarations.h"
 #include "unbound_script.h"
 
 #ifdef __cplusplus
+
+namespace v8 {
+class Isolate;
+}
+typedef v8::Isolate v8Isolate;
+
 extern "C" {
+#else
+typedef struct v8Isolate v8Isolate;
 #endif
+
+typedef v8Isolate* IsolatePtr;
+
+typedef struct m_value m_value;
+typedef m_value* ValuePtr;
 
 // ScriptCompiler::CompileOptions values
 extern const int ScriptCompilerNoCompileOptions;

@@ -1,8 +1,6 @@
 #ifndef V8GO_ERRORS_H
 #define V8GO_ERRORS_H
 
-#include "forward-declarations.h"
-
 typedef struct {
   const char* msg;
   const char* location;
@@ -25,6 +23,9 @@ extern RtnError ExceptionError(v8::TryCatch& try_catch,
                                v8::Isolate* iso,
                                v8::Local<v8::Context> ctx);
 #endif
+
+typedef struct m_value m_value;
+typedef m_value* ValuePtr;
 
 typedef enum {
   ERROR_RANGE = 1,

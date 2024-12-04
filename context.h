@@ -13,9 +13,11 @@
 #include "value.h"
 
 namespace v8 {
+class Isolate;
 class Context;
 }  // namespace v8
 
+typedef v8::Isolate v8Isolate;
 typedef struct m_unboundScript m_unboundScript;
 
 struct m_ctx {
@@ -31,8 +33,12 @@ extern m_value* tracked_value(m_ctx* ctx, m_value* val);
 
 extern "C" {
 #else
-
+typedef struct v8Isolate v8Isolate;
 #endif
+typedef v8Isolate* IsolatePtr;
+
+typedef struct m_value m_value;
+typedef m_value* ValuePtr;
 
 typedef struct m_template m_template;
 typedef m_template* TemplatePtr;

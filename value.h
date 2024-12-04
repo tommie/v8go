@@ -1,8 +1,7 @@
 #ifndef V8GO_VALUE_H
 #define V8GO_VALUE_H
 
-#include "forward-declarations.h"
-#include "isolate.h"
+#include "errors.h"
 
 #ifdef __cplusplus
 
@@ -22,12 +21,18 @@ struct m_value {
   v8::Global<v8::Value> ptr;
 };
 
+typedef v8::Isolate v8Isolate;
+
 extern "C" {
 #else
 
+typedef struct v8Isolate v8Isolate;
 typedef struct m_value m_value;
 
 #endif
+
+typedef m_value* ValuePtr;
+typedef v8Isolate* IsolatePtr;
 
 typedef struct v8BackingStore v8BackingStore;
 typedef v8BackingStore* BackingStorePtr;
