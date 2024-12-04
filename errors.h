@@ -1,6 +1,8 @@
 #ifndef V8GO_ERRORS_H
 #define V8GO_ERRORS_H
 
+#include "forward-declarations.h"
+
 typedef struct {
   const char* msg;
   const char* location;
@@ -34,6 +36,11 @@ typedef enum {
   ERROR_WASM_RUNTIME,
   ERROR_GENERIC,
 } ErrorTypeIndex;
+
+typedef struct {
+  ValuePtr value;
+  RtnError error;
+} RtnValue;
 
 #ifdef __cplusplus
 }

@@ -1,7 +1,7 @@
 #ifndef V8GO_CONTEXT_H
 #define V8GO_CONTEXT_H
 
-#include "interop.h"
+#include "errors.h"
 #include "isolate.h"
 
 #ifdef __cplusplus

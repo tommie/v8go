@@ -2,7 +2,6 @@
 #define V8GO_VALUE_H
 
 #include "forward-declarations.h"
-#include "interop.h"
 #include "isolate.h"
 
 #ifdef __cplusplus

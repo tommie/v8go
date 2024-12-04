@@ -1,7 +1,6 @@
 #include "context.h"
 #include "context-macros.h"
 #include "deps/include/v8-template.h"
-#include "interop.h"
 #include "template.h"
 #include "unbound_script.h"
 #include "value.h"

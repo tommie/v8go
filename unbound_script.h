@@ -5,7 +5,6 @@
 #include <stdint.h>
 #include "errors.h"
 #include "forward-declarations.h"
-#include "interop.h"
 
 #ifdef __cplusplus
 
