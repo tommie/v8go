@@ -13,9 +13,9 @@
 
 #ifdef __cplusplus
 
-#include <libplatform/libplatform.h>
-#include "v8-profiler.h"
-#include "v8.h"
+#include "deps/include/libplatform/libplatform.h"
+#include "deps/include/v8-profiler.h"
+#include "deps/include/v8.h"
 
 typedef v8::CpuProfiler* CpuProfilerPtr;
 typedef v8::CpuProfile* CpuProfilePtr;
