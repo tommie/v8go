@@ -1,6 +1,9 @@
 #ifndef V8GO_VALUE_H
 #define V8GO_VALUE_H
 
+#include <stddef.h>
+#include <stdint.h>
+
 #include "errors.h"
 
 #ifdef __cplusplus
