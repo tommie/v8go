@@ -1,7 +1,6 @@
 #include "deps/include/v8-template.h"
 
 #include "context-macros.h"
-#include "context.h"
 #include "template.h"
 #include "unbound_script.h"
 #include "value.h"

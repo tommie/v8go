@@ -6,6 +6,8 @@
 #include "deps/include/v8-local-handle.h"
 #include "deps/include/v8-locker.h"
 
+#include "context.h"
+
 #define LOCAL_CONTEXT(ctx)                              \
   v8::Isolate* iso = ctx->iso;                          \
   v8::Locker locker(iso);                               \
