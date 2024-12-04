@@ -1,8 +1,6 @@
 #include "symbol.h"
 #include "context.h"
-#include "deps/include/v8.h"
 #include "isolate-macros.h"
-#include "isolate.h"
 #include "utils.h"
 #include "value-macros.h"
 
