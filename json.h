@@ -1,7 +1,7 @@
 #ifndef V8GO_JSON_H
 #define V8GO_JSON_H
 
-#include "interop.h"
+#include "errors.h"
 
 #ifdef __cplusplus
 extern "C" {

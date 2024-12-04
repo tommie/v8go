@@ -7,7 +7,6 @@
 
 #include "context.h"
 #include "errors.h"
-#include "interop.h"
 #include "isolate.h"
 #include "value.h"
 
