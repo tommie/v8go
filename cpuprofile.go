@@ -6,6 +6,7 @@ package v8go
 
 /*
 #include "v8go.h"
+#include "errors.h"
 */
 import "C"
 import "time"

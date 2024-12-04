@@ -9,7 +9,7 @@ import (
 	"unsafe"
 
 	// #include <stdlib.h>
-	// #include "v8go.h"
+	// #include "symbol.h"
 	"C"
 )
 
@@ -18,8 +18,12 @@ type Symbol struct {
 	*Value
 }
 
-func SymbolAsyncIterator(iso *Isolate) *Symbol { return symbolByIndex(iso, C.SYMBOL_ASYNC_ITERATOR) }
-func SymbolHasInstance(iso *Isolate) *Symbol   { return symbolByIndex(iso, C.SYMBOL_HAS_INSTANCE) }
+func SymbolAsyncIterator(
+	iso *Isolate,
+) *Symbol {
+	return symbolByIndex(iso, C.SYMBOL_ASYNC_ITERATOR)
+}
+func SymbolHasInstance(iso *Isolate) *Symbol { return symbolByIndex(iso, C.SYMBOL_HAS_INSTANCE) }
 func SymbolIsConcatSpreadable(iso *Isolate) *Symbol {
 	return symbolByIndex(iso, C.SYMBOL_IS_CONCAT_SPREADABLE)
 }

@@ -8,115 +8,21 @@
 
 #include <cstdlib>
 #include <cstring>
-#include <iostream>
-#include <sstream>
-#include <string>
-#include <unordered_map>
-#include <vector>
+#include "utils.h"
 
 #include "_cgo_export.h"
 
-using namespace v8;
+#include "context-macros.h"
+#include "isolate-macros.h"
+#include "template-macros.h"
+#include "template.h"
+#include "value-macros.h"
 
-auto default_platform = platform::NewDefaultPlatform();
-ArrayBuffer::Allocator* default_allocator;
+using namespace v8;
 
 const int ScriptCompilerNoCompileOptions = ScriptCompiler::kNoCompileOptions;
 const int ScriptCompilerConsumeCodeCache = ScriptCompiler::kConsumeCodeCache;
 const int ScriptCompilerEagerCompile = ScriptCompiler::kEagerCompile;
-
-struct m_ctx {
-  Isolate* iso;
-  std::unordered_map<long, m_value*> vals;
-  std::vector<m_unboundScript*> unboundScripts;
-  Persistent<Context> ptr;
-  long nextValId;
-};
-
-struct m_value {
-  long id;
-  Isolate* iso;
-  m_ctx* ctx;
-  Global<Value> ptr;
-};
-
-struct m_template {
-  Isolate* iso;
-  Persistent<Template> ptr;
-};
-
-struct m_unboundScript {
-  Persistent<UnboundScript> ptr;
-};
-
-const char* CopyString(std::string str) {
-  int len = str.length();
-  char* mem = (char*)malloc(len + 1);
-  memcpy(mem, str.data(), len);
-  mem[len] = 0;
-  return mem;
-}
-
-const char* CopyString(String::Utf8Value& value) {
-  if (value.length() == 0) {
-    return nullptr;
-  }
-  return CopyString(std::string(*value, value.length()));
-}
-
-static RtnError ExceptionError(TryCatch& try_catch,
-                               Isolate* iso,
-                               Local<Context> ctx) {
-  HandleScope handle_scope(iso);
-
-  RtnError rtn = {nullptr, nullptr, nullptr};
-
-  if (try_catch.HasTerminated()) {
-    rtn.msg =
-        CopyString("ExecutionTerminated: script execution has been terminated");
-    return rtn;
-  }
-
-  String::Utf8Value exception(iso, try_catch.Exception());
-  rtn.msg = CopyString(exception);
-
-  Local<Message> msg = try_catch.Message();
-  if (!msg.IsEmpty()) {
-    String::Utf8Value origin(iso, msg->GetScriptOrigin().ResourceName());
-    std::ostringstream sb;
-    sb << *origin;
-    Maybe<int> line = try_catch.Message()->GetLineNumber(ctx);
-    if (line.IsJust()) {
-      sb << ":" << line.ToChecked();
-    }
-    Maybe<int> start = try_catch.Message()->GetStartColumn(ctx);
-    if (start.IsJust()) {
-      sb << ":"
-         << start.ToChecked() + 1;  // + 1 to match output from stack trace
-    }
-    rtn.location = CopyString(sb.str());
-  }
-
-  Local<Value> mstack;
-  if (try_catch.StackTrace(ctx).ToLocal(&mstack)) {
-    String::Utf8Value stack(iso, mstack);
-    rtn.stack = CopyString(stack);
-  }
-
-  return rtn;
-}
-
-m_value* tracked_value(m_ctx* ctx, m_value* val) {
-  // (rogchap) we track values against a context so that when the context is
-  // closed (either manually or GC'd by Go) we can also release all the
-  // values associated with the context;
-  if (val->id == 0) {
-    val->id = ++ctx->nextValId;
-    ctx->vals[val->id] = val;
-  }
-
-  return val;
-}
 
 m_unboundScript* tracked_unbound_script(m_ctx* ctx, m_unboundScript* us) {
   ctx->unboundScripts.push_back(us);
@@ -128,90 +34,9 @@ extern "C" {
 
 /********** Isolate **********/
 
-#define ISOLATE_SCOPE(iso)           \
-  Locker locker(iso);                \
-  Isolate::Scope isolate_scope(iso); \
-  HandleScope handle_scope(iso);
-
 #define ISOLATE_SCOPE_INTERNAL_CONTEXT(iso) \
   ISOLATE_SCOPE(iso);                       \
   m_ctx* ctx = isolateInternalContext(iso);
-
-void Init() {
-#ifdef _WIN32
-  V8::InitializeExternalStartupData(".");
-#endif
-  V8::InitializePlatform(default_platform.get());
-  V8::Initialize();
-
-  default_allocator = ArrayBuffer::Allocator::NewDefaultAllocator();
-  return;
-}
-
-IsolatePtr NewIsolate() {
-  Isolate::CreateParams params;
-  params.array_buffer_allocator = default_allocator;
-  Isolate* iso = Isolate::New(params);
-  Locker locker(iso);
-  Isolate::Scope isolate_scope(iso);
-  HandleScope handle_scope(iso);
-
-  iso->SetCaptureStackTraceForUncaughtExceptions(true);
-
-  // Create a Context for internal use
-  m_ctx* ctx = new m_ctx;
-  ctx->ptr.Reset(iso, Context::New(iso));
-  ctx->iso = iso;
-  iso->SetData(0, ctx);
-
-  return iso;
-}
-
-static inline m_ctx* isolateInternalContext(Isolate* iso) {
-  return static_cast<m_ctx*>(iso->GetData(0));
-}
-
-void IsolatePerformMicrotaskCheckpoint(IsolatePtr iso) {
-  ISOLATE_SCOPE(iso)
-  iso->PerformMicrotaskCheckpoint();
-}
-
-void IsolateDispose(IsolatePtr iso) {
-  if (iso == nullptr) {
-    return;
-  }
-  ContextFree(isolateInternalContext(iso));
-
-  iso->Dispose();
-}
-
-void IsolateTerminateExecution(IsolatePtr iso) {
-  iso->TerminateExecution();
-}
-
-int IsolateIsExecutionTerminating(IsolatePtr iso) {
-  return iso->IsExecutionTerminating();
-}
-
-IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr iso) {
-  if (iso == nullptr) {
-    return IsolateHStatistics{0};
-  }
-  v8::HeapStatistics hs;
-  iso->GetHeapStatistics(&hs);
-
-  return IsolateHStatistics{hs.total_heap_size(),
-                            hs.total_heap_size_executable(),
-                            hs.total_physical_size(),
-                            hs.total_available_size(),
-                            hs.used_heap_size(),
-                            hs.heap_size_limit(),
-                            hs.malloced_memory(),
-                            hs.external_memory(),
-                            hs.peak_malloced_memory(),
-                            hs.number_of_native_contexts(),
-                            hs.number_of_detached_contexts()};
-}
 
 RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso,
                                              const char* s,
@@ -389,13 +214,6 @@ void CPUProfileDelete(CPUProfile* profile) {
 }
 
 /********** Template **********/
-
-#define LOCAL_TEMPLATE(tmpl_ptr)     \
-  Isolate* iso = tmpl_ptr->iso;      \
-  Locker locker(iso);                \
-  Isolate::Scope isolate_scope(iso); \
-  HandleScope handle_scope(iso);     \
-  Local<Template> tmpl = tmpl_ptr->ptr.Get(iso);
 
 void TemplateFreeWrapper(TemplatePtr tmpl) {
   tmpl->ptr.Clear();  // Just does `val_ = 0;` without calling V8::DisposeGlobal
@@ -593,154 +411,6 @@ RtnValue FunctionTemplateGetFunction(TemplatePtr ptr, ContextPtr ctx) {
 
 /********** Context **********/
 
-#define LOCAL_CONTEXT(ctx)                      \
-  Isolate* iso = ctx->iso;                      \
-  Locker locker(iso);                           \
-  Isolate::Scope isolate_scope(iso);            \
-  HandleScope handle_scope(iso);                \
-  TryCatch try_catch(iso);                      \
-  Local<Context> local_ctx = ctx->ptr.Get(iso); \
-  Context::Scope context_scope(local_ctx);
-
-ContextPtr NewContext(IsolatePtr iso,
-                      TemplatePtr global_template_ptr,
-                      int ref) {
-  Locker locker(iso);
-  Isolate::Scope isolate_scope(iso);
-  HandleScope handle_scope(iso);
-
-  Local<ObjectTemplate> global_template;
-  if (global_template_ptr != nullptr) {
-    global_template = global_template_ptr->ptr.Get(iso).As<ObjectTemplate>();
-  } else {
-    global_template = ObjectTemplate::New(iso);
-  }
-
-  // For function callbacks we need a reference to the context, but because of
-  // the complexities of C -> Go function pointers, we store a reference to the
-  // context as a simple integer identifier; this can then be used on the Go
-  // side to lookup the context in the context registry. We use slot 1 as slot 0
-  // has special meaning for the Chrome debugger.
-  Local<Context> local_ctx = Context::New(iso, nullptr, global_template);
-  local_ctx->SetEmbedderData(1, Integer::New(iso, ref));
-
-  m_ctx* ctx = new m_ctx;
-  ctx->ptr.Reset(iso, local_ctx);
-  ctx->iso = iso;
-  return ctx;
-}
-
-int ContextRetainedValueCount(ContextPtr ctx) {
-  return ctx->vals.size();
-}
-
-void ContextFree(ContextPtr ctx) {
-  if (ctx == nullptr) {
-    return;
-  }
-  ctx->ptr.Reset();
-
-  for (auto it = ctx->vals.begin(); it != ctx->vals.end(); ++it) {
-    auto value = it->second;
-    value->ptr.Reset();
-    delete value;
-  }
-  ctx->vals.clear();
-
-  for (m_unboundScript* us : ctx->unboundScripts) {
-    us->ptr.Reset();
-    delete us;
-  }
-
-  delete ctx;
-}
-
-RtnValue RunScript(ContextPtr ctx, const char* source, const char* origin) {
-  LOCAL_CONTEXT(ctx);
-
-  RtnValue rtn = {};
-
-  MaybeLocal<String> maybeSrc =
-      String::NewFromUtf8(iso, source, NewStringType::kNormal);
-  MaybeLocal<String> maybeOgn =
-      String::NewFromUtf8(iso, origin, NewStringType::kNormal);
-  Local<String> src, ogn;
-  if (!maybeSrc.ToLocal(&src) || !maybeOgn.ToLocal(&ogn)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
-    return rtn;
-  }
-
-  ScriptOrigin script_origin(ogn);
-  Local<Script> script;
-  if (!Script::Compile(local_ctx, src, &script_origin).ToLocal(&script)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
-    return rtn;
-  }
-  Local<Value> result;
-  if (!script->Run(local_ctx).ToLocal(&result)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
-    return rtn;
-  }
-  m_value* val = new m_value;
-  val->id = 0;
-  val->iso = iso;
-  val->ctx = ctx;
-  val->ptr = Global<Value>(iso, result);
-
-  rtn.value = tracked_value(ctx, val);
-  return rtn;
-}
-
-/********** UnboundScript & ScriptCompilerCachedData **********/
-
-ScriptCompilerCachedData* UnboundScriptCreateCodeCache(
-    IsolatePtr iso,
-    UnboundScriptPtr us_ptr) {
-  ISOLATE_SCOPE(iso);
-
-  Local<UnboundScript> unbound_script = us_ptr->ptr.Get(iso);
-
-  ScriptCompiler::CachedData* cached_data =
-      ScriptCompiler::CreateCodeCache(unbound_script);
-
-  ScriptCompilerCachedData* cd = new ScriptCompilerCachedData;
-  cd->ptr = cached_data;
-  cd->data = cached_data->data;
-  cd->length = cached_data->length;
-  cd->rejected = cached_data->rejected;
-  return cd;
-}
-
-void ScriptCompilerCachedDataDelete(ScriptCompilerCachedData* cached_data) {
-  delete cached_data->ptr;
-  delete cached_data;
-}
-
-// This can only run in contexts that belong to the same isolate
-// the script was compiled in
-RtnValue UnboundScriptRun(ContextPtr ctx, UnboundScriptPtr us_ptr) {
-  LOCAL_CONTEXT(ctx)
-
-  RtnValue rtn = {};
-
-  Local<UnboundScript> unbound_script = us_ptr->ptr.Get(iso);
-
-  Local<Script> script = unbound_script->BindToCurrentContext();
-  Local<Value> result;
-  if (!script->Run(local_ctx).ToLocal(&result)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
-    return rtn;
-  }
-  m_value* val = new m_value;
-  val->id = 0;
-  val->iso = iso;
-  val->ctx = ctx;
-  val->ptr = Global<Value>(iso, result);
-
-  rtn.value = tracked_value(ctx, val);
-  return rtn;
-}
-
 RtnValue JSONParse(ContextPtr ctx, const char* str) {
   LOCAL_CONTEXT(ctx);
   RtnValue rtn = {};
@@ -809,37 +479,6 @@ void ValueRelease(ValuePtr ptr) {
   ptr->ptr.Reset();
   delete ptr;
 }
-
-ValuePtr ContextGlobal(ContextPtr ctx) {
-  LOCAL_CONTEXT(ctx);
-  m_value* val = new m_value;
-  val->id = 0;
-
-  val->iso = iso;
-  val->ctx = ctx;
-  val->ptr = Global<Value>(iso, local_ctx->Global());
-
-  return tracked_value(ctx, val);
-}
-
-/********** Value **********/
-
-#define LOCAL_VALUE(val)                   \
-  Isolate* iso = val->iso;                 \
-  Locker locker(iso);                      \
-  Isolate::Scope isolate_scope(iso);       \
-  HandleScope handle_scope(iso);           \
-  TryCatch try_catch(iso);                 \
-  m_ctx* ctx = val->ctx;                   \
-  Local<Context> local_ctx;                \
-  if (ctx != nullptr) {                    \
-    local_ctx = ctx->ptr.Get(iso);         \
-  } else {                                 \
-    ctx = isolateInternalContext(iso);     \
-    local_ctx = ctx->ptr.Get(iso);         \
-  }                                        \
-  Context::Scope context_scope(local_ctx); \
-  Local<Value> value = val->ptr.Get(iso);
 
 ValuePtr NewValueInteger(IsolatePtr iso, int32_t v) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
@@ -1562,64 +1201,6 @@ int ObjectDeleteAnyKey(ValuePtr ptr, ValuePtr key) {
 int ObjectDeleteIdx(ValuePtr ptr, uint32_t idx) {
   LOCAL_OBJECT(ptr);
   return obj->Delete(local_ctx, idx).ToChecked();
-}
-
-/********** Symbol **********/
-
-ValuePtr BuiltinSymbol(IsolatePtr iso, SymbolIndex idx) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
-  Local<Symbol> sym;
-  switch (idx) {
-    case SYMBOL_ASYNC_ITERATOR:
-      sym = Symbol::GetAsyncIterator(iso);
-      break;
-    case SYMBOL_HAS_INSTANCE:
-      sym = Symbol::GetHasInstance(iso);
-      break;
-    case SYMBOL_IS_CONCAT_SPREADABLE:
-      sym = Symbol::GetIsConcatSpreadable(iso);
-      break;
-    case SYMBOL_ITERATOR:
-      sym = Symbol::GetIterator(iso);
-      break;
-    case SYMBOL_MATCH:
-      sym = Symbol::GetMatch(iso);
-      break;
-    case SYMBOL_REPLACE:
-      sym = Symbol::GetReplace(iso);
-      break;
-    case SYMBOL_SEARCH:
-      sym = Symbol::GetSearch(iso);
-      break;
-    case SYMBOL_SPLIT:
-      sym = Symbol::GetSplit(iso);
-      break;
-    case SYMBOL_TO_PRIMITIVE:
-      sym = Symbol::GetToPrimitive(iso);
-      break;
-    case SYMBOL_TO_STRING_TAG:
-      sym = Symbol::GetToStringTag(iso);
-      break;
-    case SYMBOL_UNSCOPABLES:
-      sym = Symbol::GetUnscopables(iso);
-      break;
-    default:
-      return nullptr;
-  }
-  m_value* val = new m_value;
-  val->id = 0;
-  val->iso = iso;
-  val->ctx = ctx;
-  val->ptr = Global<Value>(iso, sym);
-  return tracked_value(ctx, val);
-}
-
-const char* SymbolDescription(ValuePtr ptr) {
-  LOCAL_VALUE(ptr);
-  Local<Symbol> sym = value.As<Symbol>();
-  Local<Value> descr = sym->Description(iso);
-  String::Utf8Value utf8(iso, descr);
-  return CopyString(utf8);
 }
 
 /********** Promise **********/

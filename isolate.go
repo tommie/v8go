@@ -5,7 +5,7 @@
 package v8go
 
 // #include <stdlib.h>
-// #include "v8go.h"
+// #include "isolate.h"
 import "C"
 
 import (
@@ -86,7 +86,10 @@ type CompileOptions struct {
 // If options contain a non-null CachedData, compilation of the script will use
 // that code cache.
 // error will be of type `JSError` if not nil.
-func (i *Isolate) CompileUnboundScript(source, origin string, opts CompileOptions) (*UnboundScript, error) {
+func (i *Isolate) CompileUnboundScript(
+	source, origin string,
+	opts CompileOptions,
+) (*UnboundScript, error) {
 	cSource := C.CString(source)
 	cOrigin := C.CString(origin)
 	defer C.free(unsafe.Pointer(cSource))
