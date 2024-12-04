@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include <stdint.h>
+
 #include "errors.h"
 #include "forward-declarations.h"
 

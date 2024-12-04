@@ -2,12 +2,12 @@
 #define V8GO_TEMPLATE_H
 #ifdef __cplusplus
 
+#include "deps/include/v8-persistent-handle.h"
+
 namespace v8 {
 class Isolate;
 class Template;
 }  // namespace v8
-
-#include "deps/include/v8-persistent-handle.h"
 
 struct m_template {
   v8::Isolate* iso;

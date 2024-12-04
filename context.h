@@ -6,9 +6,10 @@
 
 #ifdef __cplusplus
 
+#include "deps/include/v8-persistent-handle.h"
+
 #include <unordered_map>
 #include <vector>
-#include "deps/include/v8-persistent-handle.h"
 #include "value.h"
 
 namespace v8 {
