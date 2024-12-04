@@ -13,7 +13,7 @@
 
 #ifdef __cplusplus
 
-#include "libplatform/libplatform.h"
+#include <libplatform/libplatform.h>
 #include "v8-profiler.h"
 #include "v8.h"
 
