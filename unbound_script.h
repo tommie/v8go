@@ -1,7 +1,6 @@
 #ifndef V8GO_UNBOUND_SCRIPT_H
 #define V8GO_UNBOUND_SCRIPT_H
 
-#include <inttypes.h>
 #include <stdint.h>
 
 #include "errors.h"
