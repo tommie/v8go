@@ -53,7 +53,6 @@ InspectorClientPtr NewInspectorClient(int callbackRef) {
 }
 
 void InspectorContextCreated(InspectorPtr inspector, ContextPtr context) {
-  printf("Create from C++");
   LOCAL_CONTEXT(context);
   int groupId = 1;
   StringView name = StringView((const uint8_t*)"Test", 4);

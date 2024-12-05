@@ -3,7 +3,6 @@ package v8go
 // #include "inspector.h"
 import "C"
 import (
-	"fmt"
 	"sync"
 	"unicode/utf16"
 )
@@ -100,7 +99,6 @@ func (i *Inspector) Dispose() {
 }
 
 func (i *Inspector) ContextCreated(ctx *Context) {
-	fmt.Println("Created from Go")
 	C.InspectorContextCreated(i.ptr, ctx.ptr)
 }
 
@@ -143,7 +141,6 @@ func goHandleConsoleAPIMessageCallback(
 	errorLevel C.int,
 	message C.StringViewData,
 ) {
-	fmt.Println("Callback from Go")
 	// Convert data to Go data
 	client := clientRegistry.get(callbackRef)
 	client.handler.ConsoleAPIMessage(ConsoleAPIMessage{
