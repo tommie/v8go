@@ -26,6 +26,8 @@ typedef v8InspectorClient* InspectorClientPtr;
 
 typedef struct v8Isolate v8Isolate;
 
+typedef _Bool bool;
+
 #endif
 
 #include <stddef.h>
@@ -42,6 +44,12 @@ extern void InspectorContextDestroyed(InspectorPtr inspector,
 
 extern InspectorClientPtr NewInspectorClient(int callbackRef);
 extern void DeleteInspectorClient(InspectorClientPtr client);
+
+typedef struct StringViewData {
+  bool is8bit;
+  void const* data;
+  int length;
+} StringViewData;
 
 #ifdef __cplusplus
 }  // extern "C"

@@ -27,14 +27,27 @@ func TestMonitorCreateDispose(t *testing.T) {
 	defer context.Close()
 	inspector.ContextCreated(context)
 	defer inspector.ContextDestroyed(context)
-	_, err := context.RunScript("console.log('Hello, world!')", "")
+	_, err := context.RunScript("console.log('Hello, world!'); console.error('Error, world!');", "")
 	if err != nil {
 		t.Error("Error occurred: " + err.Error())
 		return
 	}
-	if len(recorder.messages) != 1 {
+	if len(recorder.messages) != 2 {
 		t.Error("Expected exactly one message")
-	} else if recorder.messages[0].Message != "Hello, world!" {
-		t.Error("Expected Hello, World")
+	} else {
+		msg1 := recorder.messages[0]
+		msg2 := recorder.messages[1]
+		if msg1.ErrorLevel != v8.ErrorLevelLog {
+			t.Errorf("Expected Log error level. Got %d", msg1.ErrorLevel)
+		}
+		if msg2.ErrorLevel != v8.ErrorLevelError {
+			t.Errorf("Expected Error error level. Got: %d", msg2.ErrorLevel)
+		}
+		if msg1.Message != "Hello, world!" {
+			t.Errorf("Expected Hello, World, got %s", msg1.Message)
+		}
+		if msg2.Message != "Error, world!" {
+			t.Errorf("Expected Error, world!, got %s", msg2.Message)
+		}
 	}
 }

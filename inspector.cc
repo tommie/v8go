@@ -11,10 +11,7 @@ class InspectorClient : public V8InspectorClient {
   int _callbackRef;
 
  public:
-  InspectorClient(int callbackRef) {
-    _callbackRef = callbackRef;
-    printf("Client from C++");
-  }
+  InspectorClient(int callbackRef) { _callbackRef = callbackRef; }
   void consoleAPIMessage(int contextGroupId,
                          v8::Isolate::MessageErrorLevel level,
                          const StringView& message,
@@ -31,15 +28,11 @@ void InspectorClient::consoleAPIMessage(int contextGroupId,
                                         unsigned lineNumber,
                                         unsigned columnNumber,
                                         V8StackTrace*) {
-  printf("Hello from C++");
-  goHandleConsoleAPIMessageCallback(_callbackRef);
-  // if (message.is8Bit()) {
-  //   goConsoleAPIMessageUtf8(level, lineNumber, (char*)message.characters8());
-  // } else {
-  //   goConsoleAPIMessageUtf16(level, lineNumber,
-  //   (char*)message.characters16(),
-  //                            message.length() * 2);
-  // }
+  StringViewData msg;
+  msg.is8bit = message.is8Bit();
+  msg.data = message.characters8();
+  msg.length = message.length();
+  goHandleConsoleAPIMessageCallback(_callbackRef, contextGroupId, level, msg);
 }
 
 extern "C" {

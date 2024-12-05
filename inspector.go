@@ -5,6 +5,18 @@ import "C"
 import (
 	"fmt"
 	"sync"
+	"unicode/utf16"
+)
+
+type MessageErrorLevel uint8
+
+const (
+	ErrorLevelLog MessageErrorLevel = 1 << iota
+	ErrorLevelDebug
+	ErrorLevelInfo
+	ErrorLevelError
+	ErrorLevelWarning
+	ErrorLevelAll = ErrorLevelLog | ErrorLevelDebug | ErrorLevelInfo | ErrorLevelError | ErrorLevelWarning
 )
 
 type Inspector struct {
@@ -15,8 +27,6 @@ type InspectorClient struct {
 	ptr     C.InspectorClientPtr
 	handler ConsoleAPIMessageHandler
 }
-
-type MessageErrorLevel int
 
 // registry is a simple map of int->something. Allows passing an int to C-code
 // that can be used in a callback; then Go code can retrieve the right object
@@ -60,7 +70,7 @@ func (r *registry[T]) get(id C.int) T {
 
 type ConsoleAPIMessage struct {
 	contextGroupId int
-	errorLevel     MessageErrorLevel
+	ErrorLevel     MessageErrorLevel
 	Message        string
 	url            string
 	lineNumber     int
@@ -111,13 +121,34 @@ func (c *InspectorClient) Dispose() {
 	C.DeleteInspectorClient(c.ptr)
 }
 
+func stringViewToString(d C.StringViewData) string {
+	if d.is8bit {
+		data := C.GoBytes(d.data, d.length)
+		return string(data)
+	} else {
+		data := C.GoBytes(d.data, d.length*2)
+		shorts := make([]uint16, len(data)/2)
+		for i := 0; i < len(data); i += 2 {
+			shorts[i/2] = (uint16(data[i+1]) << 8) | uint16(data[i])
+		}
+		return string(utf16.Decode(shorts))
+	}
+}
+
+//
 //export goHandleConsoleAPIMessageCallback
-func goHandleConsoleAPIMessageCallback(callbackRef C.int) {
+func goHandleConsoleAPIMessageCallback(
+	callbackRef C.int,
+	contextGroupId C.int,
+	errorLevel C.int,
+	message C.StringViewData,
+) {
 	fmt.Println("Callback from Go")
 	// Convert data to Go data
 	client := clientRegistry.get(callbackRef)
 	client.handler.ConsoleAPIMessage(ConsoleAPIMessage{
-		Message: "Hello",
+		Message:    stringViewToString(message),
+		ErrorLevel: MessageErrorLevel(errorLevel),
 	})
 	// client.handleConsoleAPIMessageCallback(data)
 }
