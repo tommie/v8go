@@ -5,7 +5,12 @@
 using namespace v8;
 using namespace v8_inspector;
 
-class InspectorClient : public V8InspectorClient {};
+class InspectorClient : public V8InspectorClient {
+  int _callbackRef;
+
+ public:
+  InspectorClient(int callbackRef) { _callbackRef = callbackRef; }
+};
 
 extern "C" {
 
@@ -20,8 +25,8 @@ void DeleteInspector(InspectorPtr inspector) {
 
 /********** InspectorClient **********/
 
-InspectorClientPtr NewInspectorClient() {
-  return new InspectorClient();
+InspectorClientPtr NewInspectorClient(int callbackRef) {
+  return new InspectorClient(callbackRef);
 }
 
 void DeleteInspectorClient(InspectorClientPtr client) {

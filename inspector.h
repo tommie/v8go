@@ -33,7 +33,7 @@ typedef struct v8Isolate v8Isolate;
 
 extern InspectorPtr CreateInspector(v8Isolate* iso, InspectorClientPtr client);
 extern void DeleteInspector(InspectorPtr inspector);
-extern InspectorClientPtr NewInspectorClient();
+extern InspectorClientPtr NewInspectorClient(int callbackRef);
 extern void DeleteInspectorClient(InspectorClientPtr client);
 
 #ifdef __cplusplus
