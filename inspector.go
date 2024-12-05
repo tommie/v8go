@@ -3,8 +3,8 @@ package v8go
 // #include "inspector.h"
 import "C"
 import (
+	"fmt"
 	"sync"
-	"unsafe"
 )
 
 type Inspector struct {
@@ -12,7 +12,8 @@ type Inspector struct {
 }
 
 type InspectorClient struct {
-	ptr C.InspectorClientPtr
+	ptr     C.InspectorClientPtr
+	handler ConsoleAPIMessageHandler
 }
 
 type MessageErrorLevel int
@@ -60,7 +61,7 @@ func (r *registry[T]) get(id C.int) T {
 type ConsoleAPIMessage struct {
 	contextGroupId int
 	errorLevel     MessageErrorLevel
-	message        string
+	Message        string
 	url            string
 	lineNumber     int
 	columnNumber   int
@@ -88,8 +89,19 @@ func (i *Inspector) Dispose() {
 	C.DeleteInspector(i.ptr)
 }
 
+func (i *Inspector) ContextCreated(ctx *Context) {
+	fmt.Println("Created from Go")
+	C.InspectorContextCreated(i.ptr, ctx.ptr)
+}
+
+func (i *Inspector) ContextDestroyed(ctx *Context) {
+	C.InspectorContextDestroyed(i.ptr, ctx.ptr)
+}
+
 func NewInspectorClient(handler ConsoleAPIMessageHandler) *InspectorClient {
-	result := &InspectorClient{}
+	result := &InspectorClient{
+		handler: handler,
+	}
 	ref := clientRegistry.register(result)
 	result.ptr = C.NewInspectorClient(ref)
 	return result
@@ -99,8 +111,13 @@ func (c *InspectorClient) Dispose() {
 	C.DeleteInspectorClient(c.ptr)
 }
 
-func handleConsoleAPIMessageCallback(callbackRef C.int, data unsafe.Pointer) {
+//export goHandleConsoleAPIMessageCallback
+func goHandleConsoleAPIMessageCallback(callbackRef C.int) {
+	fmt.Println("Callback from Go")
 	// Convert data to Go data
-	// client := clientRegistry.get(callbackRef)
+	client := clientRegistry.get(callbackRef)
+	client.handler.ConsoleAPIMessage(ConsoleAPIMessage{
+		Message: "Hello",
+	})
 	// client.handleConsoleAPIMessageCallback(data)
 }

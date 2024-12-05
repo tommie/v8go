@@ -31,8 +31,15 @@ typedef struct v8Isolate v8Isolate;
 #include <stddef.h>
 #include <stdint.h>
 
+typedef struct m_ctx m_ctx;
+typedef m_ctx* ContextPtr;
+
 extern InspectorPtr CreateInspector(v8Isolate* iso, InspectorClientPtr client);
 extern void DeleteInspector(InspectorPtr inspector);
+extern void InspectorContextCreated(InspectorPtr inspector, ContextPtr context);
+extern void InspectorContextDestroyed(InspectorPtr inspector,
+                                      ContextPtr context);
+
 extern InspectorClientPtr NewInspectorClient(int callbackRef);
 extern void DeleteInspectorClient(InspectorClientPtr client);
 

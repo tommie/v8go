@@ -23,4 +23,18 @@ func TestMonitorCreateDispose(t *testing.T) {
 	defer client.Dispose()
 	inspector := v8.NewInspector(iso, client)
 	defer inspector.Dispose()
+	context := v8.NewContext(iso)
+	defer context.Close()
+	inspector.ContextCreated(context)
+	defer inspector.ContextDestroyed(context)
+	_, err := context.RunScript("console.log('Hello, world!')", "")
+	if err != nil {
+		t.Error("Error occurred: " + err.Error())
+		return
+	}
+	if len(recorder.messages) != 1 {
+		t.Error("Expected exactly one message")
+	} else if recorder.messages[0].Message != "Hello, world!" {
+		t.Error("Expected Hello, World")
+	}
 }
