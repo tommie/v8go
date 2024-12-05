@@ -14,19 +14,53 @@ func (r *consoleAPIMessageRecorder) ConsoleAPIMessage(msg v8.ConsoleAPIMessage) 
 	r.messages = append(r.messages, msg)
 }
 
-func TestMonitorCreateDispose(t *testing.T) {
-	recorder := consoleAPIMessageRecorder{}
-	t.Parallel()
+type IsolateWithInspector struct {
+	iso             *v8.Isolate
+	inspector       *v8.Inspector
+	inspectorClient *v8.InspectorClient
+}
+
+func NewIsolateWithInspectorClient(handler v8.ConsoleAPIMessageHandler) *IsolateWithInspector {
 	iso := v8.NewIsolate()
-	defer iso.Dispose()
-	client := v8.NewInspectorClient(&recorder)
-	defer client.Dispose()
+	client := v8.NewInspectorClient(handler)
 	inspector := v8.NewInspector(iso, client)
-	defer inspector.Dispose()
-	context := v8.NewContext(iso)
-	defer context.Close()
-	inspector.ContextCreated(context)
-	defer inspector.ContextDestroyed(context)
+	return &IsolateWithInspector{
+		iso,
+		inspector,
+		client,
+	}
+}
+
+func (iso *IsolateWithInspector) Dispose() {
+	iso.inspector.Dispose()
+	iso.inspectorClient.Dispose()
+	iso.iso.Dispose()
+}
+
+type ContextWithInspector struct {
+	*v8.Context
+	iso *IsolateWithInspector
+}
+
+func (iso *IsolateWithInspector) NewContext() *ContextWithInspector {
+	context := v8.NewContext(iso.iso)
+	iso.inspector.ContextCreated(context)
+	return &ContextWithInspector{context, iso}
+}
+
+func (ctx *ContextWithInspector) Dispose() {
+	ctx.iso.inspector.ContextDestroyed(ctx.Context)
+	ctx.Context.Close()
+}
+
+func TestMonitorCreateDispose(t *testing.T) {
+	t.Parallel()
+	recorder := consoleAPIMessageRecorder{}
+	iso := NewIsolateWithInspectorClient(&recorder)
+	defer iso.Dispose()
+	context := iso.NewContext()
+	defer context.Dispose()
+
 	_, err := context.RunScript("console.log('Hello, world!'); console.error('Error, world!');", "")
 	if err != nil {
 		t.Error("Error occurred: " + err.Error())
