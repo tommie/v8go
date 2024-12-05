@@ -21,6 +21,17 @@ class InspectorClient : public V8InspectorClient {
                          V8StackTrace*) override;
 };
 
+StringViewData ConvertStringView(const StringView& view) {
+  StringViewData msg;
+  msg.is8bit = view.is8Bit();
+  // The ? isn't necessary, the two functions return the sama pointer. But that
+  // has been considered an implementation detail that may change.
+  msg.data =
+      view.is8Bit() ? (void*)view.characters8() : (void*)view.characters16();
+  msg.length = view.length();
+  return msg;
+}
+
 void InspectorClient::consoleAPIMessage(int contextGroupId,
                                         v8::Isolate::MessageErrorLevel level,
                                         const StringView& message,
@@ -28,11 +39,9 @@ void InspectorClient::consoleAPIMessage(int contextGroupId,
                                         unsigned lineNumber,
                                         unsigned columnNumber,
                                         V8StackTrace*) {
-  StringViewData msg;
-  msg.is8bit = message.is8Bit();
-  msg.data = message.characters8();
-  msg.length = message.length();
-  goHandleConsoleAPIMessageCallback(_callbackRef, contextGroupId, level, msg);
+  goHandleConsoleAPIMessageCallback(
+      _callbackRef, contextGroupId, level, ConvertStringView(message),
+      ConvertStringView(url), lineNumber, columnNumber);
 }
 
 extern "C" {

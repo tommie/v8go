@@ -71,9 +71,9 @@ type ConsoleAPIMessage struct {
 	contextGroupId int
 	ErrorLevel     MessageErrorLevel
 	Message        string
-	url            string
-	lineNumber     int
-	columnNumber   int
+	Url            string
+	LineNumber     uint
+	ColumnNumber   uint
 	// stackTrace StackTrace
 }
 
@@ -140,12 +140,19 @@ func goHandleConsoleAPIMessageCallback(
 	contextGroupId C.int,
 	errorLevel C.int,
 	message C.StringViewData,
+	url C.StringViewData,
+	lineNumber C.uint,
+	columnNumber C.uint,
 ) {
 	// Convert data to Go data
 	client := clientRegistry.get(callbackRef)
+	// TODO, Stack trace
 	client.handler.ConsoleAPIMessage(ConsoleAPIMessage{
-		Message:    stringViewToString(message),
-		ErrorLevel: MessageErrorLevel(errorLevel),
+		ErrorLevel:   MessageErrorLevel(errorLevel),
+		Message:      stringViewToString(message),
+		Url:          stringViewToString(url),
+		LineNumber:   uint(lineNumber),
+		ColumnNumber: uint(columnNumber),
 	})
 	// client.handleConsoleAPIMessageCallback(data)
 }
