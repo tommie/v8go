@@ -272,57 +272,6 @@ int TemplateSetAnyTemplate(TemplatePtr ptr,
   return true;
 }
 
-/********** ObjectTemplate **********/
-
-TemplatePtr NewObjectTemplate(IsolatePtr iso) {
-  Locker locker(iso);
-  Isolate::Scope isolate_scope(iso);
-  HandleScope handle_scope(iso);
-
-  m_template* ot = new m_template;
-  ot->iso = iso;
-  ot->ptr.Reset(iso, ObjectTemplate::New(iso));
-  return ot;
-}
-
-RtnValue ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx) {
-  LOCAL_TEMPLATE(ptr);
-  TryCatch try_catch(iso);
-  Local<Context> local_ctx = ctx->ptr.Get(iso);
-  Context::Scope context_scope(local_ctx);
-
-  RtnValue rtn = {};
-
-  Local<ObjectTemplate> obj_tmpl = tmpl.As<ObjectTemplate>();
-  Local<Object> obj;
-  if (!obj_tmpl->NewInstance(local_ctx).ToLocal(&obj)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
-    return rtn;
-  }
-
-  m_value* val = new m_value;
-  val->id = 0;
-  val->iso = iso;
-  val->ctx = ctx;
-  val->ptr = Global<Value>(iso, obj);
-  rtn.value = tracked_value(ctx, val);
-  return rtn;
-}
-
-void ObjectTemplateSetInternalFieldCount(TemplatePtr ptr, int field_count) {
-  LOCAL_TEMPLATE(ptr);
-
-  Local<ObjectTemplate> obj_tmpl = tmpl.As<ObjectTemplate>();
-  obj_tmpl->SetInternalFieldCount(field_count);
-}
-
-int ObjectTemplateInternalFieldCount(TemplatePtr ptr) {
-  LOCAL_TEMPLATE(ptr);
-
-  Local<ObjectTemplate> obj_tmpl = tmpl.As<ObjectTemplate>();
-  return obj_tmpl->InternalFieldCount();
-}
-
 /********** FunctionTemplate **********/
 
 static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
