@@ -104,10 +104,6 @@ extern int TemplateSetAnyTemplate(TemplatePtr ptr,
                                   TemplatePtr obj_ptr,
                                   int attributes);
 
-extern TemplatePtr NewFunctionTemplate(IsolatePtr iso_ptr, int callback_ref);
-extern RtnValue FunctionTemplateGetFunction(TemplatePtr ptr,
-                                            ContextPtr ctx_ptr);
-
 const char* ExceptionGetMessageString(ValuePtr ptr);
 
 extern RtnValue NewPromiseResolver(ContextPtr ctx_ptr);
