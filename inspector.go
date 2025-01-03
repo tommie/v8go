@@ -3,7 +3,7 @@ package v8go
 // #include "inspector.h"
 import "C"
 import (
-	"sync"
+	"runtime/cgo"
 	"unicode/utf16"
 )
 
@@ -23,48 +23,8 @@ type Inspector struct {
 }
 
 type InspectorClient struct {
-	ptr     C.InspectorClientPtr
-	handler ConsoleAPIMessageHandler
-}
-
-// registry is a simple map of int->something. Allows passing an int to C-code
-// that can be used in a callback; then Go code can retrieve the right object
-// afterwards.
-// This can be generalised, e.g. Isolate has similar functionality handling
-// callback functions
-type registry[T any] struct {
-	entries map[C.int]T
-	id      C.int
-	lock    sync.RWMutex
-}
-
-func newRegistry[T any]() *registry[T] {
-	return &registry[T]{
-		entries: make(map[C.int]T),
-	}
-}
-
-var clientRegistry = newRegistry[*InspectorClient]()
-
-func (r *registry[T]) register(instance T) C.int {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-	r.id++
-	r.entries[r.id] = instance
-	return r.id
-}
-
-func (r *registry[T]) unregister(id C.int) {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-	delete(r.entries, id)
-}
-
-func (r *registry[T]) get(id C.int) T {
-	r.lock.RLock()
-	defer r.lock.RUnlock()
-	// What if not found? Return two parameters? Panic? (my preference)
-	return r.entries[id]
+	ptr          C.InspectorClientPtr
+	clientHandle cgo.Handle
 }
 
 type ConsoleAPIMessage struct {
@@ -107,12 +67,12 @@ func (i *Inspector) ContextDestroyed(ctx *Context) {
 }
 
 func NewInspectorClient(handler ConsoleAPIMessageHandler) *InspectorClient {
-	result := &InspectorClient{
-		handler: handler,
+	clientHandle := cgo.NewHandle(handler)
+	ptr := C.NewInspectorClient(C.uintptr_t(clientHandle))
+	return &InspectorClient{
+		clientHandle: clientHandle,
+		ptr:          ptr,
 	}
-	ref := clientRegistry.register(result)
-	result.ptr = C.NewInspectorClient(ref)
-	return result
 }
 
 func (c *InspectorClient) Dispose() {
@@ -136,7 +96,7 @@ func stringViewToString(d C.StringViewData) string {
 //
 //export goHandleConsoleAPIMessageCallback
 func goHandleConsoleAPIMessageCallback(
-	callbackRef C.int,
+	callbackRef C.uintptr_t,
 	contextGroupId C.int,
 	errorLevel C.int,
 	message C.StringViewData,
@@ -145,14 +105,15 @@ func goHandleConsoleAPIMessageCallback(
 	columnNumber C.uint,
 ) {
 	// Convert data to Go data
-	client := clientRegistry.get(callbackRef)
-	// TODO, Stack trace
-	client.handler.ConsoleAPIMessage(ConsoleAPIMessage{
-		ErrorLevel:   MessageErrorLevel(errorLevel),
-		Message:      stringViewToString(message),
-		Url:          stringViewToString(url),
-		LineNumber:   uint(lineNumber),
-		ColumnNumber: uint(columnNumber),
-	})
-	// client.handleConsoleAPIMessageCallback(data)
+	handle := cgo.Handle(callbackRef)
+	if client, ok := handle.Value().(ConsoleAPIMessageHandler); ok {
+		// TODO, Stack trace
+		client.ConsoleAPIMessage(ConsoleAPIMessage{
+			ErrorLevel:   MessageErrorLevel(errorLevel),
+			Message:      stringViewToString(message),
+			Url:          stringViewToString(url),
+			LineNumber:   uint(lineNumber),
+			ColumnNumber: uint(columnNumber),
+		})
+	}
 }

@@ -42,7 +42,7 @@ extern void InspectorContextCreated(InspectorPtr inspector, ContextPtr context);
 extern void InspectorContextDestroyed(InspectorPtr inspector,
                                       ContextPtr context);
 
-extern InspectorClientPtr NewInspectorClient(int callbackRef);
+extern InspectorClientPtr NewInspectorClient(uintptr_t callbackRef);
 extern void DeleteInspectorClient(InspectorClientPtr client);
 
 typedef struct StringViewData {

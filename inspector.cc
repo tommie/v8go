@@ -8,10 +8,10 @@ using namespace v8;
 using namespace v8_inspector;
 
 class InspectorClient : public V8InspectorClient {
-  int _callbackRef;
+  uintptr_t _callbackRef;
 
  public:
-  InspectorClient(int callbackRef) { _callbackRef = callbackRef; }
+  InspectorClient(uintptr_t callbackRef) { _callbackRef = callbackRef; }
   void consoleAPIMessage(int contextGroupId,
                          v8::Isolate::MessageErrorLevel level,
                          const StringView& message,
@@ -57,7 +57,7 @@ void DeleteInspector(InspectorPtr inspector) {
 
 /********** InspectorClient **********/
 
-InspectorClientPtr NewInspectorClient(int callbackRef) {
+InspectorClientPtr NewInspectorClient(uintptr_t callbackRef) {
   return new InspectorClient(callbackRef);
 }
 
