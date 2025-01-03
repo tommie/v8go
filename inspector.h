@@ -13,16 +13,13 @@ class V8InspectorClient;
 };  // namespace v8_inspector
 
 typedef v8::Isolate v8Isolate;
-typedef v8_inspector::V8Inspector* InspectorPtr;
-typedef v8_inspector::V8InspectorClient* InspectorClientPtr;
+typedef v8_inspector::V8Inspector v8Inspector;
+typedef v8_inspector::V8InspectorClient v8InspectorClient;
 
 extern "C" {
 #else
 typedef struct v8Inspector v8Inspector;
-typedef v8Inspector* InspectorPtr;
-
 typedef struct v8InspectorClient v8InspectorClient;
-typedef v8InspectorClient* InspectorClientPtr;
 
 typedef struct v8Isolate v8Isolate;
 
@@ -36,14 +33,14 @@ typedef _Bool bool;
 typedef struct m_ctx m_ctx;
 typedef m_ctx* ContextPtr;
 
-extern InspectorPtr CreateInspector(v8Isolate* iso, InspectorClientPtr client);
-extern void DeleteInspector(InspectorPtr inspector);
-extern void InspectorContextCreated(InspectorPtr inspector, ContextPtr context);
-extern void InspectorContextDestroyed(InspectorPtr inspector,
+extern v8Inspector* CreateInspector(v8Isolate* iso, v8InspectorClient* client);
+extern void DeleteInspector(v8Inspector* inspector);
+extern void InspectorContextCreated(v8Inspector* inspector, ContextPtr context);
+extern void InspectorContextDestroyed(v8Inspector* inspector,
                                       ContextPtr context);
 
-extern InspectorClientPtr NewInspectorClient(uintptr_t callbackRef);
-extern void DeleteInspectorClient(InspectorClientPtr client);
+extern v8InspectorClient* NewInspectorClient(uintptr_t callbackRef);
+extern void DeleteInspectorClient(v8InspectorClient* client);
 
 typedef struct StringViewData {
   bool is8bit;

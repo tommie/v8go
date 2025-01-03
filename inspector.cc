@@ -46,22 +46,22 @@ void InspectorClient::consoleAPIMessage(int contextGroupId,
 
 extern "C" {
 
-InspectorPtr CreateInspector(v8Isolate* iso, InspectorClientPtr client) {
-  InspectorPtr inspector = V8Inspector::create(iso, client).release();
+v8Inspector* CreateInspector(v8Isolate* iso, v8InspectorClient* client) {
+  v8Inspector* inspector = V8Inspector::create(iso, client).release();
   return inspector;
 }
 
-void DeleteInspector(InspectorPtr inspector) {
+void DeleteInspector(v8Inspector* inspector) {
   delete inspector;
 }
 
 /********** InspectorClient **********/
 
-InspectorClientPtr NewInspectorClient(uintptr_t callbackRef) {
+v8InspectorClient* NewInspectorClient(uintptr_t callbackRef) {
   return new InspectorClient(callbackRef);
 }
 
-void InspectorContextCreated(InspectorPtr inspector, ContextPtr context) {
+void InspectorContextCreated(v8Inspector* inspector, ContextPtr context) {
   LOCAL_CONTEXT(context);
   int groupId = 1;
   StringView name = StringView((const uint8_t*)"Test", 4);
@@ -69,12 +69,12 @@ void InspectorContextCreated(InspectorPtr inspector, ContextPtr context) {
   inspector->contextCreated(info);
 }
 
-void InspectorContextDestroyed(InspectorPtr inspector, ContextPtr context) {
+void InspectorContextDestroyed(v8Inspector* inspector, ContextPtr context) {
   LOCAL_CONTEXT(context);
   inspector->contextDestroyed(local_ctx);
 }
 
-void DeleteInspectorClient(InspectorClientPtr client) {
+void DeleteInspectorClient(v8InspectorClient* client) {
   delete client;
 }
 }

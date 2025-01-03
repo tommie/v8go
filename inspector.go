@@ -31,12 +31,12 @@ const (
 //
 // See also: https://v8.github.io/api/head/classv8__inspector_1_1V8Inspector.html
 type Inspector struct {
-	ptr C.InspectorPtr
+	ptr *C.v8Inspector
 }
 
 // An InspectorClient is the bridge from the [Inspector] to your code.
 type InspectorClient struct {
-	ptr          C.InspectorClientPtr
+	ptr          *C.v8InspectorClient
 	clientHandle cgo.Handle
 }
 
