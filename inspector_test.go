@@ -1,17 +1,25 @@
 package v8go_test
 
 import (
+	"reflect"
 	"testing"
 
 	v8 "github.com/tommie/v8go"
 )
 
+type consoleAPIMessage struct {
+	Message    string
+	ErrorLevel v8.MessageErrorLevel
+}
 type consoleAPIMessageRecorder struct {
-	messages []v8.ConsoleAPIMessage
+	messages []consoleAPIMessage
 }
 
 func (r *consoleAPIMessageRecorder) ConsoleAPIMessage(msg v8.ConsoleAPIMessage) {
-	r.messages = append(r.messages, msg)
+	r.messages = append(r.messages, consoleAPIMessage{
+		Message:    msg.Message,
+		ErrorLevel: msg.ErrorLevel,
+	})
 }
 
 type IsolateWithInspector struct {
@@ -61,27 +69,26 @@ func TestMonitorCreateDispose(t *testing.T) {
 	context := iso.NewContext()
 	defer context.Dispose()
 
-	_, err := context.RunScript("console.log('Hello, world!'); console.error('Error, world!');", "")
+	_, err := context.RunScript(`
+		console.log("Log msg");
+		console.info("Info msg");
+		console.debug("Debug msg");
+		console.warn("Warn msg");
+		console.error("Error msg");
+	`, "")
 	if err != nil {
-		t.Error("Error occurred: " + err.Error())
-		return
+		t.Fatal("Error occurred", err)
 	}
-	if len(recorder.messages) != 2 {
-		t.Error("Expected exactly one message")
-	} else {
-		msg1 := recorder.messages[0]
-		msg2 := recorder.messages[1]
-		if msg1.ErrorLevel != v8.ErrorLevelLog {
-			t.Errorf("Expected Log error level. Got %d", msg1.ErrorLevel)
-		}
-		if msg2.ErrorLevel != v8.ErrorLevelError {
-			t.Errorf("Expected Error error level. Got: %d", msg2.ErrorLevel)
-		}
-		if msg1.Message != "Hello, world!" {
-			t.Errorf("Expected Hello, World, got %s", msg1.Message)
-		}
-		if msg2.Message != "Error, world!" {
-			t.Errorf("Expected Error, world!, got %s", msg2.Message)
-		}
+	actual := recorder.messages
+	expected := []consoleAPIMessage{
+		{Message: "Log msg", ErrorLevel: v8.ErrorLevelLog},
+		{Message: "Info msg", ErrorLevel: v8.ErrorLevelInfo},
+		{Message: "Debug msg", ErrorLevel: v8.ErrorLevelDebug},
+		{Message: "Warn msg", ErrorLevel: v8.ErrorLevelWarning},
+		{Message: "Error msg", ErrorLevel: v8.ErrorLevelError},
+	}
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("Unexpected messages. \nExpected: %v\nGot: %v", expected, actual)
 	}
 }

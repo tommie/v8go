@@ -4,6 +4,7 @@ package v8go
 import "C"
 import (
 	"runtime/cgo"
+	"strconv"
 	"unicode/utf16"
 )
 
@@ -12,6 +13,23 @@ import (
 //
 // The values reflect the values of v8::Isolate::MessageErrorLevel
 type MessageErrorLevel uint8
+
+func (lvl MessageErrorLevel) String() string {
+	switch lvl {
+	case ErrorLevelLog:
+		return "log"
+	case ErrorLevelDebug:
+		return "debug"
+	case ErrorLevelError:
+		return "error"
+	case ErrorLevelInfo:
+		return "info"
+	case ErrorLevelWarning:
+		return "warning"
+	default:
+		return strconv.Itoa(int(lvl))
+	}
+}
 
 const (
 	ErrorLevelLog MessageErrorLevel = 1 << iota
