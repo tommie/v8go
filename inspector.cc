@@ -71,8 +71,7 @@ v8InspectorClient* NewInspectorClient(uintptr_t cgoHandle) {
 void InspectorContextCreated(v8Inspector* inspector, ContextPtr context) {
   LOCAL_CONTEXT(context);
   int groupId = 1;
-  StringView name = StringView((const uint8_t*)"Test", 4);
-  V8ContextInfo info = V8ContextInfo(local_ctx, groupId, name);
+  V8ContextInfo info = V8ContextInfo(local_ctx, groupId, StringView());
   inspector->contextCreated(info);
 }
 
