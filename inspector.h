@@ -31,13 +31,11 @@ typedef _Bool bool;
 #include <stdint.h>
 
 typedef struct m_ctx m_ctx;
-typedef m_ctx* ContextPtr;
 
 extern v8Inspector* CreateInspector(v8Isolate* iso, v8InspectorClient* client);
 extern void DeleteInspector(v8Inspector* inspector);
-extern void InspectorContextCreated(v8Inspector* inspector, ContextPtr context);
-extern void InspectorContextDestroyed(v8Inspector* inspector,
-                                      ContextPtr context);
+extern void InspectorContextCreated(v8Inspector* inspector, m_ctx* context);
+extern void InspectorContextDestroyed(v8Inspector* inspector, m_ctx* context);
 
 extern v8InspectorClient* NewInspectorClient(uintptr_t callbackRef);
 extern void DeleteInspectorClient(v8InspectorClient* client);
