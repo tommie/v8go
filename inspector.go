@@ -142,7 +142,7 @@ func stringViewToString(d C.StringViewData) string {
 
 //export goHandleConsoleAPIMessageCallback
 func goHandleConsoleAPIMessageCallback(
-	callbackRef C.uintptr_t,
+	cgoHandle C.uintptr_t,
 	contextGroupId C.int,
 	errorLevel C.int,
 	message C.StringViewData,
@@ -150,9 +150,8 @@ func goHandleConsoleAPIMessageCallback(
 	lineNumber C.uint,
 	columnNumber C.uint,
 ) {
-	handle := cgo.Handle(callbackRef)
+	handle := cgo.Handle(cgoHandle)
 	if client, ok := handle.Value().(ConsoleAPIMessageHandler); ok {
-		// TODO, Stack trace
 		client.ConsoleAPIMessage(ConsoleAPIMessage{
 			contextGroupId: int(contextGroupId),
 			ErrorLevel:     MessageErrorLevel(errorLevel),

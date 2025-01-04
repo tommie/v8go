@@ -7,11 +7,18 @@
 using namespace v8;
 using namespace v8_inspector;
 
+/**
+ * InspectorClient is an implementation v8_inspector::V8InspectorClient that is
+ * designed to be able to call back to Go code to a specific instance identified
+ * by a cgo handle.
+ *
+ * See also: https://pkg.go.dev/runtime/cgo#Handle
+ */
 class InspectorClient : public V8InspectorClient {
-  uintptr_t _callbackRef;
+  uintptr_t _cgoHandle;
 
  public:
-  InspectorClient(uintptr_t callbackRef) { _callbackRef = callbackRef; }
+  InspectorClient(uintptr_t cgoHandle) { _cgoHandle = cgoHandle; }
   void consoleAPIMessage(int contextGroupId,
                          v8::Isolate::MessageErrorLevel level,
                          const StringView& message,
@@ -40,7 +47,7 @@ void InspectorClient::consoleAPIMessage(int contextGroupId,
                                         unsigned columnNumber,
                                         V8StackTrace*) {
   goHandleConsoleAPIMessageCallback(
-      _callbackRef, contextGroupId, level, ConvertStringView(message),
+      _cgoHandle, contextGroupId, level, ConvertStringView(message),
       ConvertStringView(url), lineNumber, columnNumber);
 }
 
@@ -57,8 +64,8 @@ void DeleteInspector(v8Inspector* inspector) {
 
 /********** InspectorClient **********/
 
-v8InspectorClient* NewInspectorClient(uintptr_t callbackRef) {
-  return new InspectorClient(callbackRef);
+v8InspectorClient* NewInspectorClient(uintptr_t cgoHandle) {
+  return new InspectorClient(cgoHandle);
 }
 
 void InspectorContextCreated(v8Inspector* inspector, ContextPtr context) {
