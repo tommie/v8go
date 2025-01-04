@@ -9,6 +9,8 @@ import (
 
 // Represents the level of console output from JavaScript. E.g., `console.log`,
 // `console.error`, etc.
+//
+// The values reflect the values of v8::Isolate::MessageErrorLevel
 type MessageErrorLevel uint8
 
 const (
