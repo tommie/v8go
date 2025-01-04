@@ -71,7 +71,6 @@ type ConsoleAPIMessage struct {
 	Url            string
 	LineNumber     uint
 	ColumnNumber   uint
-	// stackTrace StackTrace
 }
 
 // A ConsoleAPIMessageHandler will receive JavaScript `console` API calls.
