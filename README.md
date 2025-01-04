@@ -309,7 +309,7 @@ with leak checking enabled, since it isn't enabled by default on macOS. E.g. wit
 installation of llvm, the tests can be run with
 
 ```
-CXX=/usr/local/opt/llvm/bin/clang++ CC=/usr/local/opt/llvm/bin/clang go test -c --tags leakcheck -ldflags=-compressdwarf=false
+CXX=$HOMEBREW_PREFIX/opt/llvm/bin/clang++ CC=$HOMEBREW_PREFIX/opt/llvm/bin/clang go test -c --tags leakcheck -ldflags=-compressdwarf=false
 ASAN_OPTIONS=detect_leaks=1 ./v8go.test
 ```
 
