@@ -141,6 +141,10 @@ func stringViewToString(d C.StringViewData) string {
 	}
 }
 
+// goHandleConsoleAPIMessageCallback is called by C code when a console message
+// is written. The correct [InspectorClient] is retrieved by the cgoHandle,
+// which is a [cgo.Handle].
+//
 //export goHandleConsoleAPIMessageCallback
 func goHandleConsoleAPIMessageCallback(
 	cgoHandle C.uintptr_t,
