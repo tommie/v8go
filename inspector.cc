@@ -8,7 +8,7 @@ using namespace v8;
 using namespace v8_inspector;
 
 /**
- * InspectorClient is an implementation v8_inspector::V8InspectorClient that is
+ * InspectorClient is an implementation of v8_inspector::V8InspectorClient that is
  * designed to be able to call back to Go code to a specific instance identified
  * by a cgo handle.
  *
