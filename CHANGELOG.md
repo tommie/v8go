@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
 - Add support to setup an `Inspector`, and `InspectorClient` to receive output from `console` messages in JS code.
 
 ### Changed
