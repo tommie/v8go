@@ -61,7 +61,7 @@ func (ctx *ContextWithInspector) Dispose() {
 	ctx.Context.Close()
 }
 
-func TestMonitorCreateDispose(t *testing.T) {
+func TestMonitorConsoleLogLevelt(t *testing.T) {
 	t.Parallel()
 	recorder := consoleAPIMessageRecorder{}
 	iso := NewIsolateWithInspectorClient(&recorder)
@@ -86,6 +86,42 @@ func TestMonitorCreateDispose(t *testing.T) {
 		{Message: "Debug msg", ErrorLevel: v8.ErrorLevelDebug},
 		{Message: "Warn msg", ErrorLevel: v8.ErrorLevelWarning},
 		{Message: "Error msg", ErrorLevel: v8.ErrorLevelError},
+	}
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("Unexpected messages. \nExpected: %v\nGot: %v", expected, actual)
+	}
+}
+
+// Verify utf-16 conversion. Internally, the strings are represented by a
+// StringView, which is undocumented. Experiements shows that the values
+// returned are an utf-16le encoded array, and a length.
+//
+// The length is assumed to be the size of the array, not the number of
+// characters. This test verifies that, by writing a character that needs
+// several utf-16 elements for endocing.
+//
+// https://v8.github.io/api/head/classv8__inspector_1_1StringView.html
+func TestMonitorConsoleLogWideCharacters(t *testing.T) {
+	t.Parallel()
+	recorder := consoleAPIMessageRecorder{}
+	iso := NewIsolateWithInspectorClient(&recorder)
+	defer iso.Dispose()
+	context := iso.NewContext()
+	defer context.Dispose()
+
+	_, err := context.RunScript(`
+		console.log("This character takes up multiple utf-16 values: 𐀀");
+	`, "")
+	if err != nil {
+		t.Fatal("Error occurred", err)
+	}
+	actual := recorder.messages
+	expected := []consoleAPIMessage{
+		{
+			Message:    "This character takes up multiple utf-16 values: 𐀀",
+			ErrorLevel: v8.ErrorLevelLog,
+		},
 	}
 
 	if !reflect.DeepEqual(actual, expected) {
