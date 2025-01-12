@@ -12,6 +12,8 @@ import (
 // `console.error`, etc.
 //
 // The values reflect the values of v8::Isolate::MessageErrorLevel
+//
+// See also: https://v8.github.io/api/head/classv8_1_1Isolate.html
 type MessageErrorLevel uint8
 
 func (lvl MessageErrorLevel) String() string {
