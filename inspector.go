@@ -65,7 +65,12 @@ type InspectorClient struct {
 // ConsoleAPIMessage contains the information from v8 from console function
 // calls.
 //
-// V8 also provides a stack trace, which isn't yet supported here.
+// The fields correspond to the arguments for the C++ function
+// v8_inspector::InspectorClient::consoleAPIMessage
+//
+// Note: Stack traces are not supported.
+//
+// See also: https://v8.github.io/api/head/classv8__inspector_1_1V8InspectorClient.html
 type ConsoleAPIMessage struct {
 	contextGroupId int
 	ErrorLevel     MessageErrorLevel
