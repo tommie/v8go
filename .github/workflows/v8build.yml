@@ -47,10 +47,12 @@ jobs:
 
     - name: Apply Patches
       run: |
-        for f in patches/*.patch; do
-          echo "Apply $f"
-          patch -p1 -i "$f"
-        done
+        if [ -d patches ]; do
+          for f in patches/*.patch; do
+            echo "Apply $f"
+            patch -p1 -i "$f"
+          done
+        fi
 
     - name: Create include files
       run: cd deps && ./build_common.py
@@ -124,10 +126,12 @@ jobs:
 
     - name: Apply Patches
       run: |
-        for f in patches/*.patch; do
-          echo "Apply $f"
-          patch -p1 -i "$f"
-        done
+        if [ -d patches ]; do
+          for f in patches/*.patch; do
+            echo "Apply $f"
+            patch -p1 -i "$f"
+          done
+        fi
 
     - name: Configure CCache
       run: |
