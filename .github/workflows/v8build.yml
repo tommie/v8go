@@ -47,7 +47,7 @@ jobs:
 
     - name: Apply Patches
       run: |
-        if [ -d patches ]; do
+        if [ -d patches ]; then
           for f in patches/*.patch; do
             echo "Apply $f"
             patch -p1 -i "$f"
@@ -126,7 +126,7 @@ jobs:
 
     - name: Apply Patches
       run: |
-        if [ -d patches ]; do
+        if [ -d patches ]; then
           for f in patches/*.patch; do
             echo "Apply $f"
             patch -p1 -i "$f"
