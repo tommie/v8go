@@ -78,7 +78,10 @@ func NewFunctionTemplate(iso *Isolate, callback FunctionCallback) *FunctionTempl
 // NewFunctionTemplateWithError creates a FunctionTemplate for a given
 // callback. If the callback returns an error, it will be thrown as a
 // JS error.
-func NewFunctionTemplateWithError(iso *Isolate, callback FunctionCallbackWithError) *FunctionTemplate {
+func NewFunctionTemplateWithError(
+	iso *Isolate,
+	callback FunctionCallbackWithError,
+) *FunctionTemplate {
 	if iso == nil {
 		panic("nil Isolate argument not supported")
 	}
@@ -111,7 +114,12 @@ func (tmpl *FunctionTemplate) GetFunction(ctx *Context) *Function {
 // to workaround an ERROR_COMMITMENT_LIMIT error on windows that was detected in CI.
 //
 //export goFunctionCallback
-func goFunctionCallback(ctxref int, cbref int, thisAndArgs *C.ValuePtr, argsCount int) (rval C.ValuePtr, rerr C.ValuePtr) {
+func goFunctionCallback(
+	ctxref int,
+	cbref int,
+	thisAndArgs *C.ValuePtr,
+	argsCount int,
+) (rval C.ValuePtr, rerr C.ValuePtr) {
 	ctx := getContext(ctxref)
 
 	this := *thisAndArgs
