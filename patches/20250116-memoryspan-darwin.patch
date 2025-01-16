@@ -16,10 +16,10 @@ Reviewed-by: Michael Lippautz <mlippautz@chromium.org>
 Cr-Commit-Position: refs/heads/main@{#97659}
 ---
 
-diff --git a/include/cppgc/type-traits.h b/include/cppgc/type-traits.h
+diff --git a/deps/v8/include/cppgc/type-traits.h b/deps/v8/include/cppgc/type-traits.h
 index c595dec..1685c31 100644
---- a/include/cppgc/type-traits.h
-+++ b/include/cppgc/type-traits.h
+--- a/deps/v8/include/cppgc/type-traits.h
++++ b/deps/v8/include/cppgc/type-traits.h
 @@ -9,6 +9,7 @@
  // against Oilpan types without including any other parts.
  #include <cstddef>
@@ -28,10 +28,10 @@ index c595dec..1685c31 100644
  
  namespace cppgc {
  
-diff --git a/include/v8-memory-span.h b/include/v8-memory-span.h
+diff --git a/deps/v8/include/v8-memory-span.h b/deps/v8/include/v8-memory-span.h
 index d9235d0..5916cdf 100644
---- a/include/v8-memory-span.h
-+++ b/include/v8-memory-span.h
+--- a/deps/v8/include/v8-memory-span.h
++++ b/deps/v8/include/v8-memory-span.h
 @@ -8,6 +8,7 @@
  #include <stddef.h>
  
@@ -40,10 +40,10 @@ index d9235d0..5916cdf 100644
  #include <iterator>
  #include <type_traits>
  
-diff --git a/src/base/once.h b/src/base/once.h
+diff --git a/deps/v8/src/base/once.h b/deps/v8/src/base/once.h
 index 98d88c1..d55f542 100644
---- a/src/base/once.h
-+++ b/src/base/once.h
+--- a/deps/v8/src/base/once.h
++++ b/deps/v8/src/base/once.h
 @@ -53,6 +53,7 @@
  #define V8_BASE_ONCE_H_
  
@@ -52,10 +52,10 @@ index 98d88c1..d55f542 100644
  
  #include <atomic>
  #include <functional>
-diff --git a/src/base/template-utils.h b/src/base/template-utils.h
+diff --git a/deps/v8/src/base/template-utils.h b/deps/v8/src/base/template-utils.h
 index c63d6b9..3982dda 100644
---- a/src/base/template-utils.h
-+++ b/src/base/template-utils.h
+--- a/deps/v8/src/base/template-utils.h
++++ b/deps/v8/src/base/template-utils.h
 @@ -5,6 +5,8 @@
  #ifndef V8_BASE_TEMPLATE_UTILS_H_
  #define V8_BASE_TEMPLATE_UTILS_H_
@@ -65,10 +65,10 @@ index c63d6b9..3982dda 100644
  #include <array>
  #include <functional>
  #include <iosfwd>
-diff --git a/src/objects/type-hints.h b/src/objects/type-hints.h
+diff --git a/deps/v8/src/objects/type-hints.h b/deps/v8/src/objects/type-hints.h
 index 49251d5..a9fff48 100644
---- a/src/objects/type-hints.h
-+++ b/src/objects/type-hints.h
+--- a/deps/v8/src/objects/type-hints.h
++++ b/deps/v8/src/objects/type-hints.h
 @@ -5,6 +5,8 @@
  #ifndef V8_OBJECTS_TYPE_HINTS_H_
  #define V8_OBJECTS_TYPE_HINTS_H_
@@ -78,10 +78,10 @@ index 49251d5..a9fff48 100644
  #include <iosfwd>
  
  #include "src/base/flags.h"
-diff --git a/src/regexp/regexp-flags.h b/src/regexp/regexp-flags.h
+diff --git a/deps/v8/src/regexp/regexp-flags.h b/deps/v8/src/regexp/regexp-flags.h
 index 7cee0327..f567b16 100644
---- a/src/regexp/regexp-flags.h
-+++ b/src/regexp/regexp-flags.h
+--- a/deps/v8/src/regexp/regexp-flags.h
++++ b/deps/v8/src/regexp/regexp-flags.h
 @@ -6,6 +6,7 @@
  #define V8_REGEXP_REGEXP_FLAGS_H_
  
