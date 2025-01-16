@@ -1,0 +1,92 @@
+From 978f825220ad37da8d0ee8fd2eca98dca02f6353 Mon Sep 17 00:00:00 2001
+From: Takuto Ikuta <tikuta@chromium.org>
+Date: Tue, 10 Dec 2024 17:11:20 +0900
+Subject: [PATCH] add missing includes for the build with use_libcxx_modules
+
+This is to fix build error when we set use_libcxx_modules=true in
+chromium build.
+
+Bug: 40440396
+Change-Id: I8d099affe3e6228229e03306afb5e4a75b48ed67
+Reviewed-on: https://chromium-review.googlesource.com/c/v8/v8/+/6083971
+Commit-Queue: Takuto Ikuta <tikuta@chromium.org>
+Reviewed-by: Anton Bikineev <bikineev@chromium.org>
+Auto-Submit: Takuto Ikuta <tikuta@chromium.org>
+Reviewed-by: Michael Lippautz <mlippautz@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#97659}
+---
+
+diff --git a/include/cppgc/type-traits.h b/include/cppgc/type-traits.h
+index c595dec..1685c31 100644
+--- a/include/cppgc/type-traits.h
++++ b/include/cppgc/type-traits.h
+@@ -9,6 +9,7 @@
+ // against Oilpan types without including any other parts.
+ #include <cstddef>
+ #include <type_traits>
++#include <utility>
+ 
+ namespace cppgc {
+ 
+diff --git a/include/v8-memory-span.h b/include/v8-memory-span.h
+index d9235d0..5916cdf 100644
+--- a/include/v8-memory-span.h
++++ b/include/v8-memory-span.h
+@@ -8,6 +8,7 @@
+ #include <stddef.h>
+ 
+ #include <array>
++#include <cstddef>
+ #include <iterator>
+ #include <type_traits>
+ 
+diff --git a/src/base/once.h b/src/base/once.h
+index 98d88c1..d55f542 100644
+--- a/src/base/once.h
++++ b/src/base/once.h
+@@ -53,6 +53,7 @@
+ #define V8_BASE_ONCE_H_
+ 
+ #include <stddef.h>
++#include <stdint.h>
+ 
+ #include <atomic>
+ #include <functional>
+diff --git a/src/base/template-utils.h b/src/base/template-utils.h
+index c63d6b9..3982dda 100644
+--- a/src/base/template-utils.h
++++ b/src/base/template-utils.h
+@@ -5,6 +5,8 @@
+ #ifndef V8_BASE_TEMPLATE_UTILS_H_
+ #define V8_BASE_TEMPLATE_UTILS_H_
+ 
++#include <stddef.h>
++
+ #include <array>
+ #include <functional>
+ #include <iosfwd>
+diff --git a/src/objects/type-hints.h b/src/objects/type-hints.h
+index 49251d5..a9fff48 100644
+--- a/src/objects/type-hints.h
++++ b/src/objects/type-hints.h
+@@ -5,6 +5,8 @@
+ #ifndef V8_OBJECTS_TYPE_HINTS_H_
+ #define V8_OBJECTS_TYPE_HINTS_H_
+ 
++#include <stdint.h>
++
+ #include <iosfwd>
+ 
+ #include "src/base/flags.h"
+diff --git a/src/regexp/regexp-flags.h b/src/regexp/regexp-flags.h
+index 7cee0327..f567b16 100644
+--- a/src/regexp/regexp-flags.h
++++ b/src/regexp/regexp-flags.h
+@@ -6,6 +6,7 @@
+ #define V8_REGEXP_REGEXP_FLAGS_H_
+ 
+ #include <optional>
++#include <ostream>
+ 
+ #include "src/base/flags.h"
+ 
