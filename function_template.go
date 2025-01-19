@@ -133,7 +133,7 @@ func (tmpl *FunctionTemplate) GetFunction(ctx *Context) *Function {
 //		}
 //	}
 //
-// [own properties]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/hasOwnProperty
+// [own properties]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Enumerability_and_ownership_of_properties
 func (tmpl *FunctionTemplate) InstanceTemplate() *ObjectTemplate {
 	result := &template{
 		ptr: C.FunctionTemplateInstanceTemplate(tmpl.ptr),
@@ -163,7 +163,7 @@ func (tmpl *FunctionTemplate) InstanceTemplate() *ObjectTemplate {
 //
 // The function becomes an [own property] on the prototype, not the instance.
 //
-// [own property]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/hasOwnProperty
+// [own property]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Enumerability_and_ownership_of_properties
 func (tmpl *FunctionTemplate) PrototypeTemplate() *ObjectTemplate {
 	result := &template{
 		ptr: C.FunctionTemplatePrototypeTemplate(tmpl.ptr),
