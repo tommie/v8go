@@ -60,6 +60,13 @@ func (i *FunctionCallbackInfo) Release() {
 // FunctionTemplate is used to create functions at runtime.
 // There can only be one function created from a FunctionTemplate in a context.
 // The lifetime of the created function is equal to the lifetime of the context.
+//
+// A FunctionTemplate can be used to create "constructors", and add methods to
+// the "class". [FunctionTemplate.PrototypeTemplate] can be used to add normal
+// methods on the class, and [FunctionTemplate.InstanceTemplate] can be used to
+// add fields automatically to new instances of a class.
+//
+// V8 API Docs: https://v8.github.io/api/head/classv8_1_1FunctionTemplate.html
 type FunctionTemplate struct {
 	*template
 }
@@ -113,10 +120,19 @@ func (tmpl *FunctionTemplate) GetFunction(ctx *Context) *Function {
 // InstanceTemplate gets the [ObjectTemplate] that is used for new object
 // instances created when this function is used as a constructor.
 //
-// Any values created on this will be [own properties] on the instance, not the
-// prototype.
+// You can add functions and values to new instance using [ObjectTemplate.Set]
+// and [ObjectTemplate.SetSymbol]. Those values will become [own properties] on
+// the instance, not the prototype.
 //
-// See also: https://v8.github.io/api/head/classv8_1_1FunctionTemplate.html
+// Adding a function to an instance template corresponds to the following
+// JavaScript:
+//
+//	class Example() {
+//		constructor() {
+//			this.foo = function() { /* creates a function on the instance */ }
+//		}
+//	}
+//
 // [own properties]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/hasOwnProperty
 func (tmpl *FunctionTemplate) InstanceTemplate() *ObjectTemplate {
 	result := &template{
@@ -127,6 +143,27 @@ func (tmpl *FunctionTemplate) InstanceTemplate() *ObjectTemplate {
 	return &ObjectTemplate{result}
 }
 
+// PrototypeTemplate gets the [ObjectTemplate] that is used to create the
+// prototype object associated with the function.
+//
+// You can call [ObjectTemplate.Set] or [ObjectTemplate.SetSymbol], passing a
+// [FunctionTemplate] to add a "method" to the class.
+//
+// Adding a function to a prototype template corresponds normal method on a
+// JavaScript "class":
+//
+//	class Example {
+//		foo() { /* this is a method on the prototype */ }
+//	}
+//
+// Or the old-school way
+//
+//	function Example() {}
+//	Example.prototype.foo = function() { }
+//
+// The function becomes an [own property] on the prototype, not the instance.
+//
+// [own property]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/hasOwnProperty
 func (tmpl *FunctionTemplate) PrototypeTemplate() *ObjectTemplate {
 	result := &template{
 		ptr: C.FunctionTemplatePrototypeTemplate(tmpl.ptr),

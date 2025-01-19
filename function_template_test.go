@@ -240,12 +240,20 @@ func TestFunctionTemplate_instance_template(t *testing.T) {
 	}
 
 	// The function is an "own property" of the instance, and the only one
-	val, err = ctx.RunScript(`Object.getOwnPropertyNames(foo).join(",")`, "")
+	val, err = ctx.RunScript(`[
+		Object.getOwnPropertyNames(foo).includes("getBar"),
+		Object.getOwnPropertyNames(Foo.prototype).includes("getBar"),
+	].join(", ")`, "")
+
 	if err != nil || val == nil {
 		t.Fatal("Script error", err)
 	}
-	if val.String() != "getBar" {
-		t.Errorf("Unexpected value. Expected 'getBar'. Got: '%s'", val.String())
+	if val.String() != "true, false" {
+		t.Errorf(`Unexpected value.
+	[own property of instance, own property of prototype]
+	Expected 'true, false'. Got: '%s'`,
+			val.String(),
+		)
 	}
 }
 
@@ -277,18 +285,19 @@ func TestFunctionTemplate_prototype_template(t *testing.T) {
 		t.Fatalf("Unexpected value. Expected 'Bar'. Got: '%s'", val.String())
 	}
 
-	// The prototype has _two_ own properties, constructor and getBar. Filter out
-	// the constructor (don't want an implementation detail of the ordering to
-	// break the test)
-	val, err = ctx.RunScript(`
-		Object.getOwnPropertyNames(Foo.prototype)
-			.filter(x => x!='constructor')
-			.join(', ')`, "")
+	val, err = ctx.RunScript(`[
+		Object.getOwnPropertyNames(foo).includes("getBar"),
+		Object.getOwnPropertyNames(Foo.prototype).includes("getBar"),
+	].join(", ")`, "")
 	if err != nil || val == nil {
 		t.Fatal("Script error", err)
 	}
-	if val.String() != "getBar" {
-		t.Fatalf("Unexpected value. Expected 'getBar'. Got: '%s'", val.String())
+	if val.String() != "false, true" {
+		t.Errorf(`Unexpected value.
+	[own property of instance, own property of prototype]
+	Expected 'false, true'. Got: '%s'`,
+			val.String(),
+		)
 	}
 }
 
