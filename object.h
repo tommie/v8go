@@ -1,6 +1,8 @@
 #ifndef V8GO_OBJECT_H
 #define V8GO_OBJECT_H
 
+#include <stdint.h>
+
 #include "errors.h"
 
 #ifdef __cplusplus
