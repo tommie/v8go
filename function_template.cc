@@ -91,3 +91,23 @@ RtnValue FunctionTemplateGetFunction(m_template* ptr, m_ctx* ctx) {
   rtn.value = tracked_value(ctx, val);
   return rtn;
 }
+
+m_template* FunctionTemplateInstanceTemplate(m_template* ptr) {
+  LOCAL_TEMPLATE(ptr);
+  Local<FunctionTemplate> fn_tmpl = tmpl.As<FunctionTemplate>();
+  m_template* ot = new m_template;
+  ot->iso = iso;
+  ot->ptr.Reset(iso, fn_tmpl->InstanceTemplate());
+
+  return ot;
+}
+
+m_template* FunctionTemplatePrototypeTemplate(m_template* ptr) {
+  LOCAL_TEMPLATE(ptr);
+  Local<FunctionTemplate> fn_tmpl = tmpl.As<FunctionTemplate>();
+  m_template* ot = new m_template;
+  ot->iso = iso;
+  ot->ptr.Reset(iso, fn_tmpl->PrototypeTemplate());
+
+  return ot;
+}
