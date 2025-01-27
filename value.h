@@ -118,6 +118,7 @@ int ValueIsSharedArrayBuffer(ValuePtr ptr);
 int ValueIsProxy(ValuePtr ptr);
 int ValueIsWasmModuleObject(ValuePtr ptr);
 int ValueIsModuleNamespaceObject(ValuePtr ptr);
+int ValueStrictEquals(ValuePtr ptr, ValuePtr otherPtr);
 
 extern ValuePtr NewValueNull(IsolatePtr iso_ptr);
 extern ValuePtr NewValueUndefined(IsolatePtr iso_ptr);

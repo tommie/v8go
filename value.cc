@@ -565,3 +565,9 @@ int ValueIsModuleNamespaceObject(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
   return value->IsModuleNamespaceObject();
 }
+
+int ValueStrictEquals(ValuePtr ptr, ValuePtr otherPtr) {
+  LOCAL_VALUE(ptr);
+  Local<Value> other = otherPtr->ptr.Get(iso);
+  return value->StrictEquals(other);
+}

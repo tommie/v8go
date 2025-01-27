@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Add `Value.StrictEquals` providing strict equality checks in Go code
+
 ## [v0.33.0] - 2025-05-15
 
 ### Added
