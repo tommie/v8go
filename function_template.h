@@ -23,6 +23,8 @@ typedef struct m_ctx m_ctx;
 
 extern m_template* NewFunctionTemplate(v8Isolate* iso_ptr, int callback_ref);
 extern RtnValue FunctionTemplateGetFunction(m_template* ptr, m_ctx* ctx_ptr);
+extern m_template* FunctionTemplateInstanceTemplate(m_template* ptr);
+extern m_template* FunctionTemplatePrototypeTemplate(m_template* ptr);
 
 #ifdef __cplusplus
 }  // extern "C"
