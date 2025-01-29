@@ -173,6 +173,10 @@ func (tmpl *FunctionTemplate) PrototypeTemplate() *ObjectTemplate {
 	return &ObjectTemplate{result}
 }
 
+func (tmpl *FunctionTemplate) Inherit(base *FunctionTemplate) {
+	C.FunctionTemplateInherit(tmpl.ptr, base.ptr)
+}
+
 // Note that ideally `thisAndArgs` would be split into two separate arguments, but they were combined
 // to workaround an ERROR_COMMITMENT_LIMIT error on windows that was detected in CI.
 //

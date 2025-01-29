@@ -301,6 +301,66 @@ func TestFunctionTemplate_prototype_template(t *testing.T) {
 	}
 }
 
+func TestFunctionTemplate_inherit(t *testing.T) {
+	t.Parallel()
+
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+
+	// A constructor doesn't need to return a value
+	superClassConstructor := v8.NewFunctionTemplate(iso,
+		func(info *v8.FunctionCallbackInfo) *v8.Value { return nil })
+	superClassConstructor.PrototypeTemplate().
+		Set("superString", v8.NewFunctionTemplateWithError(iso,
+			func(info *v8.FunctionCallbackInfo) (*v8.Value, error) {
+				return v8.NewValue(iso, "super")
+			}))
+	subClassConstructor := v8.NewFunctionTemplate(iso,
+		func(info *v8.FunctionCallbackInfo) *v8.Value { return nil })
+	subClassConstructor.PrototypeTemplate().
+		Set("subString", v8.NewFunctionTemplateWithError(iso,
+			func(info *v8.FunctionCallbackInfo) (*v8.Value, error) {
+				return v8.NewValue(iso, "sub")
+			}))
+	global := v8.NewObjectTemplate(iso)
+	global.Set("Super", superClassConstructor)
+	global.Set("Sub", subClassConstructor)
+	subClassConstructor.Inherit(superClassConstructor)
+
+	ctx := v8.NewContext(iso, global)
+	defer ctx.Close()
+
+	val1, err1 := ctx.RunScript("const sup = new Super(); sup.superString()", "")
+	val2, err2 := ctx.RunScript("const sub = new Sub(); sub.superString()", "")
+	val3, err3 := ctx.RunScript("sup.subString && sup.subString()", "")
+	val4, err4 := ctx.RunScript("sub.subString && sub.subString()", "")
+	subInheritsFromSuper, err5 := ctx.RunScript(
+		"Object.getPrototypeOf(Sub.prototype) === Super.prototype", "")
+	superInheritsFromObject, err6 := ctx.RunScript(
+		"Object.getPrototypeOf(Super.prototype) === Object.prototype", "")
+	if err := errorsJoin(err1, err2, err3, err4, err5, err6); err != nil {
+		t.Fatal("Script error", err)
+	}
+	if !val1.IsString() || val1.String() != "super" {
+		t.Errorf("Expcted super.superString() to return 'super', got %s", val1.String())
+	}
+	if !val2.IsString() || val2.String() != "super" {
+		t.Errorf("Expcted sub.superString() to return 'super', got %s", val1.String())
+	}
+	if !val3.IsUndefined() {
+		t.Errorf("Expcted super.subString() to return undefined, got %s", val3.String())
+	}
+	if !val4.IsString() || val4.String() != "sub" {
+		t.Errorf("Expcted sub.subString() to return 'sub', got %s", val4.String())
+	}
+	if !subInheritsFromSuper.Boolean() {
+		t.Errorf("Expected Sub to inherit directly from Super")
+	}
+	if !superInheritsFromObject.Boolean() {
+		t.Errorf("Expected Super to inherit directly from Super")
+	}
+}
+
 func ExampleFunctionTemplate() {
 	iso := v8.NewIsolate()
 	defer iso.Dispose()
