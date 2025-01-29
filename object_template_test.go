@@ -5,6 +5,7 @@
 package v8go_test
 
 import (
+	"fmt"
 	"math/big"
 	"runtime"
 	"testing"
@@ -159,6 +160,71 @@ func TestObjectTemplateNewInstance(t *testing.T) {
 	}
 }
 
+func TestObjectTemplateSetAccessorProperty_ReadOnly(t *testing.T) {
+	// Create an accessor property that has only a getter.
+	// Setting the value from JS should not have a side effects
+	t.Parallel()
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	tmpl := v8.NewObjectTemplate(iso)
+	tmpl.SetAccessorPropertyCallback("prop",
+		func(*v8.FunctionCallbackInfo) (*v8.Value, error) {
+			return v8.NewValue(iso, "Value")
+		}, nil, v8.None)
+
+	global := v8.NewObjectTemplate(iso)
+	global.Set("obj", tmpl)
+	ctx := v8.NewContext(iso, global)
+	defer ctx.Close()
+
+	values, err := ctx.RunScript(`
+		const val1 = obj.prop;
+		obj.prop = "foo";
+		const val2 = obj.prop;
+		[val1, val2].join(", ")
+	`, "")
+	if err != nil {
+		t.Fatal("Script error", err)
+	}
+	if values.String() != "Value, Value" {
+		t.Errorf("Unexpected values. Expected: 'Value, Value', got %s", values)
+	}
+}
+
+func TestObjectTemplateSetAccessorProperty_ReadWrite(t *testing.T) {
+	t.Parallel()
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	tmpl := v8.NewObjectTemplate(iso)
+	var value *v8.Value
+	tmpl.SetAccessorPropertyCallback("prop",
+		func(*v8.FunctionCallbackInfo) (*v8.Value, error) {
+			return value, nil
+		}, func(i *v8.FunctionCallbackInfo) (*v8.Value, error) {
+			value = i.Args()[0] // A property settor will always have _one_ argument
+			return nil, nil
+		}, v8.None)
+
+	global := v8.NewObjectTemplate(iso)
+	global.Set("obj", tmpl)
+	ctx := v8.NewContext(iso, global)
+	defer ctx.Close()
+
+	values, err := ctx.RunScript(`
+		obj.prop = "foo";
+		const val1 = obj.prop;
+		obj.prop = "bar";
+		const val2 = obj.prop;
+		[val1, val2].join(", ")
+	`, "")
+	if err != nil {
+		t.Fatal("Script error", err)
+	}
+	if values.String() != "foo, bar" {
+		t.Errorf("Unexpected values. Expected: 'foo, bar', got %s", values)
+	}
+}
+
 func TestObjectTemplate_garbageCollection(t *testing.T) {
 	t.Parallel()
 
@@ -172,4 +238,24 @@ func TestObjectTemplate_garbageCollection(t *testing.T) {
 	iso.Dispose()
 
 	runtime.GC()
+}
+
+func ExampleObjectTemplateSetAccessorProperty_readonly(t *testing.T) {
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	tmpl := v8.NewObjectTemplate(iso)
+	tmpl.SetAccessorPropertyCallback("prop",
+		func(*v8.FunctionCallbackInfo) (*v8.Value, error) {
+			return v8.NewValue(iso, "Value")
+		}, nil, v8.None)
+
+	global := v8.NewObjectTemplate(iso)
+	global.Set("obj", tmpl)
+	ctx := v8.NewContext(iso, global)
+	defer ctx.Close()
+
+	value, _ := ctx.RunScript("obj.prop", "")
+	fmt.Printf("Property value: %s\n", value.String())
+	// Output:
+	// Property value: Value
 }
