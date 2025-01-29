@@ -27,7 +27,10 @@ func TestObjectTemplate(t *testing.T) {
 
 	val, _ := v8.NewValue(iso, "bar")
 	objVal := v8.NewObjectTemplate(iso)
-	bigbigint, _ := new(big.Int).SetString("36893488147419099136", 10) // larger than a single word size (64bit)
+	bigbigint, _ := new(
+		big.Int,
+	).SetString("36893488147419099136", 10)
+	// larger than a single word size (64bit)
 	bigbignegint, _ := new(big.Int).SetString("-36893488147419099136", 10)
 
 	tests := [...]struct {
@@ -240,14 +243,46 @@ func TestObjectTemplate_garbageCollection(t *testing.T) {
 	runtime.GC()
 }
 
-func ExampleObjectTemplateSetAccessorProperty_readonly(t *testing.T) {
+func ExampleObjectTemplate_SetAccessorProperty() {
 	iso := v8.NewIsolate()
 	defer iso.Dispose()
 	tmpl := v8.NewObjectTemplate(iso)
-	tmpl.SetAccessorPropertyCallback("prop",
-		func(*v8.FunctionCallbackInfo) (*v8.Value, error) {
+	tmpl.SetAccessorProperty(
+		"prop",
+		// Getter
+		v8.NewFunctionTemplateWithError(
+			iso,
+			func(*v8.FunctionCallbackInfo) (*v8.Value, error) {
+				return v8.NewValue(iso, "Value")
+			},
+		),
+		nil, // Setter
+		v8.None,
+	)
+
+	global := v8.NewObjectTemplate(iso)
+	global.Set("obj", tmpl)
+	ctx := v8.NewContext(iso, global)
+	defer ctx.Close()
+
+	value, _ := ctx.RunScript("obj.prop", "")
+	fmt.Printf("Property value: %s\n", value.String())
+	// Output:
+	// Property value: Value
+}
+
+func ExampleObjectTemplate_SetAccessorPropertyCallback() {
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	tmpl := v8.NewObjectTemplate(iso)
+	tmpl.SetAccessorPropertyCallback(
+		"prop",
+		func(*v8.FunctionCallbackInfo) (*v8.Value, error) { // Getter
 			return v8.NewValue(iso, "Value")
-		}, nil, v8.None)
+		},
+		nil, // Setter
+		v8.None,
+	)
 
 	global := v8.NewObjectTemplate(iso)
 	global.Set("obj", tmpl)
