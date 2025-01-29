@@ -5,7 +5,6 @@
 package v8go_test
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -339,7 +338,7 @@ func TestFunctionTemplate_inherit(t *testing.T) {
 		"Object.getPrototypeOf(Sub.prototype) === Super.prototype", "")
 	superInheritsFromObject, err6 := ctx.RunScript(
 		"Object.getPrototypeOf(Super.prototype) === Object.prototype", "")
-	if err := errors.Join(err1, err2, err3, err4, err5, err6); err != nil {
+	if err := errorsJoin(err1, err2, err3, err4, err5, err6); err != nil {
 		t.Fatal("Script error", err)
 	}
 	if !val1.IsString() || val1.String() != "super" {
