@@ -55,6 +55,7 @@ typedef struct {
 void ValueRelease(ValuePtr ptr);
 void RtnStringRelease(RtnString rtnString);
 extern void* ValueToExternal(ValuePtr prt);
+extern uintptr_t ValueToExternalUintptr(ValuePtr prt);
 extern RtnString ValueToString(ValuePtr ptr);
 extern RtnString ValueTypeOf(ValuePtr ptr);
 const uint32_t* ValueToArrayIndex(ValuePtr ptr);
@@ -140,6 +141,7 @@ extern ValuePtr NewValueError(IsolatePtr iso_ptr,
                               ErrorTypeIndex idx,
                               const char* message);
 extern ValuePtr NewValueExternal(IsolatePtr iso_ptr, void* v);
+extern ValuePtr NewValueExternalUintptr(IsolatePtr iso_ptr, uintptr_t v);
 const char* ExceptionGetMessageString(ValuePtr ptr);
 
 extern void ObjectSet(ValuePtr ptr, const char* key, ValuePtr val_ptr);

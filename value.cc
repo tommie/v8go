@@ -1,5 +1,6 @@
 #include "value.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 
 #include "context.h"
@@ -9,6 +10,7 @@
 #include "errors.h"
 #include "isolate-macros.h"
 #include "value-macros.h"
+#include "value.h"
 
 #define ISOLATE_SCOPE_INTERNAL_CONTEXT(iso) \
   ISOLATE_SCOPE(iso);                       \
@@ -225,6 +227,10 @@ ValuePtr NewValueExternal(IsolatePtr iso, void* v) {
   return tracked_value(ctx, val);
 }
 
+ValuePtr NewValueExternalUintptr(IsolatePtr iso, uintptr_t v) {
+  return NewValueExternal(iso, (void*)v);
+}
+
 const uint32_t* ValueToArrayIndex(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
   Local<Uint32> array_index;
@@ -240,6 +246,10 @@ const uint32_t* ValueToArrayIndex(ValuePtr ptr) {
 void* ValueToExternal(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
   return value.As<External>()->Value();
+}
+
+uintptr_t ValueToExternalUintptr(ValuePtr ptr) {
+  return (uintptr_t)ValueToExternal(ptr);
 }
 
 int ValueToBoolean(ValuePtr ptr) {

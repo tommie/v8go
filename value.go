@@ -167,7 +167,7 @@ func NewValueExternal(iso *Isolate, val unsafe.Pointer) *Value {
 // delete the cgo handles when the context is disposed.
 func NewValueExternalHandle(iso *Isolate, val cgo.Handle) *Value {
 	return &Value{
-		ptr: C.NewValueExternal(iso.ptr, unsafe.Pointer(&val)),
+		ptr: C.NewValueExternalUintptr(iso.ptr, C.uintptr_t(val)),
 	}
 }
 
@@ -194,11 +194,10 @@ func (v *Value) External() unsafe.Pointer {
 // invalid, but will not be detected by v8go. Prefer using only handles if
 // possible.
 func (v *Value) ExternalHandle() cgo.Handle {
-	unsafePtr := v.External()
-	if unsafePtr == nil {
+	if !v.IsExternal() {
 		return 0
 	}
-	return *(*cgo.Handle)(unsafePtr)
+	return cgo.Handle(C.ValueToExternalUintptr(v.ptr))
 }
 
 // Format implements the fmt.Formatter interface to provide a custom formatter
