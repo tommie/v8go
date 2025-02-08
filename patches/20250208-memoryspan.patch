@@ -1,0 +1,13 @@
+diff --git a/src/inspector/string-util.h b/src/inspector/string-util.h
+index 6670229fc6a..784ab12ecd2 100644
+--- a/deps/v8/src/inspector/string-util.h
++++ b/deps/v8/src/inspector/string-util.h
+@@ -56,7 +56,7 @@ class V8_EXPORT Binary {
+   }
+   static Binary fromSpan(v8::MemorySpan<const uint8_t> span) {
+     return Binary(
+-        std::make_shared<std::vector<uint8_t>>(span.begin(), span.end()));
++        std::make_shared<std::vector<uint8_t>>(span.data(), span.data() + span.size()));
+   }
+
+  private:
