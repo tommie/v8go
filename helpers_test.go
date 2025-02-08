@@ -17,8 +17,8 @@ func recoverPanic(f func()) (recovered interface{}) {
 	return nil
 }
 
-// like [errors.Join] in the standard library. But this library supports go
-// 1.19, which doesn't have errors.Join.
+// errorsJoin is like [errors.Join] in the standard library. But this library
+// supports Go 1.19, which doesn't have errors.Join.
 func errorsJoin(errs ...error) error {
 	for _, err := range errs {
 		if err != nil {
