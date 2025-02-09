@@ -2,6 +2,22 @@ name: V8 Upgrade
 
 on:
   workflow_dispatch:
+    inputs:
+      release:
+        description: "Whether to make a release"
+        default: true
+        required: true
+        type: boolean
+      release_draft:
+        description: "Whether to make the release a draft"
+        default: false
+        required: true
+        type: boolean
+      version:
+        description: "Version ([+]X.Y.Z)"
+        default: "+0.1.0"
+        required: true
+        type: string
   schedule:
   - cron: '0 0 * * *' # Run every day
 
@@ -61,9 +77,9 @@ jobs:
   release:
     name: Make A Release
     needs: build
-    if: ${{ needs.build.outputs.committed == 'true' && github.ref == 'refs/heads/master' }}
+    if: ${{ inputs.release && needs.build.outputs.committed == 'true' && github.ref == 'refs/heads/master' }}
     uses: ./.github/workflows/release.yml
     with:
-      draft: false
-      version: '+0.1.0'
+      draft: ${{ inputs.releae_draft }}
+      version: ${{ inputs.version }}
       sha: ${{ needs.build.outputs.sha }}
