@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"testing"
 
 	v8 "github.com/tommie/v8go"
@@ -15,6 +14,6 @@ func TestIssue91Crash(t *testing.T) {
 	ctx2 := v8.NewContext(iso) // another context on the same VM
 	if _, err := ctx2.RunScript("multiply(3, 4)", "main.js"); err != nil {
 		// this will error as multiply is not defined in this context
-		fmt.Println(err)
+		t.Log(err)
 	}
 }
