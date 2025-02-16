@@ -12,6 +12,7 @@ package v8go
 import "C"
 import (
 	"strings"
+	"sync"
 	"unsafe"
 )
 
@@ -38,3 +39,5 @@ func initializeIfNecessary() {
 		C.Init()
 	})
 }
+
+var v8once sync.Once
