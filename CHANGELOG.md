@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `FunctionTemplate.PrototypeTemplates` to add own properties to the prototype of an instance when the function is used as a constructor.
 
 ### Changed
-- Auto-bumped V8 to 13.3.415.21.
+- Auto-bumped V8 to 13.3.415.22.
 
 ## [v0.28.0] - 2025-01-08
 
