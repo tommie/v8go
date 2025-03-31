@@ -235,6 +235,7 @@ namespace v8 {
 
 class Isolate;
 
+START_ALLOW_USE_DEPRECATED()
 class CTypeInfo {
  public:
   enum class Type : uint8_t {
@@ -268,12 +269,11 @@ class CTypeInfo {
   // than any valid Type enum.
   static constexpr Type kCallbackOptionsType = Type(255);
 
-  enum class SequenceType : uint8_t {
+  enum class V8_DEPRECATE_SOON(
+      "There is no special support in V8 anymore, there is no need to"
+      "use a SequenceType") SequenceType : uint8_t {
     kScalar,
-    kIsSequence,  // sequence<T>
-    kIsTypedArray V8_DEPRECATED(
-        "TypedArrays are not supported directly anymore."),
-    // is void
+    kIsSequence,    // sequence<T>
     kIsArrayBuffer  // ArrayBuffer
   };
 
@@ -285,9 +285,12 @@ class CTypeInfo {
     kIsRestrictedBit = 1 << 3,  // T must be float or double
   };
 
-  explicit constexpr CTypeInfo(
-      Type type, SequenceType sequence_type = SequenceType::kScalar,
-      Flags flags = Flags::kNone)
+  explicit constexpr CTypeInfo(Type type, Flags flags = Flags::kNone)
+      : type_(type), sequence_type_(SequenceType::kScalar), flags_(flags) {}
+
+  V8_DEPRECATE_SOON("Use CTypeInfo(Type, Flags) instead")
+  constexpr CTypeInfo(Type type, SequenceType sequence_type,
+                      Flags flags = Flags::kNone)
       : type_(type), sequence_type_(sequence_type), flags_(flags) {}
 
   typedef uint32_t Identifier;
@@ -302,6 +305,7 @@ class CTypeInfo {
   }
 
   constexpr Type GetType() const { return type_; }
+  V8_DEPRECATE_SOON("Use the constant SequenceType::kScalar instead")
   constexpr SequenceType GetSequenceType() const { return sequence_type_; }
   constexpr Flags GetFlags() const { return flags_; }
 
@@ -325,29 +329,7 @@ class CTypeInfo {
   SequenceType sequence_type_;
   Flags flags_;
 };
-
-struct V8_DEPRECATED(
-    "With the removal of FastApiTypedArray this type is not needed "
-    "anymore.") FastApiTypedArrayBase {
- public:
-  // Returns the length in number of elements.
-  size_t V8_EXPORT length() const { return length_; }
-  // Checks whether the given index is within the bounds of the collection.
-  void V8_EXPORT ValidateIndex(size_t index) const;
-
- protected:
-  size_t length_ = 0;
-};
-
-struct V8_DEPRECATED("This API is dead within V8") FastApiArrayBufferView {
-  void* data;
-  size_t byte_length;
-};
-
-struct V8_DEPRECATED("This API is dead within V8") FastApiArrayBuffer {
-  void* data;
-  size_t byte_length;
-};
+END_ALLOW_USE_DEPRECATED()
 
 struct FastOneByteString {
   const char* data;
@@ -453,44 +435,6 @@ class V8_EXPORT CFunction {
   const CFunctionInfo* GetTypeInfo() const { return type_info_; }
 
   enum class OverloadResolution { kImpossible, kAtRuntime, kAtCompileTime };
-
-  // Returns whether an overload between this and the given CFunction can
-  // be resolved at runtime by the RTTI available for the arguments or at
-  // compile time for functions with different number of arguments.
-  V8_DEPRECATED(
-      "Overload resolution is only based on the parameter count. If the "
-      "parameter count is different, overload resolution is possible and "
-      "happens at compile time. Otherwise overload resolution is impossible.")
-  OverloadResolution GetOverloadResolution(const CFunction* other) {
-    // Runtime overload resolution can only deal with functions with the
-    // same number of arguments. Functions with different arity are handled
-    // by compile time overload resolution though.
-    if (ArgumentCount() != other->ArgumentCount()) {
-      return OverloadResolution::kAtCompileTime;
-    }
-
-    // The functions can only differ by a single argument position.
-    int diff_index = -1;
-    for (unsigned int i = 0; i < ArgumentCount(); ++i) {
-      if (ArgumentInfo(i).GetSequenceType() !=
-          other->ArgumentInfo(i).GetSequenceType()) {
-        if (diff_index >= 0) {
-          return OverloadResolution::kImpossible;
-        }
-        diff_index = i;
-
-        // We only support overload resolution between sequence types.
-        if (ArgumentInfo(i).GetSequenceType() ==
-                CTypeInfo::SequenceType::kScalar ||
-            other->ArgumentInfo(i).GetSequenceType() ==
-                CTypeInfo::SequenceType::kScalar) {
-          return OverloadResolution::kImpossible;
-        }
-      }
-    }
-
-    return OverloadResolution::kAtRuntime;
-  }
 
   template <typename F>
   static CFunction Make(F* func,
@@ -621,9 +565,6 @@ struct TypeInfoHelper {
     }                                                                         \
                                                                               \
     static constexpr CTypeInfo::Type Type() { return CTypeInfo::Type::Enum; } \
-    static constexpr CTypeInfo::SequenceType SequenceType() {                 \
-      return CTypeInfo::SequenceType::kScalar;                                \
-    }                                                                         \
   };
 
 template <CTypeInfo::Type type>
@@ -652,6 +593,7 @@ struct CTypeInfoTraits {};
   V(void, kVoid)                     \
   V(v8::Local<v8::Value>, kV8Value)  \
   V(v8::Local<v8::Object>, kV8Value) \
+  V(v8::Local<v8::Array>, kV8Value)  \
   V(AnyCType, kAny)
 
 // ApiObject was a temporary solution to wrap the pointer to the v8::Value.
@@ -667,36 +609,11 @@ PRIMITIVE_C_TYPES(DEFINE_TYPE_INFO_TRAITS)
 #undef TYPED_ARRAY_C_TYPES
 
 template <>
-struct TypeInfoHelper<v8::Local<v8::Array>> {
-  static constexpr CTypeInfo::Flags Flags() { return CTypeInfo::Flags::kNone; }
-
-  static constexpr CTypeInfo::Type Type() { return CTypeInfo::Type::kVoid; }
-  static constexpr CTypeInfo::SequenceType SequenceType() {
-    return CTypeInfo::SequenceType::kIsSequence;
-  }
-};
-
-template <>
-struct V8_DEPRECATED(
-    "TypedArrays are not supported directly anymore. Use Local<Value> instead.")
-    TypeInfoHelper<v8::Local<v8::Uint32Array>> {
-  static constexpr CTypeInfo::Flags Flags() { return CTypeInfo::Flags::kNone; }
-
-  static constexpr CTypeInfo::Type Type() { return CTypeInfo::Type::kUint32; }
-  static constexpr CTypeInfo::SequenceType SequenceType() {
-    return CTypeInfo::SequenceType::kIsTypedArray;
-  }
-};
-
-template <>
 struct TypeInfoHelper<FastApiCallbackOptions&> {
   static constexpr CTypeInfo::Flags Flags() { return CTypeInfo::Flags::kNone; }
 
   static constexpr CTypeInfo::Type Type() {
     return CTypeInfo::kCallbackOptionsType;
-  }
-  static constexpr CTypeInfo::SequenceType SequenceType() {
-    return CTypeInfo::SequenceType::kScalar;
   }
 };
 
@@ -706,9 +623,6 @@ struct TypeInfoHelper<const FastOneByteString&> {
 
   static constexpr CTypeInfo::Type Type() {
     return CTypeInfo::Type::kSeqOneByteString;
-  }
-  static constexpr CTypeInfo::SequenceType SequenceType() {
-    return CTypeInfo::SequenceType::kScalar;
   }
 };
 
@@ -722,19 +636,11 @@ class V8_EXPORT CTypeInfoBuilder {
  public:
   using BaseType = T;
 
-  START_ALLOW_USE_DEPRECATED()
   static constexpr CTypeInfo Build() {
     constexpr CTypeInfo::Flags kFlags =
         MergeFlags(internal::TypeInfoHelper<T>::Flags(), Flags...);
     constexpr CTypeInfo::Type kType = internal::TypeInfoHelper<T>::Type();
-    constexpr CTypeInfo::SequenceType kSequenceType =
-        internal::TypeInfoHelper<T>::SequenceType();
 
-    STATIC_ASSERT_IMPLIES(
-        uint8_t(kFlags) & uint8_t(CTypeInfo::Flags::kAllowSharedBit),
-        (kSequenceType == CTypeInfo::SequenceType::kIsTypedArray ||
-         kSequenceType == CTypeInfo::SequenceType::kIsArrayBuffer),
-        "kAllowSharedBit is only allowed for TypedArrays and ArrayBuffers.");
     STATIC_ASSERT_IMPLIES(
         uint8_t(kFlags) & uint8_t(CTypeInfo::Flags::kEnforceRangeBit),
         CTypeInfo::IsIntegralType(kType),
@@ -747,19 +653,10 @@ class V8_EXPORT CTypeInfoBuilder {
         uint8_t(kFlags) & uint8_t(CTypeInfo::Flags::kIsRestrictedBit),
         CTypeInfo::IsFloatingPointType(kType),
         "kIsRestrictedBit is only allowed for floating point types.");
-    STATIC_ASSERT_IMPLIES(kSequenceType == CTypeInfo::SequenceType::kIsSequence,
-                          kType == CTypeInfo::Type::kVoid,
-                          "Sequences are only supported from void type.");
-    STATIC_ASSERT_IMPLIES(
-        kSequenceType == CTypeInfo::SequenceType::kIsTypedArray,
-        CTypeInfo::IsPrimitive(kType) || kType == CTypeInfo::Type::kVoid,
-        "TypedArrays are only supported from primitive types or void.");
 
     // Return the same type with the merged flags.
-    return CTypeInfo(internal::TypeInfoHelper<T>::Type(),
-                     internal::TypeInfoHelper<T>::SequenceType(), kFlags);
+    return CTypeInfo(internal::TypeInfoHelper<T>::Type(), kFlags);
   }
-  END_ALLOW_USE_DEPRECATED()
 
  private:
   template <typename... Rest>

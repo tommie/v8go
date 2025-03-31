@@ -175,6 +175,18 @@ class V8_EXPORT ResourceConstraints {
 enum class MemoryPressureLevel { kNone, kModerate, kCritical };
 
 /**
+ * Signal for dependants of contexts. Useful for
+ * `ContextDisposedNotification()` to implement different strategies.
+ */
+enum class ContextDependants {
+  /** Context has no dependants. These are usually top-level contexts. */
+  kNoDependants,
+  /** Context has some dependants, i.e., it may depend on other contexts. This
+     is usually the case for inner contexts.  */
+  kSomeDependants
+};
+
+/**
  * Indicator for the stack state.
  */
 using StackState = cppgc::EmbedderStackState;
@@ -616,6 +628,7 @@ class V8_EXPORT Isolate {
     kStringWellFormed = 160,
     kWeakReferences = 161,
     kErrorIsError = 162,
+    kInvalidatedTypedArrayLengthLookupChainProtector = 163,
 
     // If you add new values here, you'll also need to update Chromium's:
     // web_feature.mojom, use_counter_callback.cc, and enums.xml. V8 changes to
@@ -816,6 +829,14 @@ class V8_EXPORT Isolate {
    * to v8 to decide.
    */
   void SetBatterySaverMode(bool battery_saver_mode_enabled);
+
+  /**
+   * Optional request from the embedder to tune v8 towards memory efficiency
+   * rather than speed if `memory_saver_mode_enabled` is true, because the
+   * embedder is in memory saver mode. If false, the correct tuning is left
+   * to v8 to decide.
+   */
+  void SetMemorySaverMode(bool memory_saver_mode_enabled);
 
   /**
    * Drop non-essential caches. Should only be called from testing code.
@@ -1169,6 +1190,15 @@ class V8_EXPORT Isolate {
       "Set the heap on Isolate creation using CreateParams instead.")
   void DetachCppHeap();
 
+  using ReleaseCppHeapCallback = void (*)(std::unique_ptr<CppHeap>);
+
+  /**
+   * Sets a callback on the isolate that gets called when the CppHeap gets
+   * detached. The callback can then either take ownership of the CppHeap, or
+   * the CppHeap gets deallocated.
+   */
+  void SetReleaseCppHeapCallbackForTesting(ReleaseCppHeapCallback callback);
+
   /**
    * \returns the C++ heap managed by V8. Only available if such a heap has been
    *   attached using `AttachCppHeap()`.
@@ -1197,7 +1227,16 @@ class V8_EXPORT Isolate {
    * Passed to |AtomicsWaitCallback| as a means of stopping an ongoing
    * `Atomics.wait` call.
    */
-  class V8_EXPORT AtomicsWaitWakeHandle {
+#if !defined(__clang__) && defined(V8_CC_GNU)
+  // We cannot mix the usage of [[deprecated]] syntax with the __ attribute __
+  // syntax (from V8_EXPORT) due to a gcc bug:
+  // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=69585
+  class __attribute__((
+      deprecated("AtomicsWaitWakeHandle is unused and will be removed.")))
+#else
+  class V8_DEPRECATED("AtomicsWaitWakeHandle is unused and will be removed.")
+#endif
+  V8_EXPORT AtomicsWaitWakeHandle {
    public:
     /**
      * Stop this `Atomics.wait()` call and call the |AtomicsWaitCallback|
@@ -1239,12 +1278,14 @@ class V8_EXPORT Isolate {
    * This callback may schedule exceptions, *unless* |event| is equal to
    * |kTerminatedExecution|.
    */
+  START_ALLOW_USE_DEPRECATED()
   using AtomicsWaitCallback = void (*)(AtomicsWaitEvent event,
                                        Local<SharedArrayBuffer> array_buffer,
                                        size_t offset_in_bytes, int64_t value,
                                        double timeout_in_ms,
                                        AtomicsWaitWakeHandle* stop_handle,
                                        void* data);
+  END_ALLOW_USE_DEPRECATED()
 
   /**
    * Set a new |AtomicsWaitCallback|. This overrides an earlier
@@ -1252,6 +1293,7 @@ class V8_EXPORT Isolate {
    * this unsets the callback. |data| will be passed to the callback
    * as its last parameter.
    */
+  V8_DEPRECATED("SetAtomicsWaitCallback is unused and will be removed.")
   void SetAtomicsWaitCallback(AtomicsWaitCallback callback, void* data);
 
   using GetExternallyAllocatedMemoryInBytesCallback = size_t (*)();
@@ -1498,7 +1540,17 @@ class V8_EXPORT Isolate {
    * The optional parameter |dependant_context| specifies whether the disposed
    * context was depending on state from other contexts or not.
    */
+  V8_DEPRECATE_SOON("Use version that passes ContextDependants.")
   int ContextDisposedNotification(bool dependant_context = true);
+
+  /**
+   * Optional notification that a context has been disposed. V8 uses these
+   * notifications to guide heuristics on e.g. GC or compilers.
+   *
+   * \param dependants A signal on whether this context possibly had any
+   *     dependants.
+   */
+  void ContextDisposedNotification(ContextDependants dependants);
 
   /**
    * Optional notification that the isolate switched to the foreground.
@@ -1533,6 +1585,14 @@ class V8_EXPORT Isolate {
    * may change frequently.
    */
   void SetIsLoading(bool is_loading);
+
+  /**
+   * Optional notification to tell V8 whether the embedder is currently frozen.
+   * V8 uses these notifications to guide heuristics.
+   * This is an unfinished experimental feature. Semantics and implementation
+   * may change frequently.
+   */
+  void Freeze(bool is_frozen);
 
   /**
    * Optional notification to tell V8 the current isolate is used for debugging
