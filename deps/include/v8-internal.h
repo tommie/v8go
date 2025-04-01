@@ -426,9 +426,9 @@ constexpr size_t kMaxCppHeapPointers = 0;
 // As an example, consider the following type hierarchy:
 //
 //          A     F
-//         / \
+//         / \.
 //        B   E
-//       / \
+//       / \.
 //      C   D
 //
 // A potential type id assignment for range-based type checks is
