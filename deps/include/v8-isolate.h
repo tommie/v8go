@@ -255,6 +255,7 @@ class V8_EXPORT IsolateGroup {
 
  private:
   friend class Isolate;
+  friend class ArrayBuffer::Allocator;
 
   // The isolate_group pointer should be already acquired.
   explicit IsolateGroup(internal::IsolateGroup*&& isolate_group);
@@ -629,6 +630,8 @@ class V8_EXPORT Isolate {
     kWeakReferences = 161,
     kErrorIsError = 162,
     kInvalidatedTypedArrayLengthLookupChainProtector = 163,
+    kRegExpEscape = 164,
+    kFloat16Array = 165,
 
     // If you add new values here, you'll also need to update Chromium's:
     // web_feature.mojom, use_counter_callback.cc, and enums.xml. V8 changes to
@@ -1177,8 +1180,7 @@ class V8_EXPORT Isolate {
    *
    * If a CppHeap is set via CreateParams, then this call is a noop.
    */
-  V8_DEPRECATE_SOON(
-      "Set the heap on Isolate creation using CreateParams instead.")
+  V8_DEPRECATED("Set the heap on Isolate creation using CreateParams instead.")
   void AttachCppHeap(CppHeap*);
 
   /**
@@ -1186,8 +1188,8 @@ class V8_EXPORT Isolate {
    *
    * If a CppHeap is set via CreateParams, then this call is a noop.
    */
-  V8_DEPRECATE_SOON(
-      "Set the heap on Isolate creation using CreateParams instead.")
+  V8_DEPRECATED(
+      "The CppHeap gets detached automatically during Isolate tear down.")
   void DetachCppHeap();
 
   using ReleaseCppHeapCallback = void (*)(std::unique_ptr<CppHeap>);
@@ -1882,6 +1884,11 @@ class V8_EXPORT Isolate {
    * Otherwise returns an empty string.
    */
   std::string GetDefaultLocale();
+
+  /**
+   * Returns the hash seed for that isolate, for testing purposes.
+   */
+  uint64_t GetHashSeed();
 
   Isolate() = delete;
   ~Isolate() = delete;
