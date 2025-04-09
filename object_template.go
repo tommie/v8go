@@ -10,6 +10,7 @@ import "C"
 import (
 	"errors"
 	"runtime"
+	"unsafe"
 )
 
 // PropertyAttribute are the attribute flags for a property on an Object.
@@ -64,6 +65,67 @@ func (o *ObjectTemplate) NewInstance(ctx *Context) (*Object, error) {
 // template will have.
 func (o *ObjectTemplate) SetInternalFieldCount(fieldCount uint32) {
 	C.ObjectTemplateSetInternalFieldCount(o.ptr, C.int(fieldCount))
+}
+
+// SetAccessorProperty creates a named accessor property, i.e., a property that
+// is implemented as a function call. Arguments get and set represents the
+// getter and setter, and can both be nil.
+//
+// Note: The [ReadOnly] should not be used with a readonly property. If set is
+// nil, the property will be readonly, and passing [None] is a sensible default.
+//
+// Normally, you don't need to keep a reference to the function template, i.e.,
+// the same function object is not used multiple places. The function
+// [ObjectTemplate.SetAccessorPropertyCallback] provides a simpler interface for
+// this case.
+//
+// This corresponds to ObjectTemplate::SetAccessorProperty in the C++ API.
+func (o *ObjectTemplate) SetAccessorProperty(
+	key string,
+	get *FunctionTemplate,
+	set *FunctionTemplate,
+	attributes PropertyAttribute,
+) {
+	ckey := C.CString(key)
+	defer C.free(unsafe.Pointer(ckey))
+	var (
+		getter C.TemplatePtr
+		setter C.TemplatePtr
+	)
+	if get != nil {
+		getter = get.ptr
+	}
+	if set != nil {
+		setter = set.ptr
+	}
+	C.ObjectTemplateSetAccessorProperty(o.ptr, ckey, getter, setter, C.int(attributes))
+}
+
+// SetAccessorPropertyCallback creates an accessor property, i.e., a property
+// that is accessed through a get and a set function.
+//
+// This function calls [ObjectTemplate.SetAccessorProperty], see the
+// documentation for that function for further documentation.
+// SetAccessorPropertyCallback provides a simpler interface for the most common
+// use case when you don't need to keep a reference to the get and set
+// functions.
+func (o *ObjectTemplate) SetAccessorPropertyCallback(
+	key string,
+	get FunctionCallbackWithError,
+	set FunctionCallbackWithError,
+	attributes PropertyAttribute,
+) {
+	var (
+		getter *FunctionTemplate
+		setter *FunctionTemplate
+	)
+	if get != nil {
+		getter = NewFunctionTemplateWithError(o.iso, get)
+	}
+	if set != nil {
+		setter = NewFunctionTemplateWithError(o.iso, set)
+	}
+	o.SetAccessorProperty(key, getter, setter, attributes)
 }
 
 // InternalFieldCount returns the number of internal fields that instances of this
