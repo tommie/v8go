@@ -75,3 +75,7 @@ func (o *ObjectTemplate) InternalFieldCount() uint32 {
 func (o *ObjectTemplate) apply(opts *contextOptions) {
 	opts.gTmpl = o
 }
+
+func (o *ObjectTemplate) MarkAsUndetectable() {
+	C.ObjectTemplateMarkAsUndetectable(o.ptr)
+}
