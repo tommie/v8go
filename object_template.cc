@@ -50,6 +50,13 @@ void ObjectTemplateSetInternalFieldCount(TemplatePtr ptr, int field_count) {
   obj_tmpl->SetInternalFieldCount(field_count);
 }
 
+void ObjectTemplateMarkAsUndetectable(TemplatePtr ptr) {
+  LOCAL_TEMPLATE(ptr);
+
+  Local<ObjectTemplate> obj_tmpl = tmpl.As<ObjectTemplate>();
+  obj_tmpl->MarkAsUndetectable();
+}
+
 int ObjectTemplateInternalFieldCount(TemplatePtr ptr) {
   LOCAL_TEMPLATE(ptr);
 

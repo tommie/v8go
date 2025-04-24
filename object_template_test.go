@@ -273,3 +273,71 @@ func ExampleObjectTemplate_SetAccessorProperty() {
 	// Output:
 	// Property value: Value
 }
+
+func TestObjectTemplateMarkAsUndetectable(t *testing.T) {
+	t.Parallel()
+
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	obj := v8.NewObjectTemplate(iso)
+	obj.MarkAsUndetectable()
+	ctx := v8.NewContext(iso)
+	defer ctx.Close()
+	ft := v8.NewFunctionTemplate(
+		iso,
+		func(info *v8.FunctionCallbackInfo) *v8.Value { return nil },
+	)
+	v, err := v8.NewValue(iso, "42")
+	if err != nil {
+		t.Fatalf("Error creating value: %v", err)
+	}
+	ft.InstanceTemplate().Set("val", v)
+	instance, err := ft.InstanceTemplate().NewInstance(ctx)
+	if err != nil {
+		t.Fatalf("Error getting new instance: %v", err)
+	}
+	ctx.Global().Set("obj", instance)
+	res, err := ctx.RunScript("'undefined'", "")
+	if err != nil {
+		t.Fatalf("Error run 'typeof obj': %v", err)
+	}
+	str := res.String()
+	if str != "undefined" {
+		t.Errorf(`Expected 'typeof obj' to return "undefined", got: %s`, str)
+	}
+	res, err = ctx.RunScript("obj.val", "")
+	if err != nil {
+		t.Fatalf("Error evaluating 'obj.val': %v", err)
+	}
+	str = res.String()
+	if str != "42" {
+		t.Errorf(`Expected 'typeof obj' to return "undefined", got: %s`, str)
+	}
+
+	/*
+	  v8::HandleScope scope(env->GetIsolate());
+
+	  Local<v8::FunctionTemplate> desc =
+	      v8::FunctionTemplate::New(env->GetIsolate());
+	  desc->InstanceTemplate()->MarkAsUndetectable();  // undetectable
+	  desc->InstanceTemplate()->SetCallAsFunctionHandler(ReturnThis);  // callable
+
+	  Local<v8::Object> obj = desc->GetFunction(env.local())
+	                              .ToLocalChecked()
+	                              ->NewInstance(env.local())
+	                              .ToLocalChecked();
+
+	  CHECK(obj->IsUndetectable());
+
+	  CHECK(
+	      env->Global()->Set(env.local(), v8_str("undetectable"), obj).FromJust());
+
+	  ExpectString("undetectable.toString()", "[object Object]");
+	  ExpectString("typeof undetectable", "undefined");
+	  ExpectString("typeof(undetectable)", "undefined");
+	  ExpectBoolean("typeof undetectable == 'undefined'", true);
+	  ExpectBoolean("typeof undetectable == 'object'", false);
+	  ExpectBoolean("if (undetectable) { true; } else { false; }", false);
+	  ExpectBoolean("!undetectable", true);
+	*/
+}

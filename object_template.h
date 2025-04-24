@@ -32,6 +32,7 @@ extern void ObjectTemplateSetAccessorProperty(m_template* ptr,
                                               m_template* get,
                                               m_template* set,
                                               int attributes);
+extern void ObjectTemplateMarkAsUndetectable(m_template* ptr);
 
 #ifdef __cplusplus
 }
