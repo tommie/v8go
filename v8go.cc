@@ -15,10 +15,9 @@
 #include "template-macros.h"
 #include "template.h"
 #include "value-macros.h"
+#include "function_template.h"
 
 using namespace v8;
-
-void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info);
 
 const int ScriptCompilerNoCompileOptions = ScriptCompiler::kNoCompileOptions;
 const int ScriptCompilerConsumeCodeCache = ScriptCompiler::kConsumeCodeCache;

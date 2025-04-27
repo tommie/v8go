@@ -4,6 +4,7 @@
 #include "deps/include/v8-isolate.h"
 #include "deps/include/v8-locker.h"
 #include "deps/include/v8-template.h"
+#include "function_template.h"
 #include "template-macros.h"
 
 using namespace v8;
@@ -83,4 +84,13 @@ void ObjectTemplateSetAccessorProperty(TemplatePtr ptr,
 
   return obj_tmpl->SetAccessorProperty(key_val, get_tmpl, set_tmpl,
                                        (PropertyAttribute)attributes);
+}
+
+void ObjectTemplateSetCallAsFunctionHandler(TemplatePtr ptr, int callback_ref) {
+  LOCAL_TEMPLATE(ptr);
+
+  Local<Integer> cbData = Integer::New(iso, callback_ref);
+
+  Local<ObjectTemplate> obj_tmpl = tmpl.As<ObjectTemplate>();
+  obj_tmpl->SetCallAsFunctionHandler(FunctionTemplateCallback, cbData);
 }

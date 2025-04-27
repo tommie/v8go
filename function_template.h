@@ -7,7 +7,10 @@
 
 namespace v8 {
 class Isolate;
+template <class F> class FunctionCallbackInfo;
 }
+
+void FunctionTemplateCallback(const v8::FunctionCallbackInfo<v8::Value>& info);
 
 typedef v8::Isolate v8Isolate;
 
