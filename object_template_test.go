@@ -5,7 +5,6 @@
 package v8go_test
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 	"runtime"
@@ -358,30 +357,42 @@ func TestObjectTemplateMarkAsUndetectableOnInstanceTemplate(t *testing.T) {
 		SetCallAsFunctionHandler(func(info *v8.FunctionCallbackInfo) (*v8.Value, error) {
 			return info.This().Value, nil
 		})
-	instance, err0 := desc.InstanceTemplate().NewInstance(ctx)
+	instance, err := desc.InstanceTemplate().NewInstance(ctx)
+	if err != nil {
+		t.Fatalf("Error creating instance: %v", err)
+	}
 	ctx.Global().Set("undetectable", instance)
 
-	res, err1 := ctx.RunScript("undetectable.toString()", "")
-	if res.String() != "[object Object]" {
-		t.Errorf(
-			`Error running "undetectable.toString()". Expected "[object Object]", got: %s`,
-			res.String(),
-		)
-	}
-	res, err2 := ctx.RunScript("typeof undetectable", "")
-	if res.String() != "undefined" {
-		t.Errorf(
-			`Error running "typeof undetectable". Expected "undefined", got: %s`,
-			res.String(),
-		)
+	res, err := ctx.RunScript("undetectable.toString()", "")
+	if err != nil {
+		t.Errorf("Error calling toString(): %v", err)
+	} else {
+		if res.String() != "[object Object]" {
+			t.Errorf(
+				`Error running "undetectable.toString()". Expected "[object Object]", got: %s`,
+				res.String(),
+			)
+		}
 	}
 
-	res, err3 := ctx.RunScript("if (undetectable) { true; } else { false; }", "")
-	if res.Boolean() {
-		t.Errorf("Expected undetectable object to be falsy")
+	res, err = ctx.RunScript("typeof undetectable", "")
+	if err != nil {
+		t.Errorf("Error calling typeof undetectable: %v", err)
+	} else {
+		if res.String() != "undefined" {
+			t.Errorf(
+				`Error running "typeof undetectable". Expected "undefined", got: %s`,
+				res.String(),
+			)
+		}
 	}
 
-	if err := errors.Join(err0, err1, err2, err3); err != nil {
-		t.Errorf("Error occurred: %v", err)
+	res, err = ctx.RunScript("if (undetectable) { true; } else { false; }", "")
+	if err != nil {
+		t.Errorf("Error calling typeof undetectable: %v", err)
+	} else {
+		if res.Boolean() {
+			t.Errorf("Expected undetectable object to be falsy")
+		}
 	}
 }
