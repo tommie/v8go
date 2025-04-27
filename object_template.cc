@@ -5,6 +5,7 @@
 #include "deps/include/v8-locker.h"
 #include "deps/include/v8-template.h"
 #include "template-macros.h"
+#include "function_template.h"
 
 using namespace v8;
 
@@ -62,4 +63,13 @@ int ObjectTemplateInternalFieldCount(TemplatePtr ptr) {
 
   Local<ObjectTemplate> obj_tmpl = tmpl.As<ObjectTemplate>();
   return obj_tmpl->InternalFieldCount();
+}
+
+void ObjectTemplateSetCallAsFunctionHandler(TemplatePtr ptr, int callback_ref) {
+  LOCAL_TEMPLATE(ptr);
+
+  Local<Integer> cbData = Integer::New(iso, callback_ref);
+
+  Local<ObjectTemplate> obj_tmpl = tmpl.As<ObjectTemplate>();
+  obj_tmpl->SetCallAsFunctionHandler(FunctionTemplateCallback, cbData);
 }
