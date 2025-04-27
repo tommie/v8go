@@ -309,29 +309,28 @@ func TestObjectTemplateMarkAsUndetectable(t *testing.T) {
 	defer iso.Dispose()
 	obj := v8.NewObjectTemplate(iso)
 	obj.MarkAsUndetectable()
+	obj.SetCallAsFunctionHandler(func(info *v8.FunctionCallbackInfo) (*v8.Value, error) {
+		return info.This().Value, nil
+	})
 	ctx := v8.NewContext(iso)
 	defer ctx.Close()
-	ft := v8.NewFunctionTemplate(
-		iso,
-		func(info *v8.FunctionCallbackInfo) *v8.Value { return nil },
-	)
 	v, err := v8.NewValue(iso, "42")
 	if err != nil {
 		t.Fatalf("Error creating value: %v", err)
 	}
-	ft.InstanceTemplate().Set("val", v)
-	instance, err := ft.InstanceTemplate().NewInstance(ctx)
+	obj.Set("val", v)
+	instance, err := obj.NewInstance(ctx)
 	if err != nil {
-		t.Fatalf("Error getting new instance: %v", err)
+		t.Fatalf("Error calling NewInstance: %v", err)
 	}
 	ctx.Global().Set("obj", instance)
-	res, err := ctx.RunScript("'undefined'", "")
+	res, err := ctx.RunScript("typeof obj", "")
 	if err != nil {
 		t.Fatalf("Error run 'typeof obj': %v", err)
 	}
 	str := res.String()
 	if str != "undefined" {
-		t.Errorf(`Expected 'typeof obj' to return "undefined", got: %s`, str)
+		t.Errorf(`Expected 'typeof obj' to return "undefined", got: %#v`, str)
 	}
 	res, err = ctx.RunScript("obj.val", "")
 	if err != nil {
@@ -339,33 +338,33 @@ func TestObjectTemplateMarkAsUndetectable(t *testing.T) {
 	}
 	str = res.String()
 	if str != "42" {
-		t.Errorf(`Expected 'typeof obj' to return "undefined", got: %s`, str)
+		t.Errorf(`Expected 'typeof obj' to return "42", got: %s`, str)
 	}
-
-	/*
-	  v8::HandleScope scope(env->GetIsolate());
-
-	  Local<v8::FunctionTemplate> desc =
-	      v8::FunctionTemplate::New(env->GetIsolate());
-	  desc->InstanceTemplate()->MarkAsUndetectable();  // undetectable
-	  desc->InstanceTemplate()->SetCallAsFunctionHandler(ReturnThis);  // callable
-
-	  Local<v8::Object> obj = desc->GetFunction(env.local())
-	                              .ToLocalChecked()
-	                              ->NewInstance(env.local())
-	                              .ToLocalChecked();
-
-	  CHECK(obj->IsUndetectable());
-
-	  CHECK(
-	      env->Global()->Set(env.local(), v8_str("undetectable"), obj).FromJust());
-
-	  ExpectString("undetectable.toString()", "[object Object]");
-	  ExpectString("typeof undetectable", "undefined");
-	  ExpectString("typeof(undetectable)", "undefined");
-	  ExpectBoolean("typeof undetectable == 'undefined'", true);
-	  ExpectBoolean("typeof undetectable == 'object'", false);
-	  ExpectBoolean("if (undetectable) { true; } else { false; }", false);
-	  ExpectBoolean("!undetectable", true);
-	*/
 }
+
+/*
+  v8::HandleScope scope(env->GetIsolate());
+
+  Local<v8::FunctionTemplate> desc =
+      v8::FunctionTemplate::New(env->GetIsolate());
+  desc->InstanceTemplate()->MarkAsUndetectable();  // undetectable
+  desc->InstanceTemplate()->SetCallAsFunctionHandler(ReturnThis);  // callable
+
+  Local<v8::Object> obj = desc->GetFunction(env.local())
+                              .ToLocalChecked()
+                              ->NewInstance(env.local())
+                              .ToLocalChecked();
+
+  CHECK(obj->IsUndetectable());
+
+  CHECK(
+      env->Global()->Set(env.local(), v8_str("undetectable"), obj).FromJust());
+
+  ExpectString("undetectable.toString()", "[object Object]");
+  ExpectString("typeof undetectable", "undefined");
+  ExpectString("typeof(undetectable)", "undefined");
+  ExpectBoolean("typeof undetectable == 'undefined'", true);
+  ExpectBoolean("typeof undetectable == 'object'", false);
+  ExpectBoolean("if (undetectable) { true; } else { false; }", false);
+  ExpectBoolean("!undetectable", true);
+*/
