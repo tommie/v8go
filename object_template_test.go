@@ -385,5 +385,4 @@ func TestObjectTemplateMarkAsUndetectableOnInstanceTemplate(t *testing.T) {
 	if err := errors.Join(err0, err1, err2, err3); err != nil {
 		t.Errorf("Error occurred: %v", err)
 	}
-
 }
