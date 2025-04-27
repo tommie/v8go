@@ -79,3 +79,14 @@ func (o *ObjectTemplate) apply(opts *contextOptions) {
 func (o *ObjectTemplate) MarkAsUndetectable() {
 	C.ObjectTemplateMarkAsUndetectable(o.ptr)
 }
+
+func (o *ObjectTemplate) SetCallAsFunctionHandler(callback FunctionCallbackWithError) {
+	if callback == nil {
+		panic("nil FunctionCallback argument not supported")
+	}
+	cbref := o.iso.registerCallback(callback)
+	C.ObjectTemplateSetCallAsFunctionHandler(
+		o.ptr,
+		C.int(cbref),
+	)
+}
