@@ -4,7 +4,10 @@
 
 package v8go
 
+// TODO: Can v8go.h be removed?
+
 // #include "v8go.h"
+// #include "script_compiler.h"
 import "C"
 
 type CompileMode C.int

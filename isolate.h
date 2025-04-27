@@ -1,6 +1,7 @@
 #ifndef V8GO_ISOLATE_H
 #define V8GO_ISOLATE_H
 
+// TODO: Check if this can be removed
 #include "unbound_script.h"
 
 #ifdef __cplusplus
@@ -20,15 +21,6 @@ typedef v8Isolate* IsolatePtr;
 typedef struct m_value m_value;
 typedef m_value* ValuePtr;
 
-// ScriptCompiler::CompileOptions values
-extern const int ScriptCompilerNoCompileOptions;
-extern const int ScriptCompilerConsumeCodeCache;
-extern const int ScriptCompilerEagerCompile;
-
-typedef struct {
-  ScriptCompilerCachedData cachedData;
-  int compileOption;
-} CompileOptions;
 
 typedef struct {
   size_t total_heap_size;
@@ -52,11 +44,6 @@ extern int IsolateIsExecutionTerminating(IsolatePtr ptr);
 extern IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr);
 
 extern ValuePtr IsolateThrowException(IsolatePtr iso, ValuePtr value);
-
-extern RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso_ptr,
-                                                    const char* source,
-                                                    const char* origin,
-                                                    CompileOptions options);
 
 #ifdef __cplusplus
 }  // extern "C"
