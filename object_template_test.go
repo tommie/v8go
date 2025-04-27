@@ -274,6 +274,34 @@ func ExampleObjectTemplate_SetAccessorProperty() {
 	// Property value: Value
 }
 
+func TestObjectTemplateSetCallAsFunctionHandler(t *testing.T) {
+	t.Parallel()
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	tmpl := v8.NewObjectTemplate(iso)
+	if _, err := tmpl.NewInstance(nil); err == nil {
+		t.Error("expected error but got <nil>")
+	}
+
+	ctx := v8.NewContext(iso)
+	defer ctx.Close()
+
+	tmpl.SetCallAsFunctionHandler(func(info *v8.FunctionCallbackInfo) (*v8.Value, error) {
+		return v8.NewValue(iso, "42")
+	})
+	instance, err := tmpl.NewInstance(ctx)
+	if err != nil {
+		t.Fatalf("Error creating instance: %v", err)
+	}
+	ctx.Global().Set("obj", instance)
+
+	res, err := ctx.RunScript(`obj()`, "")
+	resStr := res.String()
+	if resStr != "42" {
+		t.Errorf(`unexpected result. Expected "42", got: %s`, resStr)
+	}
+}
+
 func TestObjectTemplateMarkAsUndetectable(t *testing.T) {
 	t.Parallel()
 
