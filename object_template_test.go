@@ -5,6 +5,7 @@
 package v8go_test
 
 import (
+	"errors"
 	"math/big"
 	"runtime"
 	"testing"
@@ -245,29 +246,47 @@ func TestObjectTemplateMarkAsUndetectable(t *testing.T) {
 	}
 }
 
-/*
-  v8::HandleScope scope(env->GetIsolate());
+func TestObjectTemplateMarkAsUndetectableOnInstanceTemplate(t *testing.T) {
+	t.Parallel()
 
-  Local<v8::FunctionTemplate> desc =
-      v8::FunctionTemplate::New(env->GetIsolate());
-  desc->InstanceTemplate()->MarkAsUndetectable();  // undetectable
-  desc->InstanceTemplate()->SetCallAsFunctionHandler(ReturnThis);  // callable
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	ctx := v8.NewContext(iso)
+	defer ctx.Close()
 
-  Local<v8::Object> obj = desc->GetFunction(env.local())
-                              .ToLocalChecked()
-                              ->NewInstance(env.local())
-                              .ToLocalChecked();
+	desc := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+		return nil
+	})
+	desc.InstanceTemplate().MarkAsUndetectable()
+	desc.InstanceTemplate().
+		SetCallAsFunctionHandler(func(info *v8.FunctionCallbackInfo) (*v8.Value, error) {
+			return info.This().Value, nil
+		})
+	instance, err0 := desc.InstanceTemplate().NewInstance(ctx)
+	ctx.Global().Set("undetectable", instance)
 
-  CHECK(obj->IsUndetectable());
+	res, err1 := ctx.RunScript("undetectable.toString()", "")
+	if res.String() != "[object Object]" {
+		t.Errorf(
+			`Error running "undetectable.toString()". Expected "[object Object]", got: %s`,
+			res.String(),
+		)
+	}
+	res, err2 := ctx.RunScript("typeof undetectable", "")
+	if res.String() != "undefined" {
+		t.Errorf(
+			`Error running "typeof undetectable". Expected "undefined", got: %s`,
+			res.String(),
+		)
+	}
 
-  CHECK(
-      env->Global()->Set(env.local(), v8_str("undetectable"), obj).FromJust());
+	res, err3 := ctx.RunScript("if (undetectable) { true; } else { false; }", "")
+	if res.Boolean() {
+		t.Errorf("Expected undetectable object to be falsy")
+	}
 
-  ExpectString("undetectable.toString()", "[object Object]");
-  ExpectString("typeof undetectable", "undefined");
-  ExpectString("typeof(undetectable)", "undefined");
-  ExpectBoolean("typeof undetectable == 'undefined'", true);
-  ExpectBoolean("typeof undetectable == 'object'", false);
-  ExpectBoolean("if (undetectable) { true; } else { false; }", false);
-  ExpectBoolean("!undetectable", true);
-*/
+	if err := errors.Join(err0, err1, err2, err3); err != nil {
+		t.Errorf("Error occurred: %v", err)
+	}
+
+}
