@@ -4,8 +4,8 @@
 #include "deps/include/v8-isolate.h"
 #include "deps/include/v8-locker.h"
 #include "deps/include/v8-template.h"
-#include "template-macros.h"
 #include "function_template.h"
+#include "template-macros.h"
 
 using namespace v8;
 
