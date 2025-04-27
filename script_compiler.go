@@ -21,3 +21,7 @@ type CompilerCachedData struct {
 	Bytes    []byte
 	Rejected bool
 }
+
+func CompileModule(ctx *Context) (*Value, error) {
+	return valueResult(ctx, C.ScriptCompilerCompileModule(ctx.ptr))
+}

@@ -39,6 +39,8 @@ extern RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso_ptr,
                                                     const char* origin,
                                                     CompileOptions options);
 
+extern RtnValue ScriptCompilerCompileModule(ContextPtr ctx_ptr);
+
 #ifdef __cplusplus
 }
 #endif
