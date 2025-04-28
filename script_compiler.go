@@ -6,9 +6,11 @@ package v8go
 
 // TODO: Can v8go.h be removed?
 
-// #include "v8go.h"
+// #include <stdlib.h>
 // #include "script_compiler.h"
 import "C"
+
+import "unsafe"
 
 type CompileMode C.int
 
@@ -22,6 +24,11 @@ type CompilerCachedData struct {
 	Rejected bool
 }
 
-func CompileModule(ctx *Context) (*Value, error) {
-	return valueResult(ctx, C.ScriptCompilerCompileModule(ctx.ptr))
+func CompileModule(ctx *Context, source, origin string) (*Value, error) {
+	cSource := C.CString(source)
+	cOrigin := C.CString(origin)
+	defer C.free(unsafe.Pointer(cSource))
+	defer C.free(unsafe.Pointer(cOrigin))
+
+	return valueResult(ctx, C.ScriptCompilerCompileModule(ctx.ptr, cSource, cOrigin))
 }

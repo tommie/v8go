@@ -3,7 +3,6 @@
 
 #include "unbound_script.h"
 
-
 #ifdef __cplusplus
 
 #include "deps/include/v8-script.h"
@@ -12,7 +11,6 @@ namespace v8 {
 class Isolate;
 }
 typedef v8::Isolate v8Isolate;
-
 
 extern "C" {
 
@@ -39,7 +37,9 @@ extern RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso_ptr,
                                                     const char* origin,
                                                     CompileOptions options);
 
-extern RtnValue ScriptCompilerCompileModule(ContextPtr ctx_ptr);
+extern RtnValue ScriptCompilerCompileModule(ContextPtr ctx_ptr,
+                                            const char* source,
+                                            const char* origin);
 
 #ifdef __cplusplus
 }

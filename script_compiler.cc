@@ -72,39 +72,37 @@ MaybeLocal<Module> ResolveModuleCallback(Local<Context> context,
                                          Local<FixedArray> import_attributes,
                                          Local<Module> referrer) {
   Local<Module> res;
-  context->ptr->GetIsolate()->ThrowError("Error importing module");
+  context->GetIsolate()->ThrowError("Error importing module");
   return res;
 }
 
-extern RtnValue ScriptCompilerCompileModule(ContextPtr ctx) {
-  puts("Compile module");
-  fflush(stdout);
-  std::cout << "Hello";
+extern RtnValue ScriptCompilerCompileModule(ContextPtr ctx,
+                                            const char* s,
+                                            const char* o) {
   LOCAL_CONTEXT(ctx);
 
   RtnValue rtn = {};
 
-  Local<String> originURL;
-  if (!String::NewFromUtf8(iso, "main.mjs").ToLocal(&originURL)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
-    return rtn;
-  }
-  ScriptOrigin origin(originURL, 0, 0, false, -1, Local<Value>(), false, false,
-                      true  // is_module
+  Local<String> src =
+      String::NewFromUtf8(iso, s, NewStringType::kNormal).ToLocalChecked();
+  Local<String> ogn =
+      String::NewFromUtf8(iso, o, NewStringType::kNormal).ToLocalChecked();
+
+  ScriptOrigin origin(ogn,    // resource_name
+                      0, 0,   // resource_line_offset, resource_column_offset
+                      false,  //  resource_is_shared_cross_origin
+                      -1,     // script_id
+                      Local<Value>(),  // source_map_url
+                      false,           // resource_is_opaque
+                      false,           // is_wasm
+                      true             // is_module
+                            // Local<Data> host_defined_options = Local<Data>())
   );
 
-  Local<String> source_text;
-
-  if (!String::NewFromUtf8(iso, "import x from 'foo'; 1 + 1")
-           .ToLocal(&source_text)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
-    return rtn;
-  }
-  ScriptCompiler::Source source(source_text, origin);
+  ScriptCompiler::Source source(src, origin);
 
   Local<Module> module;
   if (!ScriptCompiler::CompileModule(iso, &source).ToLocal(&module)) {
-    // if you have a v8::TryCatch, you should check it here.
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
