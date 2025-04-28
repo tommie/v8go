@@ -21,6 +21,7 @@ typedef struct v8Isolate v8Isolate;
 #endif
 
 typedef v8Isolate* IsolatePtr;
+typedef struct m_module m_module;
 
 typedef struct {
   ScriptCompilerCachedData cachedData;
@@ -37,9 +38,9 @@ extern RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso_ptr,
                                                     const char* origin,
                                                     CompileOptions options);
 
-extern RtnValue ScriptCompilerCompileModule(ContextPtr ctx_ptr,
-                                            const char* source,
-                                            const char* origin);
+extern m_module* ScriptCompilerCompileModule(ContextPtr ctx_ptr,
+                                             const char* source,
+                                             const char* origin);
 
 #ifdef __cplusplus
 }

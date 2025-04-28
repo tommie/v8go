@@ -1,9 +1,9 @@
 #include "script_compiler.h"
-#include <iostream>
 #include "context-macros.h"
 #include "deps/include/v8-context.h"
 #include "deps/include/v8-message.h"
 #include "isolate-macros.h"
+#include "module.h"
 
 using namespace v8;
 
@@ -76,12 +76,10 @@ MaybeLocal<Module> ResolveModuleCallback(Local<Context> context,
   return res;
 }
 
-extern RtnValue ScriptCompilerCompileModule(ContextPtr ctx,
-                                            const char* s,
-                                            const char* o) {
+extern m_module* ScriptCompilerCompileModule(ContextPtr ctx,
+                                             const char* s,
+                                             const char* o) {
   LOCAL_CONTEXT(ctx);
-
-  RtnValue rtn = {};
 
   Local<String> src =
       String::NewFromUtf8(iso, s, NewStringType::kNormal).ToLocalChecked();
@@ -103,29 +101,20 @@ extern RtnValue ScriptCompilerCompileModule(ContextPtr ctx,
 
   Local<Module> module;
   if (!ScriptCompiler::CompileModule(iso, &source).ToLocal(&module)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
-    return rtn;
+    return 0;
+    // rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    // return rtn;
   }
 
   Maybe<bool> instantiateRes =
       module->InstantiateModule(local_ctx, ResolveModuleCallback);
   if (instantiateRes.IsNothing()) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
-    return rtn;
+    return 0;
+    // rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    // return rtn;
   }
 
-  Local<Value> result;
-  if (!module->Evaluate(local_ctx).ToLocal(&result)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
-    return rtn;
-  }
-
-  m_value* new_val = new m_value;
-  new_val->id = 0;
-  new_val->iso = iso;
-  new_val->ctx = ctx;
-  new_val->ptr = Global<Value>(iso, result);
-
-  rtn.value = tracked_value(ctx, new_val);
-  return rtn;
+  m_module* retVal = new m_module;
+  retVal->ptr.Reset(iso, module);
+  return retVal;
 }

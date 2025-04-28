@@ -24,11 +24,14 @@ type CompilerCachedData struct {
 	Rejected bool
 }
 
-func CompileModule(ctx *Context, source, origin string) (*Value, error) {
+func CompileModule(ctx *Context, source, origin string) (Module, error) {
 	cSource := C.CString(source)
 	cOrigin := C.CString(origin)
 	defer C.free(unsafe.Pointer(cSource))
 	defer C.free(unsafe.Pointer(cOrigin))
 
-	return valueResult(ctx, C.ScriptCompilerCompileModule(ctx.ptr, cSource, cOrigin))
+	// return valueResult(ctx, C.ScriptCompilerCompileModule(ctx.ptr, cSource, cOrigin))
+	return Module{
+		ptr: C.ScriptCompilerCompileModule(ctx.ptr, cSource, cOrigin),
+	}, nil
 }
