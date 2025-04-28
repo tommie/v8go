@@ -67,15 +67,6 @@ RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso,
   return rtn;
 }
 
-MaybeLocal<Module> ResolveModuleCallback(Local<Context> context,
-                                         Local<String> specifier,
-                                         Local<FixedArray> import_attributes,
-                                         Local<Module> referrer) {
-  Local<Module> res;
-  context->GetIsolate()->ThrowError("Error importing module");
-  return res;
-}
-
 extern m_module* ScriptCompilerCompileModule(ContextPtr ctx,
                                              const char* s,
                                              const char* o) {
@@ -106,13 +97,13 @@ extern m_module* ScriptCompilerCompileModule(ContextPtr ctx,
     // return rtn;
   }
 
-  Maybe<bool> instantiateRes =
-      module->InstantiateModule(local_ctx, ResolveModuleCallback);
-  if (instantiateRes.IsNothing()) {
-    return 0;
-    // rtn.error = ExceptionError(try_catch, iso, local_ctx);
-    // return rtn;
-  }
+  // Maybe<bool> instantiateRes =
+  //     module->InstantiateModule(local_ctx, ResolveModuleCallback);
+  // if (instantiateRes.IsNothing()) {
+  //   return 0;
+  //   // rtn.error = ExceptionError(try_catch, iso, local_ctx);
+  //   // return rtn;
+  // }
 
   m_module* retVal = new m_module;
   retVal->ptr.Reset(iso, module);

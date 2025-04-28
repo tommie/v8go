@@ -29,6 +29,10 @@ func TestScriptCompilerModuleWithoutImports(t *testing.T) {
 
 	mod, _ := v8.CompileModule(ctx, `
 		print("42")`, "")
+	err := mod.InstantiateModule(ctx)
+	if err != nil {
+		t.Errorf("Unexpected error: %#v", err)
+	}
 	val, err := mod.Evaluate(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %#v", err)
@@ -51,14 +55,20 @@ func TestScriptCompilerImportingNonExistingModule(t *testing.T) {
 	ctx := v8.NewContext(iso)
 	defer ctx.Close()
 
-	// mod, err := v8.CompileModule(ctx, `
-	// 	import foo from "missing";
-	// 	1 + 1;`, "")
-	// if err != nil {
-	// 	t.Errorf("Expected an error running script module: %v", err)
-	// }
-	// _, err = mod.Evaluate(ctx)
-	// if err != nil {
-	// 	t.Errorf("Expected an error running script module: %v", err)
-	// }
+	mod, err := v8.CompileModule(ctx, `
+		import foo from "missing";
+		1 + 1;`, "")
+	if err != nil {
+		t.Errorf("Expected an error running script module: %v", err)
+		return
+	}
+	err = mod.InstantiateModule(ctx)
+	if err != nil {
+		t.Errorf("Unexpected error: %#v", err)
+		return
+	}
+	_, err = mod.Evaluate(ctx)
+	if err != nil {
+		t.Errorf("Expected an error running script module: %v", err)
+	}
 }

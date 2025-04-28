@@ -18,3 +18,11 @@ func (m Module) Evaluate(ctx *Context) (*Value, error) {
 	retVal := C.ModuleEvaluate(ctx.ptr, m.ptr)
 	return valueResult(ctx, retVal)
 }
+
+func (m Module) InstantiateModule(ctx *Context) error {
+	err := C.ModuleInstantiateModule(ctx.ptr, m.ptr)
+	if err.msg == nil {
+		return nil
+	}
+	return newJSError(err)
+}
