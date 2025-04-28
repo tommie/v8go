@@ -1,6 +1,7 @@
 package v8go_test
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -29,7 +30,7 @@ func TestScriptCompilerModuleWithoutImports(t *testing.T) {
 
 	mod, _ := v8.CompileModule(ctx, `
 		print("42")`, "")
-	err := mod.InstantiateModule(ctx)
+	err := mod.InstantiateModule(ctx, nil)
 	if err != nil {
 		t.Errorf("Unexpected error: %#v", err)
 	}
@@ -52,17 +53,30 @@ func TestScriptCompilerImportingNonExistingModule(t *testing.T) {
 
 	iso := v8.NewIsolate()
 	defer iso.Dispose()
-	ctx := v8.NewContext(iso)
+	var lines []string
+	ft := v8.NewFunctionTemplateWithError(
+		iso,
+		func(info *v8.FunctionCallbackInfo) (*v8.Value, error) {
+			lines = append(lines, info.Args()[0].String())
+			return nil, nil
+		},
+	)
+	global := v8.NewObjectTemplate(iso)
+	global.Set("print", ft)
+	ctx := v8.NewContext(iso, global)
 	defer ctx.Close()
 
 	mod, err := v8.CompileModule(ctx, `
 		import foo from "missing";
-		1 + 1;`, "")
+		print(1 + foo)`, "")
 	if err != nil {
 		t.Errorf("Expected an error running script module: %v", err)
 		return
 	}
-	err = mod.InstantiateModule(ctx)
+	modules := Resolver{
+		"missing": "export default 1",
+	}
+	err = mod.InstantiateModule(ctx, modules)
 	if err != nil {
 		t.Errorf("Unexpected error: %#v", err)
 		return
@@ -71,4 +85,18 @@ func TestScriptCompilerImportingNonExistingModule(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected an error running script module: %v", err)
 	}
+}
+
+type Resolver map[string]string
+
+func (r Resolver) ResolveModule(
+	ctx *v8.Context,
+	spec string,
+	referrer *v8.Module,
+) (*v8.Module, error) {
+	script, found := r[spec]
+	if !found {
+		return nil, fmt.Errorf("Cannot find module: %s", spec)
+	}
+	return v8.CompileModule(ctx, script, "")
 }

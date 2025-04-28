@@ -26,7 +26,10 @@ typedef struct m_module m_module;
 typedef struct m_ctx m_ctx;
 
 extern RtnValue ModuleEvaluate(m_ctx* ctx, m_module* module);
-extern RtnError ModuleInstantiateModule(m_ctx* ctx, m_module* module);
+extern RtnError ModuleInstantiateModule(m_ctx* ctx,
+                                        m_module* module,
+                                        void* resolveModuleHandle,
+                                        void* resolveSourceModule);
 
 #ifdef __cplusplus
 }  // extern "C"

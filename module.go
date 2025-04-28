@@ -2,9 +2,16 @@ package v8go
 
 // #include "module.h"
 import "C"
+import "unsafe"
 
 type Module struct {
 	ptr *C.m_module
+}
+
+type FixedArray struct{}
+
+type ResolveModuler interface {
+	ResolveModule(ctx *Context, spec string, referrer *Module) (*Module, error)
 }
 
 // Evaluate evaluates the module.
@@ -19,8 +26,17 @@ func (m Module) Evaluate(ctx *Context) (*Value, error) {
 	return valueResult(ctx, retVal)
 }
 
-func (m Module) InstantiateModule(ctx *Context) error {
-	err := C.ModuleInstantiateModule(ctx.ptr, m.ptr)
+// export goResolveModuleCallback
+func resolveModuleCallback(
+	handle unsafe.Pointer,
+	ctx *C.m_ctx,
+	spec string,
+	referrer *C.m_module,
+) {
+}
+
+func (m Module) InstantiateModule(ctx *Context, resolver ResolveModuler) error {
+	err := C.ModuleInstantiateModule(ctx.ptr, m.ptr, nil, nil)
 	if err.msg == nil {
 		return nil
 	}
