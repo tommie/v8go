@@ -69,6 +69,10 @@ func (m Module) ScriptID() int {
 	return int(C.ModuleScriptId(m.ptr))
 }
 
+func (m Module) GetStatus() int {
+	return int(C.ModuleGetStatus(m.ptr))
+}
+
 func (m Module) IsSourceTextModule() bool {
 	return bool(C.ModuleIsSourceTextModule(m.ptr))
 }

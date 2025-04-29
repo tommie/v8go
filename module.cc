@@ -8,6 +8,14 @@
 
 using namespace v8;
 
+extern int ModuleGetStatus(m_module* module) {
+  Isolate* iso = module->iso;
+  ISOLATE_SCOPE(iso);
+
+  Local<Module> local_mod = module->ptr.Get(iso);
+  return local_mod->GetStatus();
+}
+
 extern int ModuleScriptId(m_module* module) {
   ISOLATE_SCOPE(module->iso);
   Local<Module> local_mod = module->ptr.Get(module->iso);

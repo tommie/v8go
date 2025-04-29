@@ -39,6 +39,7 @@ typedef struct v8Isolate v8Isolate;
 typedef struct m_value m_value;
 typedef struct m_ctx m_ctx;
 
+extern int ModuleGetStatus(m_module* module);
 extern int ModuleScriptId(m_module* module);
 extern bool ModuleIsSourceTextModule(m_module* module);
 extern RtnValue ModuleEvaluate(m_ctx* ctx, m_module* module);
