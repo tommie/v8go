@@ -28,9 +28,12 @@ func TestScriptCompilerModuleWithoutImports(t *testing.T) {
 	ctx := v8.NewContext(iso, global)
 	defer ctx.Close()
 
-	mod, _ := v8.CompileModule(ctx, `
+	mod, err := v8.CompileModule(ctx, `
 		print("42")`, "")
-	err := mod.InstantiateModule(ctx, nil)
+	if err != nil {
+		t.Errorf("Unexpected error: %#v", err)
+	}
+	err = mod.InstantiateModule(ctx, nil)
 	if err != nil {
 		t.Errorf("Unexpected error: %#v", err)
 	}
@@ -38,6 +41,7 @@ func TestScriptCompilerModuleWithoutImports(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error: %#v", err)
 	}
+	t.Logf("Script id: %d", mod.ScriptID())
 
 	p, _ := val.AsPromise()
 	if s := p.State(); s != v8.Fulfilled {
@@ -49,7 +53,7 @@ func TestScriptCompilerModuleWithoutImports(t *testing.T) {
 }
 
 func TestScriptCompilerImportingNonExistingModule(t *testing.T) {
-	// t.Parallel()
+	t.Parallel()
 
 	iso := v8.NewIsolate()
 	defer iso.Dispose()
@@ -67,14 +71,15 @@ func TestScriptCompilerImportingNonExistingModule(t *testing.T) {
 	defer ctx.Close()
 
 	mod, err := v8.CompileModule(ctx, `
-		import foo from "missing";
-		print(1 + foo)`, "")
+		import foo from "a";
+		print(1 + foo.a + foo.b)`, "")
 	if err != nil {
 		t.Errorf("Expected an error running script module: %v", err)
 		return
 	}
 	modules := Resolver{
-		"missing": "export default 2",
+		"a": "import b from 'b'; export default { a: 2, b };",
+		"b": "export default 3",
 	}
 	err = mod.InstantiateModule(ctx, LoggingResolver{modules, t})
 	if err != nil {
@@ -89,14 +94,14 @@ func TestScriptCompilerImportingNonExistingModule(t *testing.T) {
 	if s := p.State(); s != v8.Fulfilled {
 		t.Errorf("Unexpected promise state: expected %q, got %q", v8.Fulfilled, s)
 	}
-	if !reflect.DeepEqual(lines, []string{"2"}) {
+	if !reflect.DeepEqual(lines, []string{"6"}) {
 		t.Errorf("Unexpected output, got: %v", lines)
 	}
 }
 
 type LoggingResolver struct {
-	Resolver
-	t *testing.T
+	Resolver Resolver
+	t        *testing.T
 }
 
 func (r LoggingResolver) ResolveModule(
@@ -104,8 +109,13 @@ func (r LoggingResolver) ResolveModule(
 	spec string,
 	referrer *v8.Module,
 ) (*v8.Module, error) {
-	r.t.Logf("ResolveModule. ref: %d, spec: %s", 0, spec)
-	return r.Resolver.ResolveModule(ctx, spec, referrer)
+	r.t.Logf("Module ref: %#v", referrer)
+	r.t.Logf("ResolveModule. ref: %d, spec: %s", referrer.ScriptID(), spec)
+	res, err := r.Resolver.ResolveModule(ctx, spec, referrer)
+	if err == nil {
+		r.t.Logf("Module compiled. ref: %d, spec: %s", res.ScriptID(), spec)
+	}
+	return res, err
 }
 
 type Resolver map[string]string

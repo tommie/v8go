@@ -11,17 +11,18 @@ namespace v8 {
 class Isolate;
 }
 typedef v8::Isolate v8Isolate;
+class m_module;
 
 extern "C" {
 
 #else
 
 typedef struct v8Isolate v8Isolate;
+typedef struct m_module m_module;
 
 #endif
 
 typedef v8Isolate* IsolatePtr;
-typedef struct m_module m_module;
 
 typedef struct {
   ScriptCompilerCachedData cachedData;

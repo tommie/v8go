@@ -105,7 +105,7 @@ extern m_module* ScriptCompilerCompileModule(ContextPtr ctx,
   //   // return rtn;
   // }
 
-  m_module* retVal = new m_module;
-  retVal->ptr.Reset(iso, module);
+  m_module* retVal = new m_module(iso, module);
+  // retVal->ptr.Reset(iso, module);
   return retVal;
 }

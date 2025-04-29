@@ -1,11 +1,22 @@
 #include "module.h"
+#include <stdio.h>
 #include "_cgo_export.h"
 #include "context-macros.h"
 #include "context.h"
+#include "isolate-macros.h"
 
-extern int ModuleScriptId(v8Isolate* iso, m_module* module) {
-  v8::Local<v8::Module> local_mod = module->ptr.Get(iso);
+using namespace v8;
+
+extern int ModuleScriptId(m_module* module) {
+  ISOLATE_SCOPE(module->iso);
+  Local<Module> local_mod = module->ptr.Get(module->iso);
   return local_mod->ScriptId();
+}
+
+extern bool ModuleIsSourceTextModule(m_module* module) {
+  ISOLATE_SCOPE(module->iso);
+  Local<Module> local_mod = module->ptr.Get(module->iso);
+  return local_mod->IsSourceTextModule();
 }
 
 extern RtnValue ModuleEvaluate(ContextPtr ctx, m_module* module) {
@@ -40,7 +51,8 @@ v8::MaybeLocal<v8::Module> ResolveModuleCallback(
   std::size_t cap = specifier->Utf8LengthV2(iso);
   char* buf = static_cast<char*>(malloc(cap));
   specifier->WriteUtf8V2(iso, buf, cap);
-  m_module* mod = resolveModuleCallback(ctx_ref, buf);
+  m_module ref(iso, referrer);
+  m_module* mod = resolveModuleCallback(ctx_ref, buf, &ref);
   if (mod) {
     v8::MaybeLocal<v8::Module> ret = mod->ptr.Get(iso);
     return ret;
@@ -69,4 +81,8 @@ extern RtnError ModuleInstantiateModule(m_ctx* ctx,
     rtn = ExceptionError(try_catch, iso, local_ctx);
   }
   return rtn;
+}
+
+extern void ModuleDelete(m_module* module) {
+  delete module;
 }

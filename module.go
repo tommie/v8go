@@ -36,12 +36,14 @@ func (m Module) Evaluate(ctx *Context) (*Value, error) {
 func resolveModuleCallback(
 	ctxref int,
 	buf *C.char,
+	referrer *C.m_module,
 ) *C.m_module {
 	defer C.free(unsafe.Pointer(buf))
 	spec := C.GoString(buf)
 
 	ctx := getContext(ctxref)
-	if res, err := ctx.moduleResolver.ResolveModule(ctx, spec, nil); err == nil {
+	ref := &Module{ptr: referrer}
+	if res, err := ctx.moduleResolver.ResolveModule(ctx, spec, ref); err == nil {
 		return res.ptr
 	}
 	return nil
@@ -58,5 +60,9 @@ func (m Module) InstantiateModule(ctx *Context, resolver ResolveModuler) error {
 }
 
 func (m Module) ScriptID() int {
-	return int(C.ModuleScriptId(m.iso, m.ptr))
+	return int(C.ModuleScriptId(m.ptr))
+}
+
+func (m Module) IsSourceTextModule() bool {
+	return bool(C.ModuleIsSourceTextModule(m.ptr))
 }
