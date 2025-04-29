@@ -1,8 +1,9 @@
 package v8go_test
 
 import (
-	"fmt"
+	"errors"
 	"reflect"
+	"strings"
 	"testing"
 
 	v8 "github.com/tommie/v8go"
@@ -49,6 +50,28 @@ func TestScriptCompilerModuleWithoutImports(t *testing.T) {
 	}
 	if !reflect.DeepEqual(lines, []string{"42"}) {
 		t.Errorf("Unexpected output, got: %v", lines)
+	}
+}
+
+func TestScriptCompilerMissingModule(t *testing.T) {
+	t.Parallel()
+
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	global := v8.NewObjectTemplate(iso)
+	ctx := v8.NewContext(iso, global)
+	defer ctx.Close()
+
+	mod, _ := v8.CompileModule(ctx, `import foo from "non-existing-module";`, "")
+	modules := Resolver{}
+	err := mod.InstantiateModule(ctx, modules)
+	if err == nil {
+		t.Fatal("Module instantiation should have failed because of missing module")
+	}
+	expected := "cannot resolve module 'non-existing-module': module not found"
+	actual := err.Error()
+	if !strings.Contains(actual, expected) {
+		t.Errorf("Expected error to contain substring: '%s'. Actual message: %s", expected, actual)
 	}
 }
 
@@ -127,7 +150,7 @@ func (r Resolver) ResolveModule(
 ) (*v8.Module, error) {
 	script, found := r[spec]
 	if !found {
-		return nil, fmt.Errorf("Cannot find module: %s", spec)
+		return nil, errors.New("module not found")
 	}
 	return v8.CompileModule(ctx, script, "")
 }

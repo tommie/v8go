@@ -4,6 +4,7 @@
 #include "context-macros.h"
 #include "context.h"
 #include "isolate-macros.h"
+#include "value.h"
 
 using namespace v8;
 
@@ -52,14 +53,13 @@ v8::MaybeLocal<v8::Module> ResolveModuleCallback(
   char* buf = static_cast<char*>(malloc(cap));
   specifier->WriteUtf8V2(iso, buf, cap);
   m_module ref(iso, referrer);
-  m_module* mod = resolveModuleCallback(ctx_ref, buf, &ref);
-  if (mod) {
-    v8::MaybeLocal<v8::Module> ret = mod->ptr.Get(iso);
-    return ret;
+  resolveModuleCallback_return retval =
+      resolveModuleCallback(ctx_ref, buf, &ref);
+  if (retval.r1 != nullptr) {
+    iso->ThrowException(retval.r1->ptr.Get(iso));
+    return MaybeLocal<Module>();
   }
-  v8::MaybeLocal<v8::Module> res;
-  context->GetIsolate()->ThrowError("Error importing module");
-  return res;
+  return retval.r0->ptr.Get(iso);
 }
 
 extern RtnError ModuleInstantiateModule(m_ctx* ctx,

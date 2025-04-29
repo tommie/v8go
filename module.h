@@ -36,6 +36,7 @@ typedef struct v8Isolate v8Isolate;
 #include <stdbool.h>
 #include "errors.h"
 
+typedef struct m_value m_value;
 typedef struct m_ctx m_ctx;
 
 extern int ModuleScriptId(m_module* module);

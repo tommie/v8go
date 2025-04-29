@@ -3,7 +3,10 @@ package v8go
 // #include <stdlib.h>
 // #include "module.h"
 import "C"
-import "unsafe"
+import (
+	"fmt"
+	"unsafe"
+)
 
 // Module represents an ECMAScript Module (ESM). A module is obtained from
 // [CompileModule]. Before a module can be used, it must be instantiated by
@@ -37,16 +40,19 @@ func resolveModuleCallback(
 	ctxref int,
 	buf *C.char,
 	referrer *C.m_module,
-) *C.m_module {
+) (*C.m_module, C.ValuePtr) {
 	defer C.free(unsafe.Pointer(buf))
 	spec := C.GoString(buf)
 
 	ctx := getContext(ctxref)
 	ref := &Module{ptr: referrer}
-	if res, err := ctx.moduleResolver.ResolveModule(ctx, spec, ref); err == nil {
-		return res.ptr
+	res, err := ctx.moduleResolver.ResolveModule(ctx, spec, ref)
+	if err == nil {
+		return res.ptr, nil
+	} else {
+		err = fmt.Errorf("cannot resolve module '%s': %w", spec, err)
+		return nil, NewError(ctx.iso, err.Error()).Value.ptr
 	}
-	return nil
 }
 
 func (m Module) InstantiateModule(ctx *Context, resolver ResolveModuler) error {
