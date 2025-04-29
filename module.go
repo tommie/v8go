@@ -10,6 +10,7 @@ import "unsafe"
 // calling [Module.InstantiateModule], after which it can be evaluated with
 // [Module.Evaluate].
 type Module struct {
+	iso *C.v8Isolate
 	ptr *C.m_module
 }
 
@@ -46,10 +47,7 @@ func resolveModuleCallback(
 	return nil
 }
 
-func (m Module) InstantiateModule(
-	ctx *Context,
-	resolver ResolveModuler,
-) error {
+func (m Module) InstantiateModule(ctx *Context, resolver ResolveModuler) error {
 	ctx.moduleResolver = resolver
 
 	err := C.ModuleInstantiateModule(ctx.ptr, m.ptr, nil, nil)
@@ -57,4 +55,8 @@ func (m Module) InstantiateModule(
 		return nil
 	}
 	return newJSError(err)
+}
+
+func (m Module) ScriptID() int {
+	return int(C.ModuleScriptId(m.iso, m.ptr))
 }

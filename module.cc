@@ -3,6 +3,11 @@
 #include "context-macros.h"
 #include "context.h"
 
+extern int ModuleScriptId(v8Isolate* iso, m_module* module) {
+  v8::Local<v8::Module> local_mod = module->ptr.Get(iso);
+  return local_mod->ScriptId();
+}
+
 extern RtnValue ModuleEvaluate(ContextPtr ctx, m_module* module) {
   LOCAL_CONTEXT(ctx);
   v8::Local<v8::Module> local_mod = module->ptr.Get(iso);

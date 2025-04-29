@@ -74,9 +74,9 @@ func TestScriptCompilerImportingNonExistingModule(t *testing.T) {
 		return
 	}
 	modules := Resolver{
-		"missing": "export default 1",
+		"missing": "export default 2",
 	}
-	err = mod.InstantiateModule(ctx, modules)
+	err = mod.InstantiateModule(ctx, LoggingResolver{modules, t})
 	if err != nil {
 		t.Errorf("Unexpected error: %#v", err)
 		return
@@ -92,6 +92,20 @@ func TestScriptCompilerImportingNonExistingModule(t *testing.T) {
 	if !reflect.DeepEqual(lines, []string{"2"}) {
 		t.Errorf("Unexpected output, got: %v", lines)
 	}
+}
+
+type LoggingResolver struct {
+	Resolver
+	t *testing.T
+}
+
+func (r LoggingResolver) ResolveModule(
+	ctx *v8.Context,
+	spec string,
+	referrer *v8.Module,
+) (*v8.Module, error) {
+	r.t.Logf("ResolveModule. ref: %d, spec: %s", 0, spec)
+	return r.Resolver.ResolveModule(ctx, spec, referrer)
 }
 
 type Resolver map[string]string

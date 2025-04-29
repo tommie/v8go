@@ -32,6 +32,7 @@ func CompileModule(ctx *Context, source, origin string) (*Module, error) {
 
 	// return valueResult(ctx, C.ScriptCompilerCompileModule(ctx.ptr, cSource, cOrigin))
 	return &Module{
+		iso: ctx.Isolate().ptr,
 		ptr: C.ScriptCompilerCompileModule(ctx.ptr, cSource, cOrigin),
 	}, nil
 }
