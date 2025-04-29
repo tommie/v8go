@@ -19,7 +19,7 @@ jobs:
     strategy:
       matrix:
         os: [darwin, linux]
-        arch: [amd64]
+        arch: [amd64, arm64]
         go-version:
         # Check the earliest and two trailing versions, to keep
         # maintainance of this file reasonable.

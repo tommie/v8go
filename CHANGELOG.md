@@ -7,11 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-
-- Add support to setup an `Inspector`, and `InspectorClient` to receive output from `console` messages in JS code.
 - Add support for `FunctionTemplate.Inherit` to set up prototype inheritance.
 
 ### Changed
+
+## [v0.31.0] - 2025-04-02
+
+### Changed
+- Auto-bumped V8 to 13.5.212.10.
+
+## [v0.30.0] - 2025-02-26
+
+### Changed
+- Auto-bumped V8 to 13.3.415.23.
+
+## [v0.29.0] - 2025-02-19
+
+### Added
+
+- Add support to setup an `Inspector`, and `InspectorClient` to receive output from `console` messages in JS code.
+- Add `FunctionTemplate.InstanceTemplate` to add own properties to instances when the function is used as a constructor.
+- Add `FunctionTemplate.PrototypeTemplates` to add own properties to the prototype of an instance when the function is used as a constructor.
+
+### Changed
+- Auto-bumped V8 to 13.3.415.22.
 
 ## [v0.28.0] - 2025-01-08
 
