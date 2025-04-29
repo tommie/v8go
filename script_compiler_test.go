@@ -49,7 +49,7 @@ func TestScriptCompilerModuleWithoutImports(t *testing.T) {
 }
 
 func TestScriptCompilerImportingNonExistingModule(t *testing.T) {
-	t.Parallel()
+	// t.Parallel()
 
 	iso := v8.NewIsolate()
 	defer iso.Dispose()
@@ -81,9 +81,16 @@ func TestScriptCompilerImportingNonExistingModule(t *testing.T) {
 		t.Errorf("Unexpected error: %#v", err)
 		return
 	}
-	_, err = mod.Evaluate(ctx)
+	val, err := mod.Evaluate(ctx)
 	if err != nil {
 		t.Errorf("Expected an error running script module: %v", err)
+	}
+	p, _ := val.AsPromise()
+	if s := p.State(); s != v8.Fulfilled {
+		t.Errorf("Unexpected promise state: expected %q, got %q", v8.Fulfilled, s)
+	}
+	if !reflect.DeepEqual(lines, []string{"2"}) {
+		t.Errorf("Unexpected output, got: %v", lines)
 	}
 }
 

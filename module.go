@@ -1,9 +1,14 @@
 package v8go
 
+// #include <stdlib.h>
 // #include "module.h"
 import "C"
 import "unsafe"
 
+// Module represents an ECMAScript Module (ESM). A module is obtained from
+// [CompileModule]. Before a module can be used, it must be instantiated by
+// calling [Module.InstantiateModule], after which it can be evaluated with
+// [Module.Evaluate].
 type Module struct {
 	ptr *C.m_module
 }
@@ -26,16 +31,27 @@ func (m Module) Evaluate(ctx *Context) (*Value, error) {
 	return valueResult(ctx, retVal)
 }
 
-// export goResolveModuleCallback
+//export resolveModuleCallback
 func resolveModuleCallback(
-	handle unsafe.Pointer,
-	ctx *C.m_ctx,
-	spec string,
-	referrer *C.m_module,
-) {
+	ctxref int,
+	buf *C.char,
+) *C.m_module {
+	defer C.free(unsafe.Pointer(buf))
+	spec := C.GoString(buf)
+
+	ctx := getContext(ctxref)
+	if res, err := ctx.moduleResolver.ResolveModule(ctx, spec, nil); err == nil {
+		return res.ptr
+	}
+	return nil
 }
 
-func (m Module) InstantiateModule(ctx *Context, resolver ResolveModuler) error {
+func (m Module) InstantiateModule(
+	ctx *Context,
+	resolver ResolveModuler,
+) error {
+	ctx.moduleResolver = resolver
+
 	err := C.ModuleInstantiateModule(ctx.ptr, m.ptr, nil, nil)
 	if err.msg == nil {
 		return nil
