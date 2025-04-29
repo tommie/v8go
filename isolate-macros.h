@@ -12,10 +12,10 @@ static inline m_ctx* isolateInternalContext(v8::Isolate* iso) {
   return static_cast<m_ctx*>(iso->GetData(0));
 }
 
-#define ISOLATE_SCOPE(iso)           \
-  Locker locker(iso);                \
-  Isolate::Scope isolate_scope(iso); \
-  HandleScope handle_scope(iso);
+#define ISOLATE_SCOPE(iso)               \
+  v8::Locker locker(iso);                \
+  v8::Isolate::Scope isolate_scope(iso); \
+  v8::HandleScope handle_scope(iso);
 
 #define INTERNAL_CONTEXT(iso) m_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0));
 
