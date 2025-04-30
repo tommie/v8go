@@ -577,7 +577,6 @@ enum ExternalPointerTag : uint16_t {
   kWasmInternalFunctionCallTargetTag,
   kWasmTypeInfoNativeTypeTag,
   kWasmExportedFunctionDataSignatureTag,
-  kWasmContinuationJmpbufTag,
   kWasmStackMemoryTag,
   kWasmIndirectFunctionTargetTag,
 
@@ -906,13 +905,13 @@ class Internals {
   static const int kFastCCallAlignmentPaddingSize =
       kApiSystemPointerSize == 8 ? 5 * kApiSystemPointerSize
                                  : 1 * kApiSystemPointerSize;
-  static const int kIsolateFastCCallCallerFpOffset =
+  static const int kIsolateFastCCallCallerPcOffset =
       kOldAllocationInfoOffset + kLinearAllocationAreaSize +
       kFastCCallAlignmentPaddingSize;
-  static const int kIsolateFastCCallCallerPcOffset =
-      kIsolateFastCCallCallerFpOffset + kApiSystemPointerSize;
-  static const int kIsolateFastApiCallTargetOffset =
+  static const int kIsolateFastCCallCallerFpOffset =
       kIsolateFastCCallCallerPcOffset + kApiSystemPointerSize;
+  static const int kIsolateFastApiCallTargetOffset =
+      kIsolateFastCCallCallerFpOffset + kApiSystemPointerSize;
   static const int kIsolateLongTaskStatsCounterOffset =
       kIsolateFastApiCallTargetOffset + kApiSystemPointerSize;
   static const int kIsolateThreadLocalTopOffset =
