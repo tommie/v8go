@@ -490,12 +490,11 @@ ValuePtr PromiseResult(ValuePtr ptr) {
 
 /********** Function **********/
 
-static void buildCallArguments(Isolate* iso,
-                               Local<Value>* argv,
-                               int argc,
-                               ValuePtr args[]) {
-  for (int i = 0; i < argc; i++) {
-    argv[i] = args[i]->ptr.Get(iso);
+static void buildCallArguments(std::vector<Local<Value>> *out,
+                               Isolate* iso,
+                               ValuePtr *args) {
+  for (size_t i = 0; i < out->size(); ++i) {
+    (*out)[i] = args[i]->ptr.Get(iso);
   }
 }
 
@@ -504,13 +503,13 @@ RtnValue FunctionCall(ValuePtr ptr, ValuePtr recv, int argc, ValuePtr args[]) {
 
   RtnValue rtn = {};
   Local<Function> fn = Local<Function>::Cast(value);
-  Local<Value> argv[argc];
-  buildCallArguments(iso, argv, argc, args);
+  std::vector<Local<Value>> argv(argc);
+  buildCallArguments(&argv, iso, args);
 
   Local<Value> local_recv = recv->ptr.Get(iso);
 
   Local<Value> result;
-  if (!fn->Call(local_ctx, local_recv, argc, argv).ToLocal(&result)) {
+  if (!fn->Call(local_ctx, local_recv, argv.size(), argv.data()).ToLocal(&result)) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
@@ -527,10 +526,10 @@ RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]) {
   LOCAL_VALUE(ptr)
   RtnValue rtn = {};
   Local<Function> fn = Local<Function>::Cast(value);
-  Local<Value> argv[argc];
-  buildCallArguments(iso, argv, argc, args);
+  std::vector<Local<Value>> argv(argc);
+  buildCallArguments(&argv, iso, args);
   Local<Object> result;
-  if (!fn->NewInstance(local_ctx, argc, argv).ToLocal(&result)) {
+  if (!fn->NewInstance(local_ctx, argv.size(), argv.data()).ToLocal(&result)) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }

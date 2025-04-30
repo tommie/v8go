@@ -27,21 +27,19 @@ void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
   _this->ctx = ctx;
   _this->ptr.Reset(iso, Global<Value>(iso, info.This()));
 
-  int args_count = info.Length();
-  ValuePtr thisAndArgs[args_count + 1];
+  std::vector<ValuePtr> thisAndArgs(1 + info.Length());
   thisAndArgs[0] = tracked_value(ctx, _this);
-  ValuePtr* args = thisAndArgs + 1;
-  for (int i = 0; i < args_count; i++) {
+  for (size_t i = 1; i < thisAndArgs.size(); ++i) {
     m_value* val = new m_value;
     val->id = 0;
     val->iso = iso;
     val->ctx = ctx;
-    val->ptr.Reset(iso, Global<Value>(iso, info[i]));
-    args[i] = tracked_value(ctx, val);
+    val->ptr.Reset(iso, Global<Value>(iso, info[i - 1]));
+    thisAndArgs[i] = tracked_value(ctx, val);
   }
 
   goFunctionCallback_return retval =
-      goFunctionCallback(ctx_ref, callback_ref, thisAndArgs, args_count);
+      goFunctionCallback(ctx_ref, callback_ref, thisAndArgs.data(), thisAndArgs.size() - 1);
   if (retval.r1 != nullptr) {
     iso->ThrowException(retval.r1->ptr.Get(iso));
   } else if (retval.r0 != nullptr) {
