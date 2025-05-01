@@ -490,9 +490,9 @@ ValuePtr PromiseResult(ValuePtr ptr) {
 
 /********** Function **********/
 
-static void buildCallArguments(std::vector<Local<Value>> *out,
+static void buildCallArguments(std::vector<Local<Value>>* out,
                                Isolate* iso,
-                               ValuePtr *args) {
+                               ValuePtr* args) {
   for (size_t i = 0; i < out->size(); ++i) {
     (*out)[i] = args[i]->ptr.Get(iso);
   }
@@ -509,7 +509,8 @@ RtnValue FunctionCall(ValuePtr ptr, ValuePtr recv, int argc, ValuePtr args[]) {
   Local<Value> local_recv = recv->ptr.Get(iso);
 
   Local<Value> result;
-  if (!fn->Call(local_ctx, local_recv, argv.size(), argv.data()).ToLocal(&result)) {
+  if (!fn->Call(local_ctx, local_recv, argv.size(), argv.data())
+           .ToLocal(&result)) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
