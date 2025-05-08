@@ -39,7 +39,7 @@ extern RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso_ptr,
                                                     const char* origin,
                                                     CompileOptions options);
 
-extern m_module* ScriptCompilerCompileModule(ContextPtr ctx_ptr,
+extern m_module* ScriptCompilerCompileModule(v8Isolate* iso,
                                              const char* source,
                                              const char* origin);
 

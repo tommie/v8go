@@ -67,15 +67,18 @@ RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso,
   return rtn;
 }
 
-extern m_module* ScriptCompilerCompileModule(ContextPtr ctx,
+extern m_module* ScriptCompilerCompileModule(Isolate* iso,
                                              const char* s,
                                              const char* o) {
-  LOCAL_CONTEXT(ctx);
+  v8::Locker locker(iso);
+  v8::Isolate::Scope iso_scope(iso);
+  v8::TryCatch try_catch(iso);
+  v8::HandleScope handle_scope(iso);
+  INTERNAL_CONTEXT(iso);
+  v8::Context::Scope context_scope(ctx->ptr.Get(iso));
 
-  Local<String> src =
-      String::NewFromUtf8(iso, s, NewStringType::kNormal).ToLocalChecked();
-  Local<String> ogn =
-      String::NewFromUtf8(iso, o, NewStringType::kNormal).ToLocalChecked();
+  Local<String> src = String::NewFromUtf8(iso, s).ToLocalChecked();
+  Local<String> ogn = String::NewFromUtf8(iso, o).ToLocalChecked();
 
   ScriptOrigin origin(ogn,    // resource_name
                       0, 0,   // resource_line_offset, resource_column_offset
@@ -90,22 +93,12 @@ extern m_module* ScriptCompilerCompileModule(ContextPtr ctx,
 
   ScriptCompiler::Source source(src, origin);
 
-  Local<Module> module;
-  if (!ScriptCompiler::CompileModule(iso, &source).ToLocal(&module)) {
+  MaybeLocal<Module> res = ScriptCompiler::CompileModule(iso, &source);
+  Local<Module> module = res.ToLocalChecked();
+  if (try_catch.HasCaught()) {
     return 0;
-    // rtn.error = ExceptionError(try_catch, iso, local_ctx);
-    // return rtn;
   }
 
-  // Maybe<bool> instantiateRes =
-  //     module->InstantiateModule(local_ctx, ResolveModuleCallback);
-  // if (instantiateRes.IsNothing()) {
-  //   return 0;
-  //   // rtn.error = ExceptionError(try_catch, iso, local_ctx);
-  //   // return rtn;
-  // }
-
   m_module* retVal = new m_module(iso, module);
-  // retVal->ptr.Reset(iso, module);
   return retVal;
 }
