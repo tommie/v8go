@@ -36,7 +36,7 @@ func SetObjectTemplateAccessorProperty(
 	templ.SetAccessorProperty(key, v8get, v8set, attributes)
 }
 
-func ExampleObjectTemplate_SetAccessorProperty_Helpers() {
+func ExampleObjectTemplate_SetAccessorProperty_helpers() {
 	iso := v8.NewIsolate()
 	defer iso.Dispose()
 	tmpl := v8.NewObjectTemplate(iso)
@@ -48,6 +48,7 @@ func ExampleObjectTemplate_SetAccessorProperty_Helpers() {
 		func(*v8.FunctionCallbackInfo) (*v8.Value, error) {
 			return current, nil
 		},
+		// Setter
 		func(info *v8.FunctionCallbackInfo) (*v8.Value, error) {
 			current = info.Args()[0]
 			return nil, nil
