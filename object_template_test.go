@@ -383,7 +383,7 @@ func TestObjectTemplateMarkAsUndetectableOnInstanceTemplate(t *testing.T) {
 		}
 	}
 
-	res, err = ctx.RunScript("if (undetectable) { true; } else { false; }", "")
+	res, err = ctx.RunScript("Boolean(undetectable)", "")
 	if err != nil {
 		t.Errorf("Error calling typeof undetectable: %v", err)
 	} else {
