@@ -56,3 +56,24 @@ int ObjectTemplateInternalFieldCount(TemplatePtr ptr) {
   Local<ObjectTemplate> obj_tmpl = tmpl.As<ObjectTemplate>();
   return obj_tmpl->InternalFieldCount();
 }
+
+void ObjectTemplateSetAccessorProperty(TemplatePtr ptr,
+                                       const char* key,
+                                       TemplatePtr get,
+                                       TemplatePtr set,
+                                       int attributes) {
+  LOCAL_TEMPLATE(ptr);
+
+  Local<String> key_val =
+      String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
+  Local<ObjectTemplate> obj_tmpl = tmpl.As<ObjectTemplate>();
+  Local<FunctionTemplate> get_tmpl =
+      get ? get->ptr.Get(iso).As<FunctionTemplate>()
+          : Local<FunctionTemplate>();
+  Local<FunctionTemplate> set_tmpl =
+      set ? set->ptr.Get(iso).As<FunctionTemplate>()
+          : Local<FunctionTemplate>();
+
+  return obj_tmpl->SetAccessorProperty(key_val, get_tmpl, set_tmpl,
+                                       (PropertyAttribute)attributes);
+}

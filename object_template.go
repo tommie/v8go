@@ -10,6 +10,7 @@ import "C"
 import (
 	"errors"
 	"runtime"
+	"unsafe"
 )
 
 // PropertyAttribute are the attribute flags for a property on an Object.
@@ -64,6 +65,35 @@ func (o *ObjectTemplate) NewInstance(ctx *Context) (*Object, error) {
 // template will have.
 func (o *ObjectTemplate) SetInternalFieldCount(fieldCount uint32) {
 	C.ObjectTemplateSetInternalFieldCount(o.ptr, C.int(fieldCount))
+}
+
+// SetAccessorProperty creates a named accessor property, i.e., a property that
+// is implemented as a function call. Arguments get and set represents the
+// getter and setter, and can both be nil.
+//
+// Note: The [ReadOnly] should not be used with a readonly property. If set is
+// nil, the property will be readonly, and passing [None] is a sensible default.
+//
+// This corresponds to ObjectTemplate::SetAccessorProperty in the C++ API.
+func (o *ObjectTemplate) SetAccessorProperty(
+	key string,
+	get *FunctionTemplate,
+	set *FunctionTemplate,
+	attributes PropertyAttribute,
+) {
+	ckey := C.CString(key)
+	defer C.free(unsafe.Pointer(ckey))
+	var (
+		getter C.TemplatePtr
+		setter C.TemplatePtr
+	)
+	if get != nil {
+		getter = get.ptr
+	}
+	if set != nil {
+		setter = set.ptr
+	}
+	C.ObjectTemplateSetAccessorProperty(o.ptr, ckey, getter, setter, C.int(attributes))
 }
 
 // InternalFieldCount returns the number of internal fields that instances of this
