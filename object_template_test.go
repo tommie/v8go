@@ -165,7 +165,7 @@ func TestObjectTemplateNewInstance(t *testing.T) {
 
 func TestObjectTemplateSetAccessorProperty_OnlyGetter(t *testing.T) {
 	// Create an accessor property that has only a getter.
-	// Setting the value from JS should not have a side effects
+	// Setting the value from JS should not have side effects.
 	t.Parallel()
 	iso := v8.NewIsolate()
 	defer iso.Dispose()
@@ -205,7 +205,7 @@ func TestObjectTemplateSetAccessorProperty_GetterAnSetter(t *testing.T) {
 		return value
 	})
 	var set = v8.NewFunctionTemplate(iso, func(i *v8.FunctionCallbackInfo) *v8.Value {
-		value = i.Args()[0] // A property setter will always have _one_ argument
+		value = i.Args()[0] // A property setter will always have _one_ argument.
 		return nil
 	})
 	tmpl := v8.NewObjectTemplate(iso)
