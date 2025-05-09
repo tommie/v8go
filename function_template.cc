@@ -109,3 +109,10 @@ m_template* FunctionTemplatePrototypeTemplate(m_template* ptr) {
 
   return ot;
 }
+
+void FunctionTemplateInherit(TemplatePtr ptr, TemplatePtr base) {
+  LOCAL_TEMPLATE(ptr);
+  Local<FunctionTemplate> fn_tmpl = tmpl.As<FunctionTemplate>();
+  Local<FunctionTemplate> base_tmp = base->ptr.Get(iso).As<FunctionTemplate>();
+  fn_tmpl->Inherit(base_tmp);
+}
