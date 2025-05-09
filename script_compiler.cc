@@ -93,8 +93,8 @@ extern m_module* ScriptCompilerCompileModule(Isolate* iso,
 
   ScriptCompiler::Source source(src, origin);
 
-  MaybeLocal<Module> res = ScriptCompiler::CompileModule(iso, &source);
-  Local<Module> module = res.ToLocalChecked();
+  Local<Module> module =
+      ScriptCompiler::CompileModule(iso, &source).ToLocalChecked();
   if (try_catch.HasCaught()) {
     return 0;
   }
