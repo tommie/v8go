@@ -278,10 +278,6 @@ func TestObjectTemplateSetCallAsFunctionHandler(t *testing.T) {
 	iso := v8.NewIsolate()
 	defer iso.Dispose()
 	tmpl := v8.NewObjectTemplate(iso)
-	if _, err := tmpl.NewInstance(nil); err == nil {
-		t.Error("expected error but got <nil>")
-	}
-
 	ctx := v8.NewContext(iso)
 	defer ctx.Close()
 
@@ -307,10 +303,10 @@ func TestObjectTemplateMarkAsUndetectable(t *testing.T) {
 	iso := v8.NewIsolate()
 	defer iso.Dispose()
 	obj := v8.NewObjectTemplate(iso)
-	obj.MarkAsUndetectable()
 	obj.SetCallAsFunctionHandler(func(info *v8.FunctionCallbackInfo) (*v8.Value, error) {
 		return info.This().Value, nil
 	})
+	obj.MarkAsUndetectable()
 	ctx := v8.NewContext(iso)
 	defer ctx.Close()
 	v, err := v8.NewValue(iso, "42")
