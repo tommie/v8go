@@ -170,10 +170,10 @@ func TestObjectTemplateSetAccessorProperty_ReadOnly(t *testing.T) {
 	iso := v8.NewIsolate()
 	defer iso.Dispose()
 	tmpl := v8.NewObjectTemplate(iso)
-	tmpl.SetAccessorPropertyCallback("prop",
-		func(*v8.FunctionCallbackInfo) (*v8.Value, error) {
-			return v8.NewValue(iso, "Value")
-		}, nil, v8.None)
+	get := v8.NewFunctionTemplateWithError(iso,
+		func(*v8.FunctionCallbackInfo) (*v8.Value, error) { return v8.NewValue(iso, "Value") },
+	)
+	tmpl.SetAccessorProperty("prop", get, nil, v8.None)
 
 	global := v8.NewObjectTemplate(iso)
 	global.Set("obj", tmpl)
@@ -200,13 +200,14 @@ func TestObjectTemplateSetAccessorProperty_ReadWrite(t *testing.T) {
 	defer iso.Dispose()
 	tmpl := v8.NewObjectTemplate(iso)
 	var value *v8.Value
-	tmpl.SetAccessorPropertyCallback("prop",
-		func(*v8.FunctionCallbackInfo) (*v8.Value, error) {
-			return value, nil
-		}, func(i *v8.FunctionCallbackInfo) (*v8.Value, error) {
-			value = i.Args()[0] // A property settor will always have _one_ argument
-			return nil, nil
-		}, v8.None)
+	var get = v8.NewFunctionTemplateWithError(iso, func(*v8.FunctionCallbackInfo) (*v8.Value, error) {
+		return value, nil
+	})
+	var set = v8.NewFunctionTemplateWithError(iso, func(i *v8.FunctionCallbackInfo) (*v8.Value, error) {
+		value = i.Args()[0] // A property settor will always have _one_ argument
+		return nil, nil
+	})
+	tmpl.SetAccessorProperty("prop", get, set, v8.None)
 
 	global := v8.NewObjectTemplate(iso)
 	global.Set("obj", tmpl)
@@ -274,12 +275,14 @@ func ExampleObjectTemplate_SetAccessorProperty() {
 func ExampleObjectTemplate_SetAccessorPropertyCallback() {
 	iso := v8.NewIsolate()
 	defer iso.Dispose()
-	tmpl := v8.NewObjectTemplate(iso)
-	tmpl.SetAccessorPropertyCallback(
-		"prop",
+	get := v8.NewFunctionTemplateWithError(iso,
 		func(*v8.FunctionCallbackInfo) (*v8.Value, error) { // Getter
 			return v8.NewValue(iso, "Value")
 		},
+	)
+	tmpl := v8.NewObjectTemplate(iso)
+	tmpl.SetAccessorProperty("prop",
+		get,
 		nil, // Setter
 		v8.None,
 	)
