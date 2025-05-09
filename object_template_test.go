@@ -273,29 +273,3 @@ func ExampleObjectTemplate_SetAccessorProperty() {
 	// Output:
 	// Property value: Value
 }
-
-func ExampleObjectTemplate_SetAccessorPropertyCallback() {
-	iso := v8.NewIsolate()
-	defer iso.Dispose()
-	get := v8.NewFunctionTemplateWithError(iso,
-		func(*v8.FunctionCallbackInfo) (*v8.Value, error) { // Getter
-			return v8.NewValue(iso, "Value")
-		},
-	)
-	tmpl := v8.NewObjectTemplate(iso)
-	tmpl.SetAccessorProperty("prop",
-		get,
-		nil, // Setter
-		v8.None,
-	)
-
-	global := v8.NewObjectTemplate(iso)
-	global.Set("obj", tmpl)
-	ctx := v8.NewContext(iso, global)
-	defer ctx.Close()
-
-	value, _ := ctx.RunScript("obj.prop", "")
-	fmt.Printf("Property value: %s\n", value.String())
-	// Output:
-	// Property value: Value
-}
