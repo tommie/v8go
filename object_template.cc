@@ -64,14 +64,6 @@ void ObjectTemplateSetAccessorProperty(TemplatePtr ptr,
                                        int attributes) {
   LOCAL_TEMPLATE(ptr);
 
-  /*
-   *
-  Isolate* iso = tmpl_ptr->iso;      \
-  Locker locker(iso);                \
-  Isolate::Scope isolate_scope(iso); \
-  HandleScope handle_scope(iso);     \
-  Local<Template> tmpl = tmpl_ptr->ptr.Get(iso);
-   */
   Local<String> key_val =
       String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
   Local<ObjectTemplate> obj_tmpl = tmpl.As<ObjectTemplate>();
