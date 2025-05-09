@@ -56,6 +56,16 @@ void ContextFree(ContextPtr ctx) {
   delete ctx;
 }
 
+int ContextIsEmpty(ContextPtr ctx) {
+  // ContextFree deletes ContextPtr, so we have to handle the case
+  // when the context was already closed, gracefully, by go side
+  if (ctx == nullptr) {
+    return 1;
+  }
+
+  return ctx->ptr.IsEmpty();
+}
+
 m_value* tracked_value(m_ctx* ctx, m_value* val) {
   // (rogchap) we track values against a context so that when the context is
   // closed (either manually or GC'd by Go) we can also release all the
