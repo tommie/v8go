@@ -163,16 +163,17 @@ func TestObjectTemplateNewInstance(t *testing.T) {
 	}
 }
 
-func TestObjectTemplateSetAccessorProperty_ReadOnly(t *testing.T) {
+func TestObjectTemplateSetAccessorProperty_OnlyGetter(t *testing.T) {
 	// Create an accessor property that has only a getter.
 	// Setting the value from JS should not have a side effects
 	t.Parallel()
 	iso := v8.NewIsolate()
 	defer iso.Dispose()
-	tmpl := v8.NewObjectTemplate(iso)
+
 	get := v8.NewFunctionTemplateWithError(iso,
 		func(*v8.FunctionCallbackInfo) (*v8.Value, error) { return v8.NewValue(iso, "Value") },
 	)
+	tmpl := v8.NewObjectTemplate(iso)
 	tmpl.SetAccessorProperty("prop", get, nil, v8.None)
 
 	global := v8.NewObjectTemplate(iso)
@@ -194,19 +195,20 @@ func TestObjectTemplateSetAccessorProperty_ReadOnly(t *testing.T) {
 	}
 }
 
-func TestObjectTemplateSetAccessorProperty_ReadWrite(t *testing.T) {
+func TestObjectTemplateSetAccessorProperty_GetterAnSetter(t *testing.T) {
 	t.Parallel()
 	iso := v8.NewIsolate()
 	defer iso.Dispose()
-	tmpl := v8.NewObjectTemplate(iso)
 	var value *v8.Value
-	var get = v8.NewFunctionTemplateWithError(iso, func(*v8.FunctionCallbackInfo) (*v8.Value, error) {
-		return value, nil
+
+	var get = v8.NewFunctionTemplate(iso, func(*v8.FunctionCallbackInfo) *v8.Value {
+		return value
 	})
-	var set = v8.NewFunctionTemplateWithError(iso, func(i *v8.FunctionCallbackInfo) (*v8.Value, error) {
-		value = i.Args()[0] // A property settor will always have _one_ argument
-		return nil, nil
+	var set = v8.NewFunctionTemplate(iso, func(i *v8.FunctionCallbackInfo) *v8.Value {
+		value = i.Args()[0] // A property setter will always have _one_ argument
+		return nil
 	})
+	tmpl := v8.NewObjectTemplate(iso)
 	tmpl.SetAccessorProperty("prop", get, set, v8.None)
 
 	global := v8.NewObjectTemplate(iso)
