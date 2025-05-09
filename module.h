@@ -43,10 +43,7 @@ extern int ModuleGetStatus(m_module* module);
 extern int ModuleScriptId(m_module* module);
 extern bool ModuleIsSourceTextModule(m_module* module);
 extern RtnValue ModuleEvaluate(m_ctx* ctx, m_module* module);
-extern RtnError ModuleInstantiateModule(m_ctx* ctx,
-                                        m_module* module,
-                                        void* resolveModuleHandle,
-                                        void* resolveSourceModule);
+extern RtnError ModuleInstantiateModule(m_ctx* ctx, m_module* module);
 extern void ModuleDelete(m_module* module);
 
 #ifdef __cplusplus

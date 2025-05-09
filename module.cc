@@ -70,10 +70,7 @@ v8::MaybeLocal<v8::Module> ResolveModuleCallback(
   return retval.r0->ptr.Get(iso);
 }
 
-extern RtnError ModuleInstantiateModule(m_ctx* ctx,
-                                        m_module* module,
-                                        void* resolveModuleHandle,
-                                        void* resolveSourceModule) {
+extern RtnError ModuleInstantiateModule(m_ctx* ctx, m_module* module) {
   LOCAL_CONTEXT(ctx);
 
   v8::Local<v8::Module> local_mod = module->ptr.Get(iso);

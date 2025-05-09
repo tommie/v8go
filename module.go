@@ -58,7 +58,7 @@ func resolveModuleCallback(
 func (m Module) InstantiateModule(ctx *Context, resolver ResolveModuler) error {
 	ctx.moduleResolver = resolver
 
-	err := C.ModuleInstantiateModule(ctx.ptr, m.ptr, nil, nil)
+	err := C.ModuleInstantiateModule(ctx.ptr, m.ptr)
 	if err.msg == nil {
 		return nil
 	}
