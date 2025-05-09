@@ -4,6 +4,7 @@
 #include "deps/include/v8-isolate.h"
 #include "deps/include/v8-locker.h"
 #include "deps/include/v8-template.h"
+#include "function_template.h"
 #include "template-macros.h"
 
 using namespace v8;
@@ -50,9 +51,25 @@ void ObjectTemplateSetInternalFieldCount(TemplatePtr ptr, int field_count) {
   obj_tmpl->SetInternalFieldCount(field_count);
 }
 
+void ObjectTemplateMarkAsUndetectable(TemplatePtr ptr) {
+  LOCAL_TEMPLATE(ptr);
+
+  Local<ObjectTemplate> obj_tmpl = tmpl.As<ObjectTemplate>();
+  obj_tmpl->MarkAsUndetectable();
+}
+
 int ObjectTemplateInternalFieldCount(TemplatePtr ptr) {
   LOCAL_TEMPLATE(ptr);
 
   Local<ObjectTemplate> obj_tmpl = tmpl.As<ObjectTemplate>();
   return obj_tmpl->InternalFieldCount();
+}
+
+void ObjectTemplateSetCallAsFunctionHandler(TemplatePtr ptr, int callback_ref) {
+  LOCAL_TEMPLATE(ptr);
+
+  Local<Integer> cbData = Integer::New(iso, callback_ref);
+
+  Local<ObjectTemplate> obj_tmpl = tmpl.As<ObjectTemplate>();
+  obj_tmpl->SetCallAsFunctionHandler(FunctionTemplateCallback, cbData);
 }

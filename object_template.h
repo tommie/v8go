@@ -27,6 +27,9 @@ extern RtnValue ObjectTemplateNewInstance(m_template* ptr, m_ctx* ctx_ptr);
 extern void ObjectTemplateSetInternalFieldCount(m_template* ptr,
                                                 int field_count);
 extern int ObjectTemplateInternalFieldCount(m_template* ptr);
+extern void ObjectTemplateMarkAsUndetectable(m_template* ptr);
+extern void ObjectTemplateSetCallAsFunctionHandler(m_template* ptr,
+                                                   int callback_ref);
 
 #ifdef __cplusplus
 }
