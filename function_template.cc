@@ -8,7 +8,7 @@
 
 using namespace v8;
 
-void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
+void FunctionTemplateCallback(const v8::FunctionCallbackInfo<v8::Value>& info) {
   Isolate* iso = info.GetIsolate();
   ISOLATE_SCOPE(iso);
 

@@ -6,6 +6,7 @@ package v8go
 
 // #include <stdlib.h>
 // #include "isolate.h"
+// #include "script_compiler.h"
 import "C"
 
 import (
