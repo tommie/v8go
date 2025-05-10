@@ -154,7 +154,7 @@ func TestSameModuleImportedMultipleTimes(t *testing.T) {
 			}
 		`,
 		"./a.js": `
-		import { inc } from './c.js' with { key: "data" }; 
+			import { inc } from './c.js' with { key: "data" }; 
 			export default inc();`,
 		"./b.js": "import { inc } from './c.js'; export default inc();",
 	}

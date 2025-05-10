@@ -11,7 +11,12 @@ class Data;
 class FixedArray;
 }  // namespace v8
 
-class v8goData {};
+class v8goData {
+  v8::Global<v8::Data> ptr;
+
+ public:
+  v8goData(v8::Isolate* iso, v8::Local<v8::Data> val) : ptr(iso, val) {};
+};
 
 class v8goFixedArray {
   v8::Global<v8::FixedArray> ptr;
@@ -33,6 +38,8 @@ typedef struct v8goFixedv8goFixedArray v8goFixedArray;
 typedef struct m_ctx m_ctx;
 
 int FixedArrayLength(v8goFixedArray* fixedArray, m_ctx* ctx);
+v8goData* FixedArrayGet(v8goFixedArray* fixedArray, m_ctx* ctx);
+void DataRelease(v8goData* data);
 
 #ifdef __cplusplus
 }
