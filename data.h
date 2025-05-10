@@ -16,6 +16,7 @@ class v8goData {
 
  public:
   v8goData(v8::Isolate* iso, v8::Local<v8::Data> val) : ptr(iso, val) {};
+  v8::Local<v8::Data> ToLocal(v8::Isolate* iso) { return ptr.Get(iso); }
 };
 
 class v8goFixedArray {
@@ -36,10 +37,12 @@ typedef struct v8goFixedv8goFixedArray v8goFixedArray;
 #endif
 
 typedef struct m_ctx m_ctx;
+typedef struct m_value m_value;
 
 int FixedArrayLength(v8goFixedArray* fixedArray, m_ctx* ctx);
-v8goData* FixedArrayGet(v8goFixedArray* fixedArray, m_ctx* ctx);
+v8goData* FixedArrayGet(v8goFixedArray* fixedArray, m_ctx* ctx, int i);
 void DataRelease(v8goData* data);
+m_value* DataAsValue(v8goData* data, m_ctx* ctx);
 
 #ifdef __cplusplus
 }

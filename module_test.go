@@ -153,8 +153,7 @@ func TestSameModuleImportedMultipleTimes(t *testing.T) {
 				return val;
 			}
 		`,
-		"./a.js": `
-			import { inc } from './c.js' with { key: "data" }; 
+		"./a.js": `import { inc } from './c.js' with  { foo: "Value" }; 
 			export default inc();`,
 		"./b.js": "import { inc } from './c.js'; export default inc();",
 	}
@@ -218,11 +217,12 @@ func (r LoggingResolver) ResolveModule(
 	referrer *v8.Module,
 ) (*v8.Module, error) {
 	r.t.Logf(
-		"ResolveModule. spec: %s -  ref: %d, Attr.len, %d",
+		"ResolveModule. spec: %s -  ref: %d, Attr, %v",
 		spec,
 		referrer.ScriptID(),
-		attr.Length(ctx),
+		attr.All(ctx),
 	)
+
 	res, err := r.Resolver.ResolveModule(ctx, spec, attr, referrer)
 	if err == nil {
 		r.t.Logf("Module compiled. ref: %d, status: %d", res.ScriptID(), res.GetStatus())

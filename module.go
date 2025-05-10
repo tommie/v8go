@@ -25,9 +25,44 @@ type ImportAttributes struct {
 	fixedArray *C.v8goFixedArray
 }
 
-func (a ImportAttributes) Length(ctx *Context) int {
-	return int(C.FixedArrayLength( a.fixedArray,
-ctx.ptr,))
+func (a ImportAttributes) All(ctx *Context) []ImportAttribute {
+	l := int(C.FixedArrayLength(a.fixedArray, ctx.ptr)) / 3
+	if l == 0 {
+		return nil
+	}
+	res := make([]ImportAttribute, l)
+	for i := 0; i < l; i++ {
+		res[i] = a.get(ctx, i)
+	}
+	return res
+}
+
+func (a ImportAttributes) get(ctx *Context, i int) ImportAttribute {
+	d1 := C.FixedArrayGet(a.fixedArray, ctx.ptr, C.int(i*3))
+	d2 := C.FixedArrayGet(a.fixedArray, ctx.ptr, C.int(i*3+1))
+	d3 := C.FixedArrayGet(a.fixedArray, ctx.ptr, C.int(i*3+2))
+	defer C.DataRelease(d1)
+	defer C.DataRelease(d2)
+	defer C.DataRelease(d3)
+	v1 := Value{ptr: C.DataAsValue(d1, ctx.ptr), ctx: ctx}
+	v2 := Value{ptr: C.DataAsValue(d2, ctx.ptr), ctx: ctx}
+	v3 := Value{ptr: C.DataAsValue(d3, ctx.ptr), ctx: ctx}
+	return ImportAttribute{
+		Key:      v1.String(),
+		Value:    v2.String(),
+		Location: int(v3.Int32()),
+	}
+}
+
+// ImportAttribute represents a single import attribute in a module import
+// statment. E.g., the following script has a single import attribute.
+//
+//	import foo from "foo.js" with { data: "value" }
+type ImportAttribute struct {
+	Key   string
+	Value string
+	// Location is the zero-based index in the string where the key is found
+	Location int
 }
 
 type FixedArray struct{}
