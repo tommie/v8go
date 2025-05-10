@@ -3,6 +3,7 @@
 #include "_cgo_export.h"
 #include "context-macros.h"
 #include "context.h"
+#include "data.h"
 #include "isolate-macros.h"
 #include "value.h"
 
@@ -61,8 +62,9 @@ v8::MaybeLocal<v8::Module> ResolveModuleCallback(
   char* buf = static_cast<char*>(malloc(cap));
   specifier->WriteUtf8V2(iso, buf, cap);
   m_module ref(iso, referrer);
+  v8goFixedArray attributes(iso, import_attributes);
   resolveModuleCallback_return retval =
-      resolveModuleCallback(ctx_ref, buf, &ref);
+      resolveModuleCallback(ctx_ref, buf, &attributes, &ref);
   if (retval.r1 != nullptr) {
     iso->ThrowException(retval.r1->ptr.Get(iso));
     return MaybeLocal<Module>();

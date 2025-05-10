@@ -153,7 +153,9 @@ func TestSameModuleImportedMultipleTimes(t *testing.T) {
 				return val;
 			}
 		`,
-		"./a.js": "import { inc } from './c.js'; export default inc();",
+		"./a.js": `
+		import { inc } from './c.js' with { key: "data" }; 
+			export default inc();`,
 		"./b.js": "import { inc } from './c.js'; export default inc();",
 	}
 	mod, err := v8.CompileModule(iso, `
@@ -180,7 +182,7 @@ func TestSameModuleImportedMultipleTimes(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error getting module as promise: %v", err)
 	}
-	moduleEval, err := WaitForPromise(ctx, p)
+	// moduleEval, err := WaitForPromise(ctx, p)
 	if err != nil {
 		t.Errorf("Error resolving module promise: %v", err)
 	}
@@ -190,17 +192,18 @@ func TestSameModuleImportedMultipleTimes(t *testing.T) {
 	if !reflect.DeepEqual(lines, []string{"3"}) {
 		t.Errorf("Unexpected output, got: %v", lines)
 	}
-	ns := mod.GetModuleNamespace()
-	t.Log("Module eval", moduleEval.IsModuleNamespaceObject())
-	t.Log("Module status", mod.GetStatus())
-	t.Log("Module namespace", ns.IsModuleNamespaceObject())
-	t.Log("Module is object", ns.IsObject())
-	t.Log("Module desc", ns.DetailString())
-	obj, err := ns.AsObject()
-	fatalIf(t, err)
-	res, err := obj.Get("result")
-	fatalIf(t, err)
-	t.Log("Val", res.String())
+	// ns := mod.GetModuleNamespace()
+	// t.Log("Module eval", moduleEval.IsModuleNamespaceObject())
+	// t.Log("Module status", mod.GetStatus())
+	// t.Log("Module namespace", ns.IsModuleNamespaceObject())
+	// t.Log("Module is object", ns.IsObject())
+	// t.Log("Module desc", ns.DetailString())
+	// obj, err := ns.AsObject()
+	// fatalIf(t, err)
+	// res, err := obj.Get("result")
+	// fatalIf(t, err)
+	// t.Log("Val", res.String())
+	t.Error("ping")
 }
 
 type LoggingResolver struct {
@@ -211,15 +214,16 @@ type LoggingResolver struct {
 func (r LoggingResolver) ResolveModule(
 	ctx *v8.Context,
 	spec string,
+	attr v8.ImportAttributes,
 	referrer *v8.Module,
 ) (*v8.Module, error) {
 	r.t.Logf(
-		"ResolveModule. spec: %s -  ref: %d, status, %d",
+		"ResolveModule. spec: %s -  ref: %d, Attr.len, %d",
 		spec,
 		referrer.ScriptID(),
-		referrer.GetStatus(),
+		attr.Length(ctx),
 	)
-	res, err := r.Resolver.ResolveModule(ctx, spec, referrer)
+	res, err := r.Resolver.ResolveModule(ctx, spec, attr, referrer)
 	if err == nil {
 		r.t.Logf("Module compiled. ref: %d, status: %d", res.ScriptID(), res.GetStatus())
 	}
@@ -231,6 +235,7 @@ type Resolver map[string]string
 func (r Resolver) ResolveModule(
 	ctx *v8.Context,
 	spec string,
+	attr v8.ImportAttributes,
 	referrer *v8.Module,
 ) (*v8.Module, error) {
 	script, found := r[spec]
@@ -248,6 +253,7 @@ type CachingModuleResolver struct {
 func (r *CachingModuleResolver) ResolveModule(
 	ctx *v8.Context,
 	spec string,
+	attr v8.ImportAttributes,
 	referrer *v8.Module,
 ) (*v8.Module, error) {
 	fmt.Println("Look for module", spec)

@@ -2,6 +2,7 @@ package v8go
 
 // #include <stdlib.h>
 // #include "module.h"
+// #include "data.h"
 import "C"
 import (
 	"fmt"
@@ -17,10 +18,22 @@ type Module struct {
 	ptr *C.m_module
 }
 
+// ImportAttributes represents the attributes for each module import.
+//
+// NOTE: ImportAttributes cannot be used AFTER ResolveModule returns
+type ImportAttributes struct {
+	fixedArray *C.v8goFixedArray
+}
+
+func (a ImportAttributes) Length(ctx *Context) int {
+	return int(C.FixedArrayLength( a.fixedArray,
+ctx.ptr,))
+}
+
 type FixedArray struct{}
 
 type ResolveModuler interface {
-	ResolveModule(ctx *Context, spec string, referrer *Module) (*Module, error)
+	ResolveModule(ctx *Context, spec string, attr ImportAttributes, referrer *Module) (*Module, error)
 }
 
 // Evaluate evaluates the module.
@@ -39,6 +52,7 @@ func (m Module) Evaluate(ctx *Context) (*Value, error) {
 func resolveModuleCallback(
 	ctxref int,
 	buf *C.char,
+	importAttributes *C.v8goFixedArray,
 	referrer *C.m_module,
 ) (*C.m_module, C.ValuePtr) {
 	defer C.free(unsafe.Pointer(buf))
@@ -46,7 +60,7 @@ func resolveModuleCallback(
 
 	ctx := getContext(ctxref)
 	ref := &Module{ptr: referrer}
-	res, err := ctx.moduleResolver.ResolveModule(ctx, spec, ref)
+	res, err := ctx.moduleResolver.ResolveModule(ctx, spec, ImportAttributes{importAttributes}, ref)
 	if err == nil {
 		return res.ptr, nil
 	} else {
