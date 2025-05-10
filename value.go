@@ -552,7 +552,7 @@ func (v *Value) IsModuleNamespaceObject() bool {
 // AsObject will cast the value to the Object type. If the value is not an Object
 // then an error is returned. Use `value.Object()` to do the JS equivalent of `Object(value)`.
 func (v *Value) AsObject() (*Object, error) {
-	if !v.IsObject() {
+	if !v.IsObject() && !v.IsModuleNamespaceObject() {
 		return nil, errors.New("v8go: value is not an Object")
 	}
 

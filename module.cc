@@ -91,3 +91,19 @@ extern RtnError ModuleInstantiateModule(m_ctx* ctx, m_module* module) {
 extern void ModuleDelete(m_module* module) {
   delete module;
 }
+
+extern ValuePtr ModuleGetModuleNamespace(v8Isolate* iso, m_module* module) {
+  ISOLATE_SCOPE(iso);
+  INTERNAL_CONTEXT(iso);
+  v8::Context::Scope context_scope(ctx->ptr.Get(iso));
+  Local<Module> mod = module->ptr.Get(iso);
+  Local<Value> result = mod->GetModuleNamespace();
+
+  m_value* new_val = new m_value;
+  new_val->id = 0;
+  new_val->iso = iso;
+  new_val->ctx = ctx;
+  new_val->ptr = Global<Value>(iso, result);
+
+  return tracked_value(ctx, new_val);
+}

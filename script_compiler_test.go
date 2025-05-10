@@ -159,6 +159,7 @@ func TestSameModuleImportedMultipleTimes(t *testing.T) {
 	mod, err := v8.CompileModule(iso, `
 		import a from "./a.js";
 		import b from "./b.js";
+		export const result = a + b;
 		print(a + b)`, "https://example.com/root.js")
 	t.Log("Module status after compile", mod.GetStatus())
 	if err != nil {
@@ -179,7 +180,7 @@ func TestSameModuleImportedMultipleTimes(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error getting module as promise: %v", err)
 	}
-	_, err = WaitForPromise(ctx, p)
+	moduleEval, err := WaitForPromise(ctx, p)
 	if err != nil {
 		t.Errorf("Error resolving module promise: %v", err)
 	}
@@ -189,7 +190,18 @@ func TestSameModuleImportedMultipleTimes(t *testing.T) {
 	if !reflect.DeepEqual(lines, []string{"3"}) {
 		t.Errorf("Unexpected output, got: %v", lines)
 	}
+	ns := mod.GetModuleNamespace()
+	t.Log("Module eval", moduleEval.IsModuleNamespaceObject())
 	t.Log("Module status", mod.GetStatus())
+	t.Log("Module namespace", ns.IsModuleNamespaceObject())
+	t.Log("Module is object", ns.IsObject())
+	t.Log("Module desc", ns.DetailString())
+	obj, err := ns.AsObject()
+	fatalIf(t, err)
+	res, err := obj.Get("result")
+	fatalIf(t, err)
+	t.Log("Val", res.String())
+	t.Error("ping")
 }
 
 type LoggingResolver struct {

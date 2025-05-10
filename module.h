@@ -45,6 +45,7 @@ extern bool ModuleIsSourceTextModule(m_module* module);
 extern RtnValue ModuleEvaluate(m_ctx* ctx, m_module* module);
 extern RtnError ModuleInstantiateModule(m_ctx* ctx, m_module* module);
 extern void ModuleDelete(m_module* module);
+extern ValuePtr ModuleGetModuleNamespace(v8Isolate* iso, m_module* module);
 
 #ifdef __cplusplus
 }  // extern "C"

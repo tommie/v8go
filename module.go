@@ -76,3 +76,12 @@ func (m Module) GetStatus() int {
 func (m Module) IsSourceTextModule() bool {
 	return bool(C.ModuleIsSourceTextModule(m.ptr))
 }
+
+// GetModuleNamespace returns the module namespace. This is an exotic object
+// containing the exports of the module.
+//
+// See also: https://tc39.es/ecma262/#sec-module-namespace-exotic-objects
+func (m Module) GetModuleNamespace() *Value {
+	var res = C.ModuleGetNamespace(m.iso, m.ptr)
+	return &Value{res, nil}
+}
