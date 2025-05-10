@@ -82,6 +82,6 @@ func (m Module) IsSourceTextModule() bool {
 //
 // See also: https://tc39.es/ecma262/#sec-module-namespace-exotic-objects
 func (m Module) GetModuleNamespace() *Value {
-	var res = C.ModuleGetNamespace(m.iso, m.ptr)
+	var res = C.ModuleGetModuleNamespace(m.iso, m.ptr)
 	return &Value{res, nil}
 }

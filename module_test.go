@@ -201,7 +201,6 @@ func TestSameModuleImportedMultipleTimes(t *testing.T) {
 	res, err := obj.Get("result")
 	fatalIf(t, err)
 	t.Log("Val", res.String())
-	t.Error("ping")
 }
 
 type LoggingResolver struct {
