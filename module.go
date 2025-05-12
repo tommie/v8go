@@ -129,6 +129,10 @@ func (m Module) IsSourceTextModule() bool {
 // GetModuleNamespace returns the module namespace. This is an exotic object
 // containing the exports of the module.
 //
+// The module must be instantiated before calling GetModuleNamespace. Before
+// calling [Module.Evaluate] the namespace may have keys corresponding to the
+// exports of the module but they will have undefined value.
+//
 // See also: https://tc39.es/ecma262/#sec-module-namespace-exotic-objects
 func (m Module) GetModuleNamespace() *Value {
 	var res = C.ModuleGetModuleNamespace(m.iso, m.ptr)

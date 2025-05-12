@@ -11,6 +11,56 @@ import (
 	v8 "github.com/tommie/v8go"
 )
 
+func TestModuleGetModuleNamespace(t *testing.T) {
+	t.Parallel()
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	ctx := v8.NewContext(iso)
+	defer ctx.Close()
+
+	mod, err := v8.CompileModule(iso, `
+		export const strVal = "str";
+		export const numVal = 42;
+		export default "Default export";
+	`, "")
+	fatalIf(t, err)
+
+	err = mod.InstantiateModule(ctx, nil)
+	fatalIf(t, err)
+
+	v, err := mod.Evaluate(ctx)
+	fatalIf(t, err)
+
+	_, err = WaitForPromise(ctx, v)
+	fatalIf(t, err)
+
+	namespace, err := mod.GetModuleNamespace().AsObject()
+	fatalIf(t, err)
+	{
+		got, err := namespace.Get("strVal")
+		fatalIf(t, err)
+		if got.String() != "str" {
+			t.Errorf(`module export "strVal". Want: "str", Got: "%v"`, got)
+		}
+	}
+
+	{
+		got, err := namespace.Get("numVal")
+		fatalIf(t, err)
+		if got.Number() != 42.0 {
+			t.Errorf(`module export "numVal". Want: 42.0, Got: %v`, got)
+		}
+	}
+
+	{
+		got, err := namespace.Get("default")
+		fatalIf(t, err)
+		if got.String() != "Default export" {
+			t.Errorf(`module default export. Want: "Default export", Got: "%v"`, got)
+		}
+	}
+}
+
 func TestScriptCompilerModuleWithoutImports(t *testing.T) {
 	t.Parallel()
 
@@ -181,28 +231,12 @@ func TestSameModuleImportedMultipleTimes(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error getting module as promise: %v", err)
 	}
-	// moduleEval, err := WaitForPromise(ctx, p)
-	if err != nil {
-		t.Errorf("Error resolving module promise: %v", err)
-	}
 	if s := p.State(); s != v8.Fulfilled {
 		t.Errorf("Unexpected promise state: expected %q, got %q", v8.Fulfilled, s)
 	}
 	if !reflect.DeepEqual(lines, []string{"3"}) {
 		t.Errorf("Unexpected output, got: %v", lines)
 	}
-	// ns := mod.GetModuleNamespace()
-	// t.Log("Module eval", moduleEval.IsModuleNamespaceObject())
-	// t.Log("Module status", mod.GetStatus())
-	// t.Log("Module namespace", ns.IsModuleNamespaceObject())
-	// t.Log("Module is object", ns.IsObject())
-	// t.Log("Module desc", ns.DetailString())
-	// obj, err := ns.AsObject()
-	// fatalIf(t, err)
-	// res, err := obj.Get("result")
-	// fatalIf(t, err)
-	// t.Log("Val", res.String())
-	t.Error("ping")
 }
 
 type LoggingResolver struct {
@@ -276,10 +310,15 @@ func InitResolver(sources map[string]string) v8.ResolveModuler {
 	return &CachingModuleResolver{Resolver: sources, Modules: make(map[string]*v8.Module)}
 }
 
-func WaitForPromise(ctx *v8.Context, p *v8.Promise) (*v8.Value, error) {
+func WaitForPromise(ctx *v8.Context, val *v8.Value) (*v8.Value, error) {
 	timeout := time.After(time.Second)
 	resolve := make(chan *v8.Value)
 	reject := make(chan error)
+
+	if !val.IsPromise() {
+		return val, nil
+	}
+	p, _ := val.AsPromise()
 
 	p.Then(func(info *v8.FunctionCallbackInfo) *v8.Value {
 		args := info.Args()
