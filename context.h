@@ -49,6 +49,7 @@ extern ContextPtr NewContext(IsolatePtr iso_ptr,
 extern int ContextRetainedValueCount(ContextPtr ctx);
 extern ValuePtr ContextGlobal(ContextPtr ctx_ptr);
 extern void ContextFree(ContextPtr ctx);
+extern int ContextIsEmpty(ContextPtr ctx);
 extern RtnValue RunScript(ContextPtr ctx_ptr,
                           const char* source,
                           const char* origin);
