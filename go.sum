@@ -58,6 +58,8 @@ github.com/tommie/v8go/deps/android_amd64 v0.0.0-20250402042413-3ca73eb2ee33 h1:
 github.com/tommie/v8go/deps/android_amd64 v0.0.0-20250402042413-3ca73eb2ee33/go.mod h1:+SU4RWSqMXAx2oR/Gzkyc1YAG6F8SCzttMv3sZkh+qY=
 github.com/tommie/v8go/deps/android_amd64 v0.0.0-20250430042523-3aa41be1fdd5 h1:C+d6fxNEjAEIQ6NPpo0oIeqLMEfa7ExJ7cIHZcUTPeQ=
 github.com/tommie/v8go/deps/android_amd64 v0.0.0-20250430042523-3aa41be1fdd5/go.mod h1:+SU4RWSqMXAx2oR/Gzkyc1YAG6F8SCzttMv3sZkh+qY=
+github.com/tommie/v8go/deps/android_amd64 v0.0.0-20250515043113-5dcc98077472 h1:ALzwSQMOOUw1FN/tYp+a81w5AxkiR33N5jGEmFWBqfw=
+github.com/tommie/v8go/deps/android_amd64 v0.0.0-20250515043113-5dcc98077472/go.mod h1:+SU4RWSqMXAx2oR/Gzkyc1YAG6F8SCzttMv3sZkh+qY=
 github.com/tommie/v8go/deps/android_arm64 v0.0.0-20231230100618-7370d03fcda3 h1:J3kwUe2wvmJJKpzLxu0AtpOtxuUcj28USnSw+pG2hu4=
 github.com/tommie/v8go/deps/android_arm64 v0.0.0-20231230100618-7370d03fcda3/go.mod h1:VoiPjUf1OwfkR/KS0D6PLF1axid06DuCptoyTkDKHiI=
 github.com/tommie/v8go/deps/android_arm64 v0.0.0-20231230103237-af527c0f9162 h1:3xZ/z33BeyuORT+e7eJvN07L2SMnx9P9seBWbdBMUno=
@@ -118,6 +120,8 @@ github.com/tommie/v8go/deps/android_arm64 v0.0.0-20250402042413-3ca73eb2ee33 h1:
 github.com/tommie/v8go/deps/android_arm64 v0.0.0-20250402042413-3ca73eb2ee33/go.mod h1:cR4ynUc528GmLCLOb3c1iM2d6qZ5DCVHh+eAD7sJDBQ=
 github.com/tommie/v8go/deps/android_arm64 v0.0.0-20250430042523-3aa41be1fdd5 h1:z6jlD6WvtgzKr10gSA+gKwL50f6INuEVp9NVVVYJLPU=
 github.com/tommie/v8go/deps/android_arm64 v0.0.0-20250430042523-3aa41be1fdd5/go.mod h1:cR4ynUc528GmLCLOb3c1iM2d6qZ5DCVHh+eAD7sJDBQ=
+github.com/tommie/v8go/deps/android_arm64 v0.0.0-20250515043113-5dcc98077472 h1:XDh1sWxxWPEQv+vxj5mbQaRqUfEycVvb8Z0r0NGSYf0=
+github.com/tommie/v8go/deps/android_arm64 v0.0.0-20250515043113-5dcc98077472/go.mod h1:cR4ynUc528GmLCLOb3c1iM2d6qZ5DCVHh+eAD7sJDBQ=
 github.com/tommie/v8go/deps/darwin_amd64 v0.0.0-20231230100618-7370d03fcda3 h1:jrg7Efoq74lZjPHtjJ/ak5FtV/Tp6LRZ8gew9dAR2cg=
 github.com/tommie/v8go/deps/darwin_amd64 v0.0.0-20231230100618-7370d03fcda3/go.mod h1:rnquNHGZ2NABmOB0KxdkoZr2oaECO2XWOcgHqRO7P7Y=
 github.com/tommie/v8go/deps/darwin_amd64 v0.0.0-20231230103237-af527c0f9162 h1:H3iQLbhHo0KVCtxbzgeO9PCRxuU2ZZ3pr7HGCpv/o4c=
@@ -178,6 +182,8 @@ github.com/tommie/v8go/deps/darwin_amd64 v0.0.0-20250402042413-3ca73eb2ee33 h1:5
 github.com/tommie/v8go/deps/darwin_amd64 v0.0.0-20250402042413-3ca73eb2ee33/go.mod h1:0qn9w9F7mniTrixPYggJNQQtpAkb9OKY3STy3SSEBi4=
 github.com/tommie/v8go/deps/darwin_amd64 v0.0.0-20250430042523-3aa41be1fdd5 h1:vpk//jISJDdQzlcK/wENiu/ZTq4YadEb3RRcG4D25G8=
 github.com/tommie/v8go/deps/darwin_amd64 v0.0.0-20250430042523-3aa41be1fdd5/go.mod h1:0qn9w9F7mniTrixPYggJNQQtpAkb9OKY3STy3SSEBi4=
+github.com/tommie/v8go/deps/darwin_amd64 v0.0.0-20250515043113-5dcc98077472 h1:cPvHuTaPiOENBTLNaJ1ZyZqw151XWtENUdGFbGFPE1U=
+github.com/tommie/v8go/deps/darwin_amd64 v0.0.0-20250515043113-5dcc98077472/go.mod h1:0qn9w9F7mniTrixPYggJNQQtpAkb9OKY3STy3SSEBi4=
 github.com/tommie/v8go/deps/darwin_arm64 v0.0.0-20231230100618-7370d03fcda3 h1:MbaHR6QuRkugLCSInzAAyCggSwmqz+KW3C92LaZNJm8=
 github.com/tommie/v8go/deps/darwin_arm64 v0.0.0-20231230100618-7370d03fcda3/go.mod h1:nXZZ5Y/Nhe0guNiFf66Nfs4ELgYlOsyYx4gD1HnGIeA=
 github.com/tommie/v8go/deps/darwin_arm64 v0.0.0-20231230103237-af527c0f9162 h1:Ittk3R4WqsCusgMcHHPk7xtx7UMMIgU9ASj86vZUf48=
@@ -238,6 +244,8 @@ github.com/tommie/v8go/deps/darwin_arm64 v0.0.0-20250402042413-3ca73eb2ee33 h1:a
 github.com/tommie/v8go/deps/darwin_arm64 v0.0.0-20250402042413-3ca73eb2ee33/go.mod h1:bd8hssu+JaGC4mIE9SukKia0TYs5v977mNodhgpJrdo=
 github.com/tommie/v8go/deps/darwin_arm64 v0.0.0-20250430042523-3aa41be1fdd5 h1:upV3TVa2sAiB4NIn7kC2bEvKW3NQ2qGbwnga8/fawlE=
 github.com/tommie/v8go/deps/darwin_arm64 v0.0.0-20250430042523-3aa41be1fdd5/go.mod h1:bd8hssu+JaGC4mIE9SukKia0TYs5v977mNodhgpJrdo=
+github.com/tommie/v8go/deps/darwin_arm64 v0.0.0-20250515043113-5dcc98077472 h1:oQcEJclfhEbB7P2u9lephEyIPjud3TEmqDppy9mwm1E=
+github.com/tommie/v8go/deps/darwin_arm64 v0.0.0-20250515043113-5dcc98077472/go.mod h1:bd8hssu+JaGC4mIE9SukKia0TYs5v977mNodhgpJrdo=
 github.com/tommie/v8go/deps/linux_amd64 v0.0.0-20231230100618-7370d03fcda3 h1:pb6ELR3+XRJmUqDM51gHRg87z6rJvMzm9pJqO86dp+Y=
 github.com/tommie/v8go/deps/linux_amd64 v0.0.0-20231230100618-7370d03fcda3/go.mod h1:x+ZODfvTFg4K3B1cUQEiXWd0BbRxzZbxMR3P79eHc+M=
 github.com/tommie/v8go/deps/linux_amd64 v0.0.0-20231230103237-af527c0f9162 h1:vu1mgaf338otcC5gbX2ydkiAvj8zMb0SVQoK4rONj9M=
@@ -298,6 +306,8 @@ github.com/tommie/v8go/deps/linux_amd64 v0.0.0-20250402042413-3ca73eb2ee33 h1:M6
 github.com/tommie/v8go/deps/linux_amd64 v0.0.0-20250402042413-3ca73eb2ee33/go.mod h1:ZKG7g6Rah4/ZRzb07qFrQI/EPSm2PMj1cN/9y4fxgO8=
 github.com/tommie/v8go/deps/linux_amd64 v0.0.0-20250430042523-3aa41be1fdd5 h1:/uRAWVoG6FF3New/IVWYmDLiRsRhp9+qP9xDuMQBTUY=
 github.com/tommie/v8go/deps/linux_amd64 v0.0.0-20250430042523-3aa41be1fdd5/go.mod h1:ZKG7g6Rah4/ZRzb07qFrQI/EPSm2PMj1cN/9y4fxgO8=
+github.com/tommie/v8go/deps/linux_amd64 v0.0.0-20250515043113-5dcc98077472 h1:6gqHCPNsYbcSrne3RhsEHRycHHYORPhi/CHyc2WYzvE=
+github.com/tommie/v8go/deps/linux_amd64 v0.0.0-20250515043113-5dcc98077472/go.mod h1:ZKG7g6Rah4/ZRzb07qFrQI/EPSm2PMj1cN/9y4fxgO8=
 github.com/tommie/v8go/deps/linux_arm64 v0.0.0-20231230100618-7370d03fcda3 h1:bPfGUlNy2iCPbLOEk5bCXAWQEHn/H7gYSeiVm09dFZg=
 github.com/tommie/v8go/deps/linux_arm64 v0.0.0-20231230100618-7370d03fcda3/go.mod h1:RRqUJUvKTf8jnA3reWNlunWV3Bg3yJSbasm6j6UDBHc=
 github.com/tommie/v8go/deps/linux_arm64 v0.0.0-20231230103237-af527c0f9162 h1:hMa9wyDSpc5anaep3xpP4F8netl0au1YpW5pYOuLH08=
@@ -358,3 +368,5 @@ github.com/tommie/v8go/deps/linux_arm64 v0.0.0-20250402042413-3ca73eb2ee33 h1:XR
 github.com/tommie/v8go/deps/linux_arm64 v0.0.0-20250402042413-3ca73eb2ee33/go.mod h1:B/myVnZ82IRgW//OzDnHArcOzW8Yq7FbWnMnYPbZ0Hc=
 github.com/tommie/v8go/deps/linux_arm64 v0.0.0-20250430042523-3aa41be1fdd5 h1:6KX0MhS+/Pd6oXKm9vxlr8thaNIcO9QvELEBsk1/4vo=
 github.com/tommie/v8go/deps/linux_arm64 v0.0.0-20250430042523-3aa41be1fdd5/go.mod h1:B/myVnZ82IRgW//OzDnHArcOzW8Yq7FbWnMnYPbZ0Hc=
+github.com/tommie/v8go/deps/linux_arm64 v0.0.0-20250515043113-5dcc98077472 h1:M4fdTyPWq8UbO1OY/5nwCkC3iOIVVfD1YrxnNANRm4U=
+github.com/tommie/v8go/deps/linux_arm64 v0.0.0-20250515043113-5dcc98077472/go.mod h1:B/myVnZ82IRgW//OzDnHArcOzW8Yq7FbWnMnYPbZ0Hc=
