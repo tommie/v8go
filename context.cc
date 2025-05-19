@@ -1,3 +1,4 @@
+#include "deps/include/v8-external.h"
 #include "deps/include/v8-template.h"
 
 #include "context-macros.h"
@@ -27,11 +28,12 @@ ContextPtr NewContext(IsolatePtr iso,
   // side to lookup the context in the context registry. We use slot 1 as slot 0
   // has special meaning for the Chrome debugger.
   Local<Context> local_ctx = Context::New(iso, nullptr, global_template);
-  local_ctx->SetEmbedderData(1, Integer::New(iso, ref));
 
   m_ctx* ctx = new m_ctx;
   ctx->ptr.Reset(iso, local_ctx);
   ctx->iso = iso;
+  local_ctx->SetEmbedderData(1, Integer::New(iso, ref));
+  local_ctx->SetEmbedderData(2, External::New(iso, ctx));
   return ctx;
 }
 

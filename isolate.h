@@ -48,6 +48,7 @@ extern IsolatePtr NewIsolate();
 extern void IsolatePerformMicrotaskCheckpoint(IsolatePtr ptr);
 extern void IsolateDispose(IsolatePtr ptr);
 extern void IsolateTerminateExecution(IsolatePtr ptr);
+extern void IsolateSetPromiseRejectedCallback(IsolatePtr iso, void* handle);
 extern int IsolateIsExecutionTerminating(IsolatePtr ptr);
 extern IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr);
 
