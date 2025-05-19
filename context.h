@@ -13,6 +13,7 @@
 #include "value.h"
 
 namespace v8 {
+class Value;
 class Isolate;
 class Context;
 }  // namespace v8
@@ -30,6 +31,7 @@ struct m_ctx {
 typedef m_ctx* ContextPtr;
 
 extern m_value* tracked_value(m_ctx* ctx, m_value* val);
+extern m_value* track_value(m_ctx* ctx, v8::Local<v8::Value> val);
 
 extern "C" {
 #else
