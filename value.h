@@ -53,7 +53,9 @@ typedef struct {
 } RtnString;
 
 void ValueRelease(ValuePtr ptr);
+void RtnStringRelease(RtnString rtnString);
 extern RtnString ValueToString(ValuePtr ptr);
+extern RtnString ValueTypeOf(ValuePtr ptr);
 const uint32_t* ValueToArrayIndex(ValuePtr ptr);
 int ValueToBoolean(ValuePtr ptr);
 int32_t ValueToInt32(ValuePtr ptr);
@@ -164,5 +166,6 @@ extern BackingStorePtr SharedArrayBufferGetBackingStore(ValuePtr ptr);
 
 #ifdef __cplusplus
 }
+
 #endif
 #endif

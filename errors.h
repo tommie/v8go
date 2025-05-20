@@ -43,6 +43,8 @@ typedef struct {
   RtnError error;
 } RtnValue;
 
+void ErrorRelease(RtnError err);
+
 #ifdef __cplusplus
 }
 #endif

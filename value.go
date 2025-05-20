@@ -240,8 +240,8 @@ func (v *Value) Object() *Object {
 // are returned as-is, objects will return `[object Object]` and functions will
 // print their definition.
 func (v *Value) String() string {
-	s := C.ValueToString(v.ptr)
-	defer C.free(unsafe.Pointer(s.data))
+	var s C.RtnString = C.ValueToString(v.ptr)
+	defer C.RtnStringRelease(s)
 	return C.GoStringN(s.data, C.int(s.length))
 }
 
@@ -617,4 +617,10 @@ func (v *Value) SharedArrayBufferGetContents() ([]byte, func(), error) {
 
 func (v *Value) StrictEquals(other *Value) bool {
 	return C.ValueStrictEquals(v.ptr, other.ptr) != 0
+}
+
+func (v *Value) TypeOf() string {
+	var s C.RtnString = C.ValueTypeOf(v.ptr)
+	defer C.RtnStringRelease(s)
+	return C.GoStringN(s.data, C.int(s.length))
 }
