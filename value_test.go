@@ -817,3 +817,31 @@ func TestValueArrayBufferContents(t *testing.T) {
 		t.Fatalf("Expected an error trying call SharedArrayBufferGetContents on value of incorrect type")
 	}
 }
+
+func TestValueTypeOf(t *testing.T) {
+	t.Parallel()
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	ctx := v8.NewContext(iso)
+	defer ctx.Close()
+
+	str1, _ := v8.NewValue(iso, "String")
+	if got := str1.TypeOf(); got != "string" {
+		t.Errorf(`NewValue("String"): expected string, got %s`, got)
+	}
+
+	str2, _ := ctx.RunScript("'string'", "")
+	if got := str2.TypeOf(); got != "string" {
+		t.Errorf("TypeOf('string'): expected string, got %s", got)
+	}
+
+	num1, _ := v8.NewValue(iso, 0.01)
+	if got := num1.TypeOf(); got != "number" {
+		t.Errorf(`NewValue(0.01): expected number, got %s`, got)
+	}
+
+	num2, _ := ctx.RunScript("0.01", "")
+	if got := num2.TypeOf(); got != "number" {
+		t.Errorf("TypeOf(0.01): expected number, got %s", got)
+	}
+}
