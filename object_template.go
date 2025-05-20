@@ -107,10 +107,10 @@ func (o *ObjectTemplate) apply(opts *contextOptions) {
 }
 
 // MarkAsUndetectable marks object instances of the template as undetectable. Undetectable
-// objects behave like `undefined`, but you can access properties defined on undetectable
+// objects behave like undefined, but you can access properties defined on undetectable
 // objects.
 //
-// Note: Undetectable objects MUST have a `CallAsFunctionHandler`, see
+// Note: Undetectable objects MUST have a CallAsFunctionHandler, see
 // [ObjectTemplate.SetCallAsFunctionHandler]
 func (o *ObjectTemplate) MarkAsUndetectable() {
 	C.ObjectTemplateMarkAsUndetectable(o.ptr)
