@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add support for ObjectTemplate.MarkAsUndetectable.
 - Add `Value.StrictEquals` providing strict equality checks in Go code
+- Add support for `Value.TypeOf()` corresponding to JavaScript `typeof` operator.
 
 ### Changed
 
