@@ -399,7 +399,7 @@ func (v *Value) IsNumber() bool {
 // IsExternal returns true if this value is an `External` object.
 func (v *Value) IsExternal() bool {
 	// TODO(rogchap): requires test case
-	return v.ctx != nil && C.ValueIsExternal(v.ptr) != 0
+	return C.ValueIsExternal(v.ptr) != 0
 }
 
 // IsInt32 returns true if this value is a 32-bit signed integer.
