@@ -6,11 +6,13 @@ package v8go_test
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
 	"reflect"
 	"runtime"
+	"runtime/cgo"
 	"testing"
 
 	v8 "github.com/tommie/v8go"
@@ -815,5 +817,57 @@ func TestValueArrayBufferContents(t *testing.T) {
 	_, _, err = val.SharedArrayBufferGetContents()
 	if err == nil {
 		t.Fatalf("Expected an error trying call SharedArrayBufferGetContents on value of incorrect type")
+	}
+}
+
+type InternalValue struct {
+	value int
+}
+
+func (v *InternalValue) Increment() { v.value++ }
+
+func TestValueExternalHandle(t *testing.T) {
+	t.Parallel()
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+
+	ctx := v8.NewContext(iso)
+	defer ctx.Close()
+
+	internal := &InternalValue{}
+	handle := cgo.NewHandle(internal)
+	defer handle.Delete()
+
+	ft := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+		return nil
+	})
+	ft.PrototypeTemplate().
+		Set("increment", v8.NewFunctionTemplateWithError(iso, func(info *v8.FunctionCallbackInfo) (*v8.Value, error) {
+			handle := info.This().GetInternalField(0).ExternalHandle()
+			if handle == 0 {
+				return nil, errors.New("Invalid handle")
+			}
+			if instance, ok := handle.Value().(*InternalValue); ok {
+				instance.Increment()
+				return nil, nil
+			} else {
+				return nil, errors.New("Not the right type")
+			}
+		}))
+	ft.InstanceTemplate().SetInternalFieldCount(1)
+	instance, err := ft.InstanceTemplate().NewInstance(ctx)
+	if err != nil {
+		t.Fatal("Error creating instance")
+	}
+	value := v8.NewValueExternalHandle(iso, handle)
+	instance.SetInternalField(0, value)
+
+	ctx.Global().Set("internal", instance)
+	_, err = ctx.RunScript("internal.increment(); internal.increment()", "")
+	if err != nil {
+		t.Error("Error running script", err)
+	}
+	if internal.value != 2 {
+		t.Errorf("Value not incremented. Expected 2, got %d", internal.value)
 	}
 }

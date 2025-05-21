@@ -93,8 +93,25 @@ func (o *Object) SetIdx(idx uint32, val interface{}) error {
 	return nil
 }
 
-// SetInternalField sets the value of an internal field for an ObjectTemplate instance.
-// Panics if the index isn't in the range set by (*ObjectTemplate).SetInternalFieldCount.
+// SetInternalField sets the value of an internal field for an ObjectTemplate
+// instance. The object must be created from an ObjectTemplate, either from a
+// call to [ObjectTemplate.NewInstance], or as a new instance of a class. In
+// which case the object template is the [FunctionTemplate.InstanceTemplate]
+// of the constructor.
+//
+// Before setting the internal field, is is necessary to call
+// [ObjectTemplate.SetInternalFieldCount] indicating how many internal fields
+// exist.
+//
+// The function panics if the object is not created from an object template, or
+// the index is outside the range of internal field count.
+//
+// Example use cases:
+//   - An object implementing a [javascript iterator] can store the current index being iterated.
+//   - An object that exposes a native Go object to script code can store a
+//     reference. See also [NewValueExternalHandle] for this case
+//
+// [javascript iterator]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols
 func (o *Object) SetInternalField(idx uint32, val interface{}) error {
 	value, err := coerceValue(o.ctx.iso, val)
 
