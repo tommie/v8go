@@ -614,3 +614,7 @@ func (v *Value) SharedArrayBufferGetContents() ([]byte, func(), error) {
 
 	return byte_slice, release, nil
 }
+
+func (v *Value) StrictEquals(other *Value) bool {
+	return C.ValueStrictEquals(v.ptr, other.ptr) != 0
+}
