@@ -1,8 +1,11 @@
 #include "deps/include/v8-context.h"
+#include "deps/include/v8-external.h"
 #include "deps/include/v8-initialization.h"
 #include "deps/include/v8-locker.h"
 #include "deps/include/v8-platform.h"
+#include "deps/include/v8-promise.h"
 
+#include "_cgo_export.h"
 #include "context.h"
 #include "isolate.h"
 #include "libplatform/libplatform.h"
@@ -72,6 +75,26 @@ void IsolateTerminateExecution(IsolatePtr iso) {
 
 int IsolateIsExecutionTerminating(IsolatePtr iso) {
   return iso->IsExecutionTerminating();
+}
+
+void promiseRejectedCallback(v8::PromiseRejectMessage message) {
+  auto iso = message.GetPromise()->GetIsolate();
+
+  Local<Promise> prom = message.GetPromise();
+  auto handle = iso->GetData(1);
+  Local<Context> v8Ctx = prom->GetCreationContext(iso).ToLocalChecked();
+  Local<External> ext = v8Ctx->GetEmbedderData(2).As<External>();
+  int ctx_ref = v8Ctx->GetEmbedderData(1).As<Integer>()->Value();
+  m_ctx* ctx = (m_ctx*)ext->Value();
+  Local<Value> val = message.GetValue();
+  goRejectedPromiseCallback(ctx_ref, handle, message.GetEvent(),
+                            track_value(ctx, prom), track_value(ctx, val));
+}
+
+void IsolateSetPromiseRejectedCallback(IsolatePtr iso, void* handle) {
+  ISOLATE_SCOPE(iso)
+  iso->SetData(1, handle);
+  iso->SetPromiseRejectCallback(promiseRejectedCallback);
 }
 
 IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr iso) {
