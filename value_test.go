@@ -835,21 +835,21 @@ func TestValueStrictEquals(t *testing.T) {
 	}
 
 	if !numberOne.StrictEquals(numberOneB) {
-		t.Fatalf("Number 1 and Number 1 should be strict equal")
+		t.Errorf("Number 1 and Number 1 should be strict equal")
 	}
 	if numberOne.StrictEquals(stringOne) {
-		t.Fatalf("Number 1 and string '1' should not be strict equal")
+		t.Errorf("Number 1 and string '1' should not be strict equal")
 	}
 
 	if numberOne.StrictEquals(numberTwo) {
-		t.Fatalf("Number 1 and number 2 should not be strict equal")
+		t.Errorf("Number 1 and number 2 should not be strict equal")
 	}
 
 	if !function.StrictEquals(sameFunction) {
-		t.Fatalf("Getting the same function variable twice should be strict equal")
+		t.Errorf("Getting the same function variable twice should be strict equal")
 	}
 
 	if function.StrictEquals(anotherFunction) {
-		t.Fatalf("Comparing two different functions should not be strict equal")
+		t.Errorf("Comparing two different functions should not be strict equal")
 	}
 }
