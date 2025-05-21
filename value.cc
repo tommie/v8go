@@ -5,7 +5,6 @@
 #include "deps/include/v8-exception.h"
 #include "errors.h"
 #include "isolate-macros.h"
-#include "utils.h"
 #include "value-macros.h"
 
 #define ISOLATE_SCOPE_INTERNAL_CONTEXT(iso) \
@@ -17,7 +16,7 @@ using namespace v8;
 RtnString StringToRtnString(v8::Isolate* iso, Local<String> val) {
   RtnString res = {};
   res.length = val->Utf8LengthV2(iso);
-  res.data = static_cast<char*>(malloc(res.length));
+  res.data = (char*)(malloc(res.length));
   val->WriteUtf8V2(iso, (char*)res.data, res.length);
   return res;
 }
