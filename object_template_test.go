@@ -27,10 +27,9 @@ func TestObjectTemplate(t *testing.T) {
 
 	val, _ := v8.NewValue(iso, "bar")
 	objVal := v8.NewObjectTemplate(iso)
-	bigbigint, _ := new(
-		big.Int,
-	).SetString("36893488147419099136", 10)
+
 	// larger than a single word size (64bit)
+	bigbigint, _ := new(big.Int).SetString("36893488147419099136", 10)
 	bigbignegint, _ := new(big.Int).SetString("-36893488147419099136", 10)
 
 	tests := [...]struct {
@@ -272,4 +271,124 @@ func ExampleObjectTemplate_SetAccessorProperty() {
 	fmt.Printf("Property value: %s\n", value.String())
 	// Output:
 	// Property value: Value
+}
+
+func TestObjectTemplateSetCallAsFunctionHandler(t *testing.T) {
+	t.Parallel()
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	tmpl := v8.NewObjectTemplate(iso)
+	ctx := v8.NewContext(iso)
+	defer ctx.Close()
+
+	tmpl.SetCallAsFunctionHandler(func(info *v8.FunctionCallbackInfo) (*v8.Value, error) {
+		return v8.NewValue(iso, "42")
+	})
+	instance, err := tmpl.NewInstance(ctx)
+	if err != nil {
+		t.Fatalf("Error creating instance: %v", err)
+	}
+	ctx.Global().Set("obj", instance)
+
+	res, err := ctx.RunScript(`obj()`, "")
+	resStr := res.String()
+	if resStr != "42" {
+		t.Errorf(`unexpected result. Expected "42", got: %s`, resStr)
+	}
+}
+
+func TestObjectTemplateMarkAsUndetectable(t *testing.T) {
+	t.Parallel()
+
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	obj := v8.NewObjectTemplate(iso)
+	obj.SetCallAsFunctionHandler(func(info *v8.FunctionCallbackInfo) (*v8.Value, error) {
+		return info.This().Value, nil
+	})
+	obj.MarkAsUndetectable()
+	ctx := v8.NewContext(iso)
+	defer ctx.Close()
+	v, err := v8.NewValue(iso, "42")
+	if err != nil {
+		t.Fatalf("Error creating value: %v", err)
+	}
+	obj.Set("val", v)
+	instance, err := obj.NewInstance(ctx)
+	if err != nil {
+		t.Fatalf("Error calling NewInstance: %v", err)
+	}
+	ctx.Global().Set("obj", instance)
+	res, err := ctx.RunScript("typeof obj", "")
+	if err != nil {
+		t.Fatalf("Error run 'typeof obj': %v", err)
+	}
+	str := res.String()
+	if str != "undefined" {
+		t.Errorf(`Expected 'typeof obj' to return "undefined", got: %#v`, str)
+	}
+	res, err = ctx.RunScript("obj.val", "")
+	if err != nil {
+		t.Fatalf("Error evaluating 'obj.val': %v", err)
+	}
+	str = res.String()
+	if str != "42" {
+		t.Errorf(`Expected 'typeof obj' to return "42", got: %s`, str)
+	}
+}
+
+func TestObjectTemplateMarkAsUndetectableOnInstanceTemplate(t *testing.T) {
+	t.Parallel()
+
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	ctx := v8.NewContext(iso)
+	defer ctx.Close()
+
+	desc := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+		return nil
+	})
+	desc.InstanceTemplate().MarkAsUndetectable()
+	desc.InstanceTemplate().
+		SetCallAsFunctionHandler(func(info *v8.FunctionCallbackInfo) (*v8.Value, error) {
+			return info.This().Value, nil
+		})
+	instance, err := desc.InstanceTemplate().NewInstance(ctx)
+	if err != nil {
+		t.Fatalf("Error creating instance: %v", err)
+	}
+	ctx.Global().Set("undetectable", instance)
+
+	res, err := ctx.RunScript("undetectable.toString()", "")
+	if err != nil {
+		t.Errorf("Error calling toString(): %v", err)
+	} else {
+		if res.String() != "[object Object]" {
+			t.Errorf(
+				`Error running "undetectable.toString()". Expected "[object Object]", got: %s`,
+				res.String(),
+			)
+		}
+	}
+
+	res, err = ctx.RunScript("typeof undetectable", "")
+	if err != nil {
+		t.Errorf("Error calling typeof undetectable: %v", err)
+	} else {
+		if res.String() != "undefined" {
+			t.Errorf(
+				`Error running "typeof undetectable". Expected "undefined", got: %s`,
+				res.String(),
+			)
+		}
+	}
+
+	res, err = ctx.RunScript("Boolean(undetectable)", "")
+	if err != nil {
+		t.Errorf("Error calling typeof undetectable: %v", err)
+	} else {
+		if res.Boolean() {
+			t.Errorf("Expected undetectable object to be falsy")
+		}
+	}
 }

@@ -105,3 +105,27 @@ func (o *ObjectTemplate) InternalFieldCount() uint32 {
 func (o *ObjectTemplate) apply(opts *contextOptions) {
 	opts.gTmpl = o
 }
+
+// MarkAsUndetectable marks object instances of the template as undetectable. Undetectable
+// objects behave like undefined, but you can access properties defined on undetectable
+// objects.
+//
+// Note: Undetectable objects MUST have a CallAsFunctionHandler, see
+// [ObjectTemplate.SetCallAsFunctionHandler]
+func (o *ObjectTemplate) MarkAsUndetectable() {
+	C.ObjectTemplateMarkAsUndetectable(o.ptr)
+}
+
+// SetCallAsFunctionHandler sets the callback to be used when calling instances created
+// from this template. If no callback is set, instances behave like normal JavaScript
+// objects that cannot be called as a function.
+func (o *ObjectTemplate) SetCallAsFunctionHandler(callback FunctionCallbackWithError) {
+	if callback == nil {
+		panic("nil callback argument not supported")
+	}
+	cbref := o.iso.registerCallback(callback)
+	C.ObjectTemplateSetCallAsFunctionHandler(
+		o.ptr,
+		C.int(cbref),
+	)
+}
