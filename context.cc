@@ -1,3 +1,4 @@
+#include "context.h"
 #include "deps/include/v8-external.h"
 #include "deps/include/v8-template.h"
 
@@ -32,8 +33,9 @@ ContextPtr NewContext(IsolatePtr iso,
   m_ctx* ctx = new m_ctx;
   ctx->ptr.Reset(iso, local_ctx);
   ctx->iso = iso;
-  local_ctx->SetEmbedderData(1, Integer::New(iso, ref));
-  local_ctx->SetEmbedderData(2, External::New(iso, ctx));
+  local_ctx->SetEmbedderData(ContextDataIndex::REF, Integer::New(iso, ref));
+  local_ctx->SetEmbedderData(ContextDataIndex::WRAPPER_PTR,
+                             External::New(iso, ctx));
   return ctx;
 }
 
@@ -129,4 +131,10 @@ RtnValue RunScript(ContextPtr ctx, const char* source, const char* origin) {
 
   rtn.value = tracked_value(ctx, val);
   return rtn;
+}
+
+m_ctx* m_ctx::FromV8Context(v8::Local<v8::Context> ctx) {
+  return (m_ctx*)ctx->GetEmbedderData(ContextDataIndex::WRAPPER_PTR)
+      .As<External>()
+      ->Value();
 }
