@@ -9,6 +9,7 @@ package v8go
 import "C"
 
 import (
+	"fmt"
 	"sync"
 	"unsafe"
 )
@@ -137,6 +138,25 @@ func (i *Isolate) GetHeapStatistics() HeapStatistics {
 		NumberOfNativeContexts:   uint64(hs.number_of_native_contexts),
 		NumberOfDetachedContexts: uint64(hs.number_of_detached_contexts),
 	}
+}
+
+func (i *Isolate) FullGC() {
+	C.IsolateFullGC(i.ptr)
+}
+
+func (i *Isolate) WriteSnapshot(filename string, bForceGC bool) error {
+	cFilename := C.CString(filename)
+	defer C.free(unsafe.Pointer(cFilename))
+	nForceGC := C.int(0)
+	if bForceGC {
+		nForceGC = C.int(1)
+	}
+
+	errNum := C.IsolateWriteSnapshot(i.ptr, cFilename, nForceGC)
+	if errNum == 0 {
+		return nil
+	}
+	return fmt.Errorf("errno: %d", int(errNum))
 }
 
 // Dispose will dispose the Isolate VM; subsequent calls will panic.
