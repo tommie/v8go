@@ -2,6 +2,7 @@
 #define V8GO_ISOLATE_H
 
 #include "unbound_script.h"
+#include "resource_constraints.h"
 
 #ifdef __cplusplus
 
@@ -45,6 +46,7 @@ typedef struct {
 } IsolateHStatistics;
 
 extern IsolatePtr NewIsolate();
+extern IsolatePtr NewIsolateWithConstraints(ResourceConstraintsPtr constraints);
 extern void IsolatePerformMicrotaskCheckpoint(IsolatePtr ptr);
 extern void IsolateDispose(IsolatePtr ptr);
 extern void IsolateTerminateExecution(IsolatePtr ptr);

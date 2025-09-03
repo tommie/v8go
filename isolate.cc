@@ -5,6 +5,7 @@
 
 #include "context.h"
 #include "isolate.h"
+#include "resource_constraints.h"
 #include "libplatform/libplatform.h"
 
 using namespace v8;
@@ -33,8 +34,15 @@ void Init() {
 }
 
 IsolatePtr NewIsolate() {
+  return NewIsolateWithConstraints(nullptr);
+}
+
+IsolatePtr NewIsolateWithConstraints(ResourceConstraintsPtr constraints) {
   Isolate::CreateParams params;
   params.array_buffer_allocator = default_allocator;
+  if (constraints != nullptr) {
+    params.constraints = *constraints;
+  }
   Isolate* iso = Isolate::New(params);
   Locker locker(iso);
   Isolate::Scope isolate_scope(iso);

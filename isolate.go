@@ -50,9 +50,24 @@ type HeapStatistics struct {
 // An *Isolate can be used as a v8go.ContextOption to create a new
 // Context, rather than creating a new default Isolate.
 func NewIsolate() *Isolate {
+	return NewIsolateWithConstraints(nil)
+}
+
+// NewIsolateWithConstraints creates a new V8 isolate with the specified
+// resource constraints. The resource constraints must be set before
+// initializing the VM - they cannot be adjusted after the VM is initialized.
+// When an isolate is no longer used its resources should be freed
+// by calling iso.Dispose().
+// An *Isolate can be used as a v8go.ContextOption to create a new
+// Context, rather than creating a new default Isolate.
+func NewIsolateWithConstraints(constraints *ResourceConstraints) *Isolate {
 	initializeIfNecessary()
+	var constraintsPtr C.ResourceConstraintsPtr
+	if constraints != nil {
+		constraintsPtr = constraints.ptr
+	}
 	iso := &Isolate{
-		ptr: C.NewIsolate(),
+		ptr: C.NewIsolateWithConstraints(constraintsPtr),
 		cbs: make(map[int]FunctionCallbackWithError),
 	}
 	iso.null = newValueNull(iso)
