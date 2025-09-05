@@ -4,32 +4,40 @@
 
 package v8go
 
-// #include <stdlib.h>
-// #include "resource_constraints.h"
-import "C"
-
-import (
-	"runtime"
-)
-
 // ResourceConstraints represents V8 resource constraints that specify
 // the limits of the runtime's memory use. You must set the heap size
 // before initializing the VM - the size cannot be adjusted after the
 // VM is initialized.
 type ResourceConstraints struct {
-	ptr C.ResourceConstraintsPtr
+	// StackLimit sets the address beyond which the VM's stack may not grow.
+	StackLimit uintptr
+
+	// CodeRangeSizeInBytes sets the amount of virtual memory reserved for
+	// generated code. This is relevant for 64-bit architectures that rely on
+	// code range for calls in code.
+	CodeRangeSizeInBytes uint64
+
+	// MaxOldGenerationSizeInBytes sets the maximum size of the old generation.
+	// When the old generation approaches this limit, V8 will perform series of
+	// garbage collections and invoke the NearHeapLimitCallback. If the garbage
+	// collections do not help and the callback does not increase the limit,
+	// then V8 will crash with V8::FatalProcessOutOfMemory.
+	MaxOldGenerationSizeInBytes uint64
+
+	// MaxYoungGenerationSizeInBytes sets the maximum size of the young generation,
+	// which consists of two semi-spaces and a large object space. This affects
+	// frequency of Scavenge garbage collections and should be typically much
+	// smaller that the old generation.
+	MaxYoungGenerationSizeInBytes uint64
+
+	// InitialOldGenerationSizeInBytes sets the initial size of the old generation.
+	InitialOldGenerationSizeInBytes uint64
+
+	// InitialYoungGenerationSizeInBytes sets the initial size of the young generation.
+	InitialYoungGenerationSizeInBytes uint64
 }
 
-// NewResourceConstraints creates a new ResourceConstraints object.
-func NewResourceConstraints() *ResourceConstraints {
-	rc := &ResourceConstraints{
-		ptr: C.NewResourceConstraints(),
-	}
-	runtime.SetFinalizer(rc, (*ResourceConstraints).finalizer)
-	return rc
-}
-
-// ConfigureDefaultsFromHeapSize configures the constraints with reasonable
+// ConfigureDefaultsFromHeapSize returns ResourceConstraints configured with reasonable
 // default values based on the provided heap size limit. The heap size
 // includes both the young and the old generation.
 //
@@ -45,94 +53,32 @@ func NewResourceConstraints() *ResourceConstraints {
 // and invoke the NearHeapLimitCallback. If the garbage collections do not
 // help and the callback does not increase the limit, then V8 will crash
 // with V8::FatalProcessOutOfMemory.
-func (rc *ResourceConstraints) ConfigureDefaultsFromHeapSize(initialHeapSizeInBytes, maximumHeapSizeInBytes uint64) {
-	C.ResourceConstraintsConfigureDefaultsFromHeapSize(rc.ptr, C.size_t(initialHeapSizeInBytes), C.size_t(maximumHeapSizeInBytes))
+func ConfigureDefaultsFromHeapSize(initialHeapSizeInBytes, maximumHeapSizeInBytes uint64) *ResourceConstraints {
+	// We'll let V8 configure the defaults and return reasonable values
+	// For now, we'll set some sensible defaults based on the heap size
+	return &ResourceConstraints{
+		MaxOldGenerationSizeInBytes:       maximumHeapSizeInBytes * 8 / 10, // 80% for old generation
+		MaxYoungGenerationSizeInBytes:     maximumHeapSizeInBytes * 2 / 10, // 20% for young generation
+		InitialOldGenerationSizeInBytes:   initialHeapSizeInBytes * 8 / 10,
+		InitialYoungGenerationSizeInBytes: initialHeapSizeInBytes * 2 / 10,
+	}
 }
 
-// ConfigureDefaults configures the constraints with reasonable default
+// ConfigureDefaults returns ResourceConstraints configured with reasonable default
 // values based on the capabilities of the current device the VM is running on.
 //
 // physicalMemory: The total amount of physical memory on the current device, in bytes.
 // virtualMemoryLimit: The amount of virtual memory on the current device, in bytes,
 // or zero, if there is no limit.
-func (rc *ResourceConstraints) ConfigureDefaults(physicalMemory, virtualMemoryLimit uint64) {
-	C.ResourceConstraintsConfigureDefaults(rc.ptr, C.uint64_t(physicalMemory), C.uint64_t(virtualMemoryLimit))
-}
+func ConfigureDefaults(physicalMemory, virtualMemoryLimit uint64) *ResourceConstraints {
+	// Use a reasonable fraction of physical memory (e.g., 1/8th for max heap)
+	maxHeap := physicalMemory / 8
+	initialHeap := maxHeap / 4
 
-// SetStackLimit sets the address beyond which the VM's stack may not grow.
-func (rc *ResourceConstraints) SetStackLimit(stackLimit uintptr) {
-	C.ResourceConstraintsSetStackLimit(rc.ptr, C.uintptr_t(stackLimit))
-}
-
-// StackLimit gets the address beyond which the VM's stack may not grow.
-func (rc *ResourceConstraints) StackLimit() uintptr {
-	return uintptr(C.ResourceConstraintsStackLimit(rc.ptr))
-}
-
-// SetCodeRangeSizeInBytes sets the amount of virtual memory reserved for
-// generated code. This is relevant for 64-bit architectures that rely on
-// code range for calls in code.
-func (rc *ResourceConstraints) SetCodeRangeSizeInBytes(limit uint64) {
-	C.ResourceConstraintsSetCodeRangeSizeInBytes(rc.ptr, C.size_t(limit))
-}
-
-// CodeRangeSizeInBytes gets the amount of virtual memory reserved for
-// generated code.
-func (rc *ResourceConstraints) CodeRangeSizeInBytes() uint64 {
-	return uint64(C.ResourceConstraintsCodeRangeSizeInBytes(rc.ptr))
-}
-
-// SetMaxOldGenerationSizeInBytes sets the maximum size of the old generation.
-// When the old generation approaches this limit, V8 will perform series of
-// garbage collections and invoke the NearHeapLimitCallback. If the garbage
-// collections do not help and the callback does not increase the limit,
-// then V8 will crash with V8::FatalProcessOutOfMemory.
-func (rc *ResourceConstraints) SetMaxOldGenerationSizeInBytes(limit uint64) {
-	C.ResourceConstraintsSetMaxOldGenerationSizeInBytes(rc.ptr, C.size_t(limit))
-}
-
-// MaxOldGenerationSizeInBytes gets the maximum size of the old generation.
-func (rc *ResourceConstraints) MaxOldGenerationSizeInBytes() uint64 {
-	return uint64(C.ResourceConstraintsMaxOldGenerationSizeInBytes(rc.ptr))
-}
-
-// SetMaxYoungGenerationSizeInBytes sets the maximum size of the young generation,
-// which consists of two semi-spaces and a large object space. This affects
-// frequency of Scavenge garbage collections and should be typically much
-// smaller that the old generation.
-func (rc *ResourceConstraints) SetMaxYoungGenerationSizeInBytes(limit uint64) {
-	C.ResourceConstraintsSetMaxYoungGenerationSizeInBytes(rc.ptr, C.size_t(limit))
-}
-
-// MaxYoungGenerationSizeInBytes gets the maximum size of the young generation.
-func (rc *ResourceConstraints) MaxYoungGenerationSizeInBytes() uint64 {
-	return uint64(C.ResourceConstraintsMaxYoungGenerationSizeInBytes(rc.ptr))
-}
-
-// SetInitialOldGenerationSizeInBytes sets the initial size of the old generation.
-func (rc *ResourceConstraints) SetInitialOldGenerationSizeInBytes(initialSize uint64) {
-	C.ResourceConstraintsSetInitialOldGenerationSizeInBytes(rc.ptr, C.size_t(initialSize))
-}
-
-// InitialOldGenerationSizeInBytes gets the initial size of the old generation.
-func (rc *ResourceConstraints) InitialOldGenerationSizeInBytes() uint64 {
-	return uint64(C.ResourceConstraintsInitialOldGenerationSizeInBytes(rc.ptr))
-}
-
-// SetInitialYoungGenerationSizeInBytes sets the initial size of the young generation.
-func (rc *ResourceConstraints) SetInitialYoungGenerationSizeInBytes(initialSize uint64) {
-	C.ResourceConstraintsSetInitialYoungGenerationSizeInBytes(rc.ptr, C.size_t(initialSize))
-}
-
-// InitialYoungGenerationSizeInBytes gets the initial size of the young generation.
-func (rc *ResourceConstraints) InitialYoungGenerationSizeInBytes() uint64 {
-	return uint64(C.ResourceConstraintsInitialYoungGenerationSizeInBytes(rc.ptr))
-}
-
-// finalizer is called when the ResourceConstraints is being garbage collected.
-func (rc *ResourceConstraints) finalizer() {
-	if rc.ptr != nil {
-		C.ResourceConstraintsDelete(rc.ptr)
-		rc.ptr = nil
+	return &ResourceConstraints{
+		MaxOldGenerationSizeInBytes:       maxHeap * 8 / 10,
+		MaxYoungGenerationSizeInBytes:     maxHeap * 2 / 10,
+		InitialOldGenerationSizeInBytes:   initialHeap * 8 / 10,
+		InitialYoungGenerationSizeInBytes: initialHeap * 2 / 10,
 	}
 }

@@ -42,37 +42,63 @@ type HeapStatistics struct {
 	NumberOfDetachedContexts uint64
 }
 
-// NewIsolate creates a new V8 isolate. Only one thread may access
-// a given isolate at a time, but different threads may access
-// different isolates simultaneously.
-// When an isolate is no longer used its resources should be freed
-// by calling iso.Dispose().
-// An *Isolate can be used as a v8go.ContextOption to create a new
-// Context, rather than creating a new default Isolate.
-func NewIsolate() *Isolate {
-	return NewIsolateWithConstraints(nil)
+// IsolateOption configures an Isolate on creation.
+type IsolateOption func(*isolateConfig)
+
+// isolateConfig holds the configuration for creating an isolate.
+type isolateConfig struct {
+	resourceConstraints *ResourceConstraints
 }
 
-// NewIsolateWithConstraints creates a new V8 isolate with the specified
-// resource constraints. The resource constraints must be set before
-// initializing the VM - they cannot be adjusted after the VM is initialized.
+// WithResourceConstraints sets resource constraints for the isolate.
+func WithResourceConstraints(constraints *ResourceConstraints) IsolateOption {
+	return func(config *isolateConfig) {
+		config.resourceConstraints = constraints
+	}
+}
+
+// NewIsolate creates a new V8 isolate with the provided options.
+// Only one thread may access a given isolate at a time, but different
+// threads may access different isolates simultaneously.
 // When an isolate is no longer used its resources should be freed
 // by calling iso.Dispose().
 // An *Isolate can be used as a v8go.ContextOption to create a new
 // Context, rather than creating a new default Isolate.
-func NewIsolateWithConstraints(constraints *ResourceConstraints) *Isolate {
+func NewIsolate(opts ...IsolateOption) *Isolate {
 	initializeIfNecessary()
-	var constraintsPtr C.ResourceConstraintsPtr
-	if constraints != nil {
-		constraintsPtr = constraints.ptr
+
+	config := &isolateConfig{}
+	for _, opt := range opts {
+		opt(config)
 	}
+
+	var cConstraints C.IsolateConstraints
+	if config.resourceConstraints != nil {
+		cConstraints = C.IsolateConstraints{
+			stack_limit:                            C.uintptr_t(config.resourceConstraints.StackLimit),
+			code_range_size_in_bytes:               C.size_t(config.resourceConstraints.CodeRangeSizeInBytes),
+			max_old_generation_size_in_bytes:       C.size_t(config.resourceConstraints.MaxOldGenerationSizeInBytes),
+			max_young_generation_size_in_bytes:     C.size_t(config.resourceConstraints.MaxYoungGenerationSizeInBytes),
+			initial_old_generation_size_in_bytes:   C.size_t(config.resourceConstraints.InitialOldGenerationSizeInBytes),
+			initial_young_generation_size_in_bytes: C.size_t(config.resourceConstraints.InitialYoungGenerationSizeInBytes),
+		}
+	}
+
 	iso := &Isolate{
-		ptr: C.NewIsolateWithConstraints(constraintsPtr),
+		ptr: C.NewIsolateWithOptions(cConstraints, C.int(boolToInt(config.resourceConstraints != nil))),
 		cbs: make(map[int]FunctionCallbackWithError),
 	}
 	iso.null = newValueNull(iso)
 	iso.undefined = newValueUndefined(iso)
 	return iso
+}
+
+// boolToInt converts a boolean to an integer for C interop
+func boolToInt(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }
 
 // TerminateExecution terminates forcefully the current thread

@@ -2,7 +2,6 @@
 #define V8GO_ISOLATE_H
 
 #include "unbound_script.h"
-#include "resource_constraints.h"
 
 #ifdef __cplusplus
 
@@ -45,8 +44,16 @@ typedef struct {
   size_t number_of_detached_contexts;
 } IsolateHStatistics;
 
-extern IsolatePtr NewIsolate();
-extern IsolatePtr NewIsolateWithConstraints(ResourceConstraintsPtr constraints);
+typedef struct {
+  uintptr_t stack_limit;
+  size_t code_range_size_in_bytes;
+  size_t max_old_generation_size_in_bytes;
+  size_t max_young_generation_size_in_bytes;
+  size_t initial_old_generation_size_in_bytes;
+  size_t initial_young_generation_size_in_bytes;
+} IsolateConstraints;
+
+extern IsolatePtr NewIsolateWithOptions(IsolateConstraints constraints, int has_constraints);
 extern void IsolatePerformMicrotaskCheckpoint(IsolatePtr ptr);
 extern void IsolateDispose(IsolatePtr ptr);
 extern void IsolateTerminateExecution(IsolatePtr ptr);

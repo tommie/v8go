@@ -5,7 +5,6 @@
 
 #include "context.h"
 #include "isolate.h"
-#include "resource_constraints.h"
 #include "libplatform/libplatform.h"
 
 using namespace v8;
@@ -33,16 +32,33 @@ void Init() {
   return;
 }
 
-IsolatePtr NewIsolate() {
-  return NewIsolateWithConstraints(nullptr);
-}
-
-IsolatePtr NewIsolateWithConstraints(ResourceConstraintsPtr constraints) {
+IsolatePtr NewIsolateWithOptions(IsolateConstraints constraints, int has_constraints) {
   Isolate::CreateParams params;
   params.array_buffer_allocator = default_allocator;
-  if (constraints != nullptr) {
-    params.constraints = *constraints;
+
+  if (has_constraints) {
+    ResourceConstraints rc;
+    if (constraints.stack_limit != 0) {
+      rc.set_stack_limit(reinterpret_cast<uint32_t*>(constraints.stack_limit));
+    }
+    if (constraints.code_range_size_in_bytes != 0) {
+      rc.set_code_range_size_in_bytes(constraints.code_range_size_in_bytes);
+    }
+    if (constraints.max_old_generation_size_in_bytes != 0) {
+      rc.set_max_old_generation_size_in_bytes(constraints.max_old_generation_size_in_bytes);
+    }
+    if (constraints.max_young_generation_size_in_bytes != 0) {
+      rc.set_max_young_generation_size_in_bytes(constraints.max_young_generation_size_in_bytes);
+    }
+    if (constraints.initial_old_generation_size_in_bytes != 0) {
+      rc.set_initial_old_generation_size_in_bytes(constraints.initial_old_generation_size_in_bytes);
+    }
+    if (constraints.initial_young_generation_size_in_bytes != 0) {
+      rc.set_initial_young_generation_size_in_bytes(constraints.initial_young_generation_size_in_bytes);
+    }
+    params.constraints = rc;
   }
+
   Isolate* iso = Isolate::New(params);
   Locker locker(iso);
   Isolate::Scope isolate_scope(iso);
