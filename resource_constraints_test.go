@@ -5,7 +5,6 @@
 package v8go_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/tommie/v8go"
@@ -131,49 +130,4 @@ func TestNewIsolateWithNilConstraints(t *testing.T) {
 	if !val.IsString() || val.String() != "hello world" {
 		t.Errorf("expected 'hello world', got %v", val)
 	}
-}
-
-// ExampleResourceConstraints demonstrates how to use ResourceConstraints
-// to limit V8's memory usage when creating an isolate.
-func ExampleResourceConstraints() {
-
-	// Create ResourceConstraints to limit memory usage
-	constraints := &v8go.ResourceConstraints{
-		MaxOldGenerationSizeInBytes:       100 * 1024 * 1024, // 100MB max
-		MaxYoungGenerationSizeInBytes:     10 * 1024 * 1024,  // 10MB max
-		InitialOldGenerationSizeInBytes:   50 * 1024 * 1024,  // 50MB initial
-		InitialYoungGenerationSizeInBytes: 5 * 1024 * 1024,   // 5MB initial
-	}
-
-	// Alternative: use convenience functions to configure defaults
-	// constraints := v8go.ConfigureDefaultsFromHeapSize(64*1024*1024, 512*1024*1024) // 64MB initial, 512MB max
-	// constraints := v8go.ConfigureDefaults(8*1024*1024*1024, 0) // Based on 8GB physical memory, no virtual limit
-
-	// Create an isolate with the specified constraints using initializer function
-	iso := v8go.NewIsolate(v8go.WithResourceConstraints(constraints))
-	defer iso.Dispose()
-
-	// Create a context and run JavaScript
-	ctx := v8go.NewContext(iso)
-	defer ctx.Close()
-
-	script := `
-		const data = [];
-		for (let i = 0; i < 100; i++) {
-			data.push({ id: i, message: "Hello from constrained V8!" });
-		}
-		data.length;
-	`
-
-	result, err := ctx.RunScript(script, "example.js")
-	if err != nil {
-		panic(err)
-	}
-
-	// Get heap statistics to see actual memory usage
-	stats := iso.GetHeapStatistics()
-	_ = stats // Use stats to check memory usage if needed
-
-	fmt.Print(result.String())
-	// Output: 100
 }
