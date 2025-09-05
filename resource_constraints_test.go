@@ -79,13 +79,10 @@ func TestResourceConstraintsConfigureDefaultsFromHeapSize(t *testing.T) {
 func TestNewIsolateWithConstraints(t *testing.T) {
 	t.Parallel()
 
-	// Configure small heap sizes (2MB)
-	constraints := &v8go.ResourceConstraints{
-		MaxOldGenerationSizeInBytes:   2 * 1024 * 1024, // 2MB
-		MaxYoungGenerationSizeInBytes: 2 * 1024 * 1024, // 2MB
-	}
-
-	iso := v8go.NewIsolate(v8go.WithResourceConstraints(constraints))
+	iso := v8go.NewIsolate(v8go.WithResourceConstraints(v8go.ConfigureDefaultsFromHeapSize(
+		8*1024*1024,
+		16*1024*1024,
+	)))
 	defer iso.Dispose()
 
 	ctx := v8go.NewContext(iso)
@@ -100,33 +97,18 @@ func TestNewIsolateWithConstraints(t *testing.T) {
 		t.Errorf("expected 3, got %v", val)
 	}
 
-	// Test memory exhaustion - might panic or return error
-	var memoryTestPanicked bool
-	func() {
-		defer func() {
-			if r := recover(); r != nil {
-				memoryTestPanicked = true
-				t.Logf("Memory test caused panic (expected): %v", r)
-			}
-		}()
-
-		val, err = ctx.RunScript(`
+	// Test
+	val, err = ctx.RunScript(`
 			const data = [];
-			for (let i = 0; i < 10000; i++) {
+			for (let i = 0; i < 1000 * 1000; i++) {
 					data.push("large data chunk ".repeat(1000));
 			}
 			data.length;
 		`, "memory-test.js")
-		if err != nil {
-			t.Logf("Memory test returned error (also acceptable): %v", err)
-		} else {
-			t.Logf("Memory test completed unexpectedly: %v", val)
-		}
-	}()
-
-	// Either panic or error is acceptable for memory exhaustion
-	if !memoryTestPanicked && err == nil {
-		t.Log("Warning: Memory constraint test didn't trigger panic or error")
+	if err != nil {
+		t.Logf("Memory test correctly returned error: %v", err)
+	} else {
+		t.Fatalf("Memory test completed unexpectedly: %v", val)
 	}
 }
 

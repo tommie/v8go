@@ -32,6 +32,13 @@ void Init() {
   return;
 }
 
+size_t NearMemoryLimitCallback(void* data, size_t current_heap_limit, size_t initial_heap_limit)
+{
+  auto iso = static_cast<Isolate*>(data);
+  iso->TerminateExecution();
+  return current_heap_limit * 2;
+}
+
 IsolatePtr NewIsolateWithOptions(IsolateConstraints constraints, int has_constraints) {
   Isolate::CreateParams params;
   params.array_buffer_allocator = default_allocator;
@@ -65,6 +72,9 @@ IsolatePtr NewIsolateWithOptions(IsolateConstraints constraints, int has_constra
   HandleScope handle_scope(iso);
 
   iso->SetCaptureStackTraceForUncaughtExceptions(true);
+
+  // Try to catch the OOM condition and stop execution before killing the process
+  iso->AddNearHeapLimitCallback(NearMemoryLimitCallback, iso);
 
   // Create a Context for internal use
   m_ctx* ctx = new m_ctx;
