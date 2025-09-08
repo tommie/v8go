@@ -48,8 +48,9 @@ typedef struct {
   size_t initial_heap_size_in_bytes;
   size_t maximum_heap_size_in_bytes;
 } IsolateConstraints;
+typedef IsolateConstraints* IsolateConstraintsPtr;
 
-extern IsolatePtr NewIsolateWithOptions(IsolateConstraints constraints, int has_constraints);
+extern IsolatePtr NewIsolateWithOptions(IsolateConstraintsPtr constraints);
 extern void IsolatePerformMicrotaskCheckpoint(IsolatePtr ptr);
 extern void IsolateDispose(IsolatePtr ptr);
 extern void IsolateTerminateExecution(IsolatePtr ptr);

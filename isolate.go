@@ -77,29 +77,21 @@ func NewIsolate(opts ...IsolateOption) *Isolate {
 		opt(config)
 	}
 
-	var cConstraints C.IsolateConstraints
+	var cConstraints C.IsolateConstraintsPtr
 	if config.resourceConstraints != nil {
-		cConstraints = C.IsolateConstraints{
+		cConstraints = &C.IsolateConstraints{
 			initial_heap_size_in_bytes: C.size_t(config.resourceConstraints.InitialHeapSizeInBytes),
 			maximum_heap_size_in_bytes: C.size_t(config.resourceConstraints.MaxHeapSizeInBytes),
 		}
 	}
 
 	iso := &Isolate{
-		ptr: C.NewIsolateWithOptions(cConstraints, C.int(boolToInt(config.resourceConstraints != nil))),
+		ptr: C.NewIsolateWithOptions(cConstraints),
 		cbs: make(map[int]FunctionCallbackWithError),
 	}
 	iso.null = newValueNull(iso)
 	iso.undefined = newValueUndefined(iso)
 	return iso
-}
-
-// boolToInt converts a boolean to an integer for C interop
-func boolToInt(b bool) int {
-	if b {
-		return 1
-	}
-	return 0
 }
 
 // TerminateExecution terminates forcefully the current thread

@@ -39,15 +39,15 @@ size_t NearMemoryLimitCallback(void* data, size_t current_heap_limit, size_t ini
   return current_heap_limit * 2;
 }
 
-IsolatePtr NewIsolateWithOptions(IsolateConstraints constraints, int has_constraints) {
+IsolatePtr NewIsolateWithOptions(IsolateConstraintsPtr constraints) {
   Isolate::CreateParams params;
   params.array_buffer_allocator = default_allocator;
 
-  if (has_constraints) {
+  if (constraints != nullptr) {
     ResourceConstraints rc;
     rc.ConfigureDefaultsFromHeapSize(
-      constraints.initial_heap_size_in_bytes,
-      constraints.maximum_heap_size_in_bytes
+      constraints->initial_heap_size_in_bytes,
+      constraints->maximum_heap_size_in_bytes
     );
     params.constraints = rc;
   }
