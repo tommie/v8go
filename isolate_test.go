@@ -300,10 +300,10 @@ func makeObject() interface{} {
 func TestNewIsolateWithConstraints(t *testing.T) {
 	t.Parallel()
 
-	iso := v8.NewIsolate(v8.WithResourceConstraints(&v8.ResourceConstraints{
-		InitialHeapSizeInBytes: 8 * 1024 * 1024,
-		MaxHeapSizeInBytes:     16 * 1024 * 1024,
-	}))
+	iso := v8.NewIsolate(v8.WithResourceConstraints(
+		8*1024*1024,
+		16*1024*1024,
+	))
 	defer iso.Dispose()
 
 	ctx := v8.NewContext(iso)

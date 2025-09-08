@@ -42,7 +42,7 @@ type HeapStatistics struct {
 	NumberOfDetachedContexts uint64
 }
 
-type ResourceConstraints struct {
+type resourceConstraints struct {
 	InitialHeapSizeInBytes uint64
 	MaxHeapSizeInBytes     uint64
 }
@@ -52,13 +52,16 @@ type IsolateOption func(*isolateConfig)
 
 // isolateConfig holds the configuration for creating an isolate.
 type isolateConfig struct {
-	resourceConstraints *ResourceConstraints
+	resourceConstraints *resourceConstraints
 }
 
-// WithResourceConstraints sets resource constraints for the isolate.
-func WithResourceConstraints(constraints *ResourceConstraints) IsolateOption {
+// WithResourceConstraints sets memory constraints for the isolate.
+func WithResourceConstraints(InitialHeapSizeInBytes, MaxHeapSizeInBytes uint64) IsolateOption {
 	return func(config *isolateConfig) {
-		config.resourceConstraints = constraints
+		config.resourceConstraints = &resourceConstraints{
+			InitialHeapSizeInBytes: InitialHeapSizeInBytes,
+			MaxHeapSizeInBytes:     MaxHeapSizeInBytes,
+		}
 	}
 }
 
