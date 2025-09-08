@@ -45,12 +45,8 @@ typedef struct {
 } IsolateHStatistics;
 
 typedef struct {
-  uintptr_t stack_limit;
-  size_t code_range_size_in_bytes;
-  size_t max_old_generation_size_in_bytes;
-  size_t max_young_generation_size_in_bytes;
-  size_t initial_old_generation_size_in_bytes;
-  size_t initial_young_generation_size_in_bytes;
+  size_t initial_heap_size_in_bytes;
+  size_t maximum_heap_size_in_bytes;
 } IsolateConstraints;
 
 extern IsolatePtr NewIsolateWithOptions(IsolateConstraints constraints, int has_constraints);

@@ -10,78 +10,13 @@ import (
 	"github.com/tommie/v8go"
 )
 
-func TestResourceConstraints(t *testing.T) {
-	t.Parallel()
-
-	// Test creating ResourceConstraints struct directly
-	rc := v8go.ResourceConstraints{
-		MaxOldGenerationSizeInBytes:       100 * 1024 * 1024, // 100MB
-		MaxYoungGenerationSizeInBytes:     10 * 1024 * 1024,  // 10MB
-		InitialOldGenerationSizeInBytes:   50 * 1024 * 1024,  // 50MB
-		InitialYoungGenerationSizeInBytes: 5 * 1024 * 1024,   // 5MB
-		CodeRangeSizeInBytes:              64 * 1024 * 1024,  // 64MB
-	}
-
-	// Verify struct values
-	if rc.MaxOldGenerationSizeInBytes != 100*1024*1024 {
-		t.Errorf("expected max old generation size 104857600, got %d", rc.MaxOldGenerationSizeInBytes)
-	}
-	if rc.MaxYoungGenerationSizeInBytes != 10*1024*1024 {
-		t.Errorf("expected max young generation size 10485760, got %d", rc.MaxYoungGenerationSizeInBytes)
-	}
-	if rc.InitialOldGenerationSizeInBytes != 50*1024*1024 {
-		t.Errorf("expected initial old generation size 52428800, got %d", rc.InitialOldGenerationSizeInBytes)
-	}
-	if rc.InitialYoungGenerationSizeInBytes != 5*1024*1024 {
-		t.Errorf("expected initial young generation size 5242880, got %d", rc.InitialYoungGenerationSizeInBytes)
-	}
-	if rc.CodeRangeSizeInBytes != 64*1024*1024 {
-		t.Errorf("expected code range size 67108864, got %d", rc.CodeRangeSizeInBytes)
-	}
-}
-
-func TestResourceConstraintsConfigureDefaults(t *testing.T) {
-	t.Parallel()
-
-	// Test ConfigureDefaults with reasonable values
-	physicalMemory := uint64(8 * 1024 * 1024 * 1024) // 8GB
-	virtualMemoryLimit := uint64(0)                  // No limit
-	rc := v8go.ConfigureDefaults(physicalMemory, virtualMemoryLimit)
-
-	// After ConfigureDefaults, some values should be set
-	// We can't test exact values as they depend on our internal logic
-	// but we can verify they're non-zero
-	if rc.MaxOldGenerationSizeInBytes == 0 {
-		t.Error("expected non-zero max old generation size after ConfigureDefaults")
-	}
-}
-
-func TestResourceConstraintsConfigureDefaultsFromHeapSize(t *testing.T) {
-	t.Parallel()
-
-	// Test ConfigureDefaultsFromHeapSize
-	initialHeapSize := uint64(64 * 1024 * 1024)  // 64MB
-	maximumHeapSize := uint64(512 * 1024 * 1024) // 512MB
-	rc := v8go.ConfigureDefaultsFromHeapSize(initialHeapSize, maximumHeapSize)
-
-	// After ConfigureDefaultsFromHeapSize, some values should be set
-	// We can verify they're reasonable
-	if rc.MaxOldGenerationSizeInBytes == 0 {
-		t.Error("expected non-zero max old generation size after ConfigureDefaultsFromHeapSize")
-	}
-	expectedMaxOld := maximumHeapSize * 8 / 10 // 80% of max heap
-	if rc.MaxOldGenerationSizeInBytes != expectedMaxOld {
-		t.Errorf("expected max old generation %d, got %d", expectedMaxOld, rc.MaxOldGenerationSizeInBytes)
-	}
-}
-
 func TestNewIsolateWithConstraints(t *testing.T) {
 	t.Parallel()
 
-	iso := v8go.NewIsolate(v8go.WithResourceConstraints(v8go.ConfigureDefaultsFromHeapSize(
-		8*1024*1024,
-		16*1024*1024,
-	)))
+	iso := v8go.NewIsolate(v8go.WithResourceConstraints(&v8go.ResourceConstraints{
+		8 * 1024 * 1024,
+		16 * 1024 * 1024,
+	}))
 	defer iso.Dispose()
 
 	ctx := v8go.NewContext(iso)

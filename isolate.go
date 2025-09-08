@@ -42,6 +42,11 @@ type HeapStatistics struct {
 	NumberOfDetachedContexts uint64
 }
 
+type ResourceConstraints struct {
+	InitialHeapSizeInBytes uint64
+	MaxHeapSizeInBytes     uint64
+}
+
 // IsolateOption configures an Isolate on creation.
 type IsolateOption func(*isolateConfig)
 
@@ -75,12 +80,8 @@ func NewIsolate(opts ...IsolateOption) *Isolate {
 	var cConstraints C.IsolateConstraints
 	if config.resourceConstraints != nil {
 		cConstraints = C.IsolateConstraints{
-			stack_limit:                            C.uintptr_t(config.resourceConstraints.StackLimit),
-			code_range_size_in_bytes:               C.size_t(config.resourceConstraints.CodeRangeSizeInBytes),
-			max_old_generation_size_in_bytes:       C.size_t(config.resourceConstraints.MaxOldGenerationSizeInBytes),
-			max_young_generation_size_in_bytes:     C.size_t(config.resourceConstraints.MaxYoungGenerationSizeInBytes),
-			initial_old_generation_size_in_bytes:   C.size_t(config.resourceConstraints.InitialOldGenerationSizeInBytes),
-			initial_young_generation_size_in_bytes: C.size_t(config.resourceConstraints.InitialYoungGenerationSizeInBytes),
+			initial_heap_size_in_bytes: C.size_t(config.resourceConstraints.InitialHeapSizeInBytes),
+			maximum_heap_size_in_bytes: C.size_t(config.resourceConstraints.MaxHeapSizeInBytes),
 		}
 	}
 

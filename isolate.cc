@@ -45,24 +45,10 @@ IsolatePtr NewIsolateWithOptions(IsolateConstraints constraints, int has_constra
 
   if (has_constraints) {
     ResourceConstraints rc;
-    if (constraints.stack_limit != 0) {
-      rc.set_stack_limit(reinterpret_cast<uint32_t*>(constraints.stack_limit));
-    }
-    if (constraints.code_range_size_in_bytes != 0) {
-      rc.set_code_range_size_in_bytes(constraints.code_range_size_in_bytes);
-    }
-    if (constraints.max_old_generation_size_in_bytes != 0) {
-      rc.set_max_old_generation_size_in_bytes(constraints.max_old_generation_size_in_bytes);
-    }
-    if (constraints.max_young_generation_size_in_bytes != 0) {
-      rc.set_max_young_generation_size_in_bytes(constraints.max_young_generation_size_in_bytes);
-    }
-    if (constraints.initial_old_generation_size_in_bytes != 0) {
-      rc.set_initial_old_generation_size_in_bytes(constraints.initial_old_generation_size_in_bytes);
-    }
-    if (constraints.initial_young_generation_size_in_bytes != 0) {
-      rc.set_initial_young_generation_size_in_bytes(constraints.initial_young_generation_size_in_bytes);
-    }
+    rc.ConfigureDefaultsFromHeapSize(
+      constraints.initial_heap_size_in_bytes,
+      constraints.maximum_heap_size_in_bytes
+    );
     params.constraints = rc;
   }
 
