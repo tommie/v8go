@@ -39,7 +39,7 @@ size_t NearMemoryLimitCallback(void* data, size_t current_heap_limit, size_t ini
   return current_heap_limit * 2;
 }
 
-IsolatePtr NewIsolateWithOptions(IsolateConstraintsPtr constraints) {
+IsolatePtr NewIsolate(IsolateConstraintsPtr constraints) {
   Isolate::CreateParams params;
   params.array_buffer_allocator = default_allocator;
 

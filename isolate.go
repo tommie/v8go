@@ -90,7 +90,7 @@ func NewIsolate(opts ...IsolateOption) *Isolate {
 	}
 
 	iso := &Isolate{
-		ptr: C.NewIsolateWithOptions(cConstraints),
+		ptr: C.NewIsolate(cConstraints),
 		cbs: make(map[int]FunctionCallbackWithError),
 	}
 	iso.null = newValueNull(iso)
