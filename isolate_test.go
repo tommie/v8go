@@ -296,3 +296,39 @@ func makeObject() interface{} {
 		"b": "AAAABBBBAAAABBBBAAAABBBBAAAABBBBAAAABBBB",
 	}
 }
+
+func TestNewIsolateWithConstraints(t *testing.T) {
+	t.Parallel()
+
+	iso := v8.NewIsolate(v8.WithResourceConstraints(&v8.ResourceConstraints{
+		InitialHeapSizeInBytes: 8 * 1024 * 1024,
+		MaxHeapSizeInBytes:     16 * 1024 * 1024,
+	}))
+	defer iso.Dispose()
+
+	ctx := v8.NewContext(iso)
+	defer ctx.Close()
+
+	// First test - should work fine
+	val, err := ctx.RunScript("1 + 2", "test.js")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !val.IsNumber() || val.Number() != 3 {
+		t.Errorf("expected 3, got %v", val)
+	}
+
+	// Second test - should run out of memory without crashing the process
+	val, err = ctx.RunScript(`
+			const data = [];
+			for (let i = 0; i < 1000 * 1000; i++) {
+					data.push("large data chunk ".repeat(1000));
+			}
+			data.length;
+		`, "memory-test.js")
+	if err != nil {
+		t.Logf("Memory test correctly returned error: %v", err)
+	} else {
+		t.Fatalf("Memory test completed unexpectedly: %v", val)
+	}
+}
