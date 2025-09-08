@@ -150,6 +150,24 @@ case <- time.After(200 * time.Milliseconds):
 }
 ```
 
+### Setting memory limits
+
+It's possible to set a heap limit to set a hard limit on Javascript memory usage.
+If the limit is hit, this results in a call to `TerminateExecution` as shown above.
+
+```go
+vm := v8.NewIsolate(v8.WithResourceConstraints(8*1024*1024, 16*1024*1024))
+ctx := v8.NewContext(vm)
+val, err = ctx.RunScript(`
+    const data = [];
+    for (let i = 0; i < 1000 * 1000; i++) {
+        data.push("large data chunk ".repeat(1000));
+    }
+    data.length;
+  `, "memory-test.js")
+// err is 'ExecutionTerminated: script execution has been terminated'
+```
+
 ### CPU Profiler
 
 ```go
