@@ -36,6 +36,8 @@ size_t NearMemoryLimitCallback(void* data, size_t current_heap_limit, size_t ini
 {
   auto iso = static_cast<Isolate*>(data);
   iso->TerminateExecution();
+
+  // if we return the initial heap limit, the VM will crash, so here we give it room to exit gracefully
   return current_heap_limit * 2;
 }
 
