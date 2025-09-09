@@ -151,8 +151,8 @@ case <- time.After(200 * time.Milliseconds):
 ```
 
 ### Setting memory limits
-
-It's possible to set a heap limit to set a hard limit on Javascript memory usage.
+V8 supports setting a hard limit on Javascript memory usage.
+To do so, add a call to `WithResourceConstraints` to the `NewIsolate` invocation.
 If the limit is hit, this results in a call to `TerminateExecution` as shown above.
 
 ```go
