@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Add support for ObjectTemplate.MarkAsUndetectable.
-- Add `Value.StrictEquals` providing strict equality checks in Go code
+- Add `Value.StrictEquals` providing strict equality checks in Go code.
+- Add resource constraint options to `NewIsolate` in [#111](https://github.com/tommie/v8go/pull/111).
 
 ### Changed
 
