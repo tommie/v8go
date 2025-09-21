@@ -57,11 +57,11 @@ type isolateConfig struct {
 
 // WithResourceConstraints sets memory constraints for the isolate.
 // If constraints are set, v8go will try to call `TerminateExecution` when the hard limit is hit.
-func WithResourceConstraints(InitialHeapSizeInBytes, MaxHeapSizeInBytes uint64) IsolateOption {
+func WithResourceConstraints(initialHeapSizeInBytes, maxHeapSizeInBytes uint64) IsolateOption {
 	return func(config *isolateConfig) {
 		config.resourceConstraints = &resourceConstraints{
-			InitialHeapSizeInBytes: InitialHeapSizeInBytes,
-			MaxHeapSizeInBytes:     MaxHeapSizeInBytes,
+			InitialHeapSizeInBytes: initialHeapSizeInBytes,
+			MaxHeapSizeInBytes:     maxHeapSizeInBytes,
 		}
 	}
 }
