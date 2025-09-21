@@ -42,17 +42,55 @@ type HeapStatistics struct {
 	NumberOfDetachedContexts uint64
 }
 
-// NewIsolate creates a new V8 isolate. Only one thread may access
-// a given isolate at a time, but different threads may access
-// different isolates simultaneously.
+type resourceConstraints struct {
+	InitialHeapSizeInBytes uint64
+	MaxHeapSizeInBytes     uint64
+}
+
+// IsolateOption configures an Isolate on creation.
+type IsolateOption func(*isolateConfig)
+
+// isolateConfig holds the configuration for creating an isolate.
+type isolateConfig struct {
+	resourceConstraints *resourceConstraints
+}
+
+// WithResourceConstraints sets memory constraints for the isolate.
+// If constraints are set, v8go will try to call `TerminateExecution` when the hard limit is hit.
+func WithResourceConstraints(initialHeapSizeInBytes, maxHeapSizeInBytes uint64) IsolateOption {
+	return func(config *isolateConfig) {
+		config.resourceConstraints = &resourceConstraints{
+			InitialHeapSizeInBytes: initialHeapSizeInBytes,
+			MaxHeapSizeInBytes:     maxHeapSizeInBytes,
+		}
+	}
+}
+
+// NewIsolate creates a new V8 isolate with the provided options.
+// Only one thread may access a given isolate at a time, but different
+// threads may access different isolates simultaneously.
 // When an isolate is no longer used its resources should be freed
 // by calling iso.Dispose().
 // An *Isolate can be used as a v8go.ContextOption to create a new
 // Context, rather than creating a new default Isolate.
-func NewIsolate() *Isolate {
+func NewIsolate(opts ...IsolateOption) *Isolate {
 	initializeIfNecessary()
+
+	config := &isolateConfig{}
+	for _, opt := range opts {
+		opt(config)
+	}
+
+	var cConstraints C.IsolateConstraintsPtr
+	if config.resourceConstraints != nil {
+		cConstraints = &C.IsolateConstraints{
+			initial_heap_size_in_bytes: C.size_t(config.resourceConstraints.InitialHeapSizeInBytes),
+			maximum_heap_size_in_bytes: C.size_t(config.resourceConstraints.MaxHeapSizeInBytes),
+		}
+	}
+
 	iso := &Isolate{
-		ptr: C.NewIsolate(),
+		ptr: C.NewIsolate(cConstraints),
 		cbs: make(map[int]FunctionCallbackWithError),
 	}
 	iso.null = newValueNull(iso)

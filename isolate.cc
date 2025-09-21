@@ -32,15 +32,37 @@ void Init() {
   return;
 }
 
-IsolatePtr NewIsolate() {
+size_t NearMemoryLimitCallback(void* data, size_t current_heap_limit, size_t initial_heap_limit)
+{
+  auto iso = static_cast<Isolate*>(data);
+  iso->TerminateExecution();
+
+  // if we return the initial heap limit, the VM will crash, so here we give it room to exit gracefully
+  return current_heap_limit * 2;
+}
+
+IsolatePtr NewIsolate(IsolateConstraintsPtr constraints) {
   Isolate::CreateParams params;
   params.array_buffer_allocator = default_allocator;
+
+  if (constraints != nullptr) {
+    ResourceConstraints rc;
+    rc.ConfigureDefaultsFromHeapSize(
+      constraints->initial_heap_size_in_bytes,
+      constraints->maximum_heap_size_in_bytes
+    );
+    params.constraints = rc;
+  }
+
   Isolate* iso = Isolate::New(params);
   Locker locker(iso);
   Isolate::Scope isolate_scope(iso);
   HandleScope handle_scope(iso);
 
   iso->SetCaptureStackTraceForUncaughtExceptions(true);
+
+  // Try to catch the OOM condition and stop execution before killing the process
+  iso->AddNearHeapLimitCallback(NearMemoryLimitCallback, iso);
 
   // Create a Context for internal use
   m_ctx* ctx = new m_ctx;

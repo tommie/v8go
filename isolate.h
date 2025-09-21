@@ -44,7 +44,13 @@ typedef struct {
   size_t number_of_detached_contexts;
 } IsolateHStatistics;
 
-extern IsolatePtr NewIsolate();
+typedef struct {
+  size_t initial_heap_size_in_bytes;
+  size_t maximum_heap_size_in_bytes;
+} IsolateConstraints;
+typedef IsolateConstraints* IsolateConstraintsPtr;
+
+extern IsolatePtr NewIsolate(IsolateConstraintsPtr constraints);
 extern void IsolatePerformMicrotaskCheckpoint(IsolatePtr ptr);
 extern void IsolateDispose(IsolatePtr ptr);
 extern void IsolateTerminateExecution(IsolatePtr ptr);
