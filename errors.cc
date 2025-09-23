@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <sstream>
 
 #include "deps/include/v8-exception.h"
@@ -47,4 +48,10 @@ RtnError ExceptionError(TryCatch& try_catch, Isolate* iso, Local<Context> ctx) {
   }
 
   return rtn;
+}
+
+void ErrorRelease(RtnError err) {
+  free(err.msg);
+  free(err.location);
+  free(err.stack);
 }
