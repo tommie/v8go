@@ -16,8 +16,8 @@ using namespace v8;
 RtnString StringToRtnString(v8::Isolate* iso, Local<String> val) {
   RtnString res = {};
   res.length = val->Utf8LengthV2(iso);
-  res.data = (char*)(malloc(res.length));
-  val->WriteUtf8V2(iso, (char*)res.data, res.length);
+  res.data = static_cast<char*>(malloc(res.length));
+  val->WriteUtf8V2(iso, res.data, res.length);
   return res;
 }
 
@@ -30,9 +30,7 @@ RtnString ExceptionToRtnString(TryCatch& try_catch,
 }
 
 void RtnStringRelease(RtnString rtnString) {
-  if (rtnString.data) {
-    free((void*)rtnString.data);
-  }
+  free(rtnString.data);
   ErrorRelease(rtnString.error);
 }
 

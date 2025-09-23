@@ -51,7 +51,7 @@ RtnError ExceptionError(TryCatch& try_catch, Isolate* iso, Local<Context> ctx) {
 }
 
 void ErrorRelease(RtnError err) {
-  free((void*)err.msg);
-  free((void*)err.location);
-  free((void*)err.stack);
+  free(err.msg);
+  free(err.location);
+  free(err.stack);
 }

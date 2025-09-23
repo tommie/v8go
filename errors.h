@@ -2,9 +2,9 @@
 #define V8GO_ERRORS_H
 
 typedef struct {
-  const char* msg;
-  const char* location;
-  const char* stack;
+  char* msg;
+  char* location;
+  char* stack;
 } RtnError;
 
 #ifdef __cplusplus
@@ -22,7 +22,10 @@ extern "C" {
 extern RtnError ExceptionError(v8::TryCatch& try_catch,
                                v8::Isolate* iso,
                                v8::Local<v8::Context> ctx);
+
 #endif
+
+extern void ErrorRelease(RtnError err);
 
 typedef struct m_value m_value;
 typedef m_value* ValuePtr;
@@ -42,8 +45,6 @@ typedef struct {
   ValuePtr value;
   RtnError error;
 } RtnValue;
-
-void ErrorRelease(RtnError err);
 
 #ifdef __cplusplus
 }

@@ -47,7 +47,7 @@ typedef struct {
 } ValueBigInt;
 
 typedef struct {
-  const char* data;
+  char* data;
   int length;
   RtnError error;
 } RtnString;

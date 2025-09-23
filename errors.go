@@ -10,7 +10,6 @@ import "C"
 import (
 	"fmt"
 	"io"
-	"unsafe"
 )
 
 // JSError is an error that is returned if there is are any
@@ -28,9 +27,7 @@ func newJSError(rtnErr C.RtnError) error {
 		Location:   C.GoString(rtnErr.location),
 		StackTrace: C.GoString(rtnErr.stack),
 	}
-	C.free(unsafe.Pointer(rtnErr.msg))
-	C.free(unsafe.Pointer(rtnErr.location))
-	C.free(unsafe.Pointer(rtnErr.stack))
+	C.ErrorRelease(rtnErr)
 	return err
 }
 
