@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add support for `Isolate.SetPromiseRejectedCallback` allowing the embedder to react to unhandled promise rejectsions, or when resolving a promise multiple times.
+
 ### Changed
 
 ## [v0.34.0] - 2025-10-07

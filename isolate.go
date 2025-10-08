@@ -9,9 +9,74 @@ package v8go
 import "C"
 
 import (
+	"runtime/cgo"
+	"strconv"
 	"sync"
 	"unsafe"
 )
+
+// PromiseRejectEvent represents the type of event passed to
+// [RejectedPromiseCallback]. The values reflect the values of
+// v8::PromiseRejectEvent.
+//
+// See also: https://v8.github.io/api/head/classv8_1_1PromiseRejectMessage.html
+type PromiseRejectEvent uint8
+
+const (
+	// PromiseRejectWithNoHandler is the event that represents an unhandled
+	// rejection.
+	PromiseRejectWithNoHandler PromiseRejectEvent = 0
+	// PromiseHandlerAddedAfterReject is sent when a rejection handler is added
+	// to a promise that has already rejected. E.g., the following code will
+	// result in a kPromiseRejectWithNoHandler event followed by an
+	// PromiseHandlerAddedAfterReject event.
+	//
+	// 	Promise.reject("dummy").catch(e => {})
+	//
+	// The promise has already rejected when catch is called.
+	PromiseHandlerAddedAfterReject PromiseRejectEvent = 1
+	// PromiseRejectAfterResolved is sent when a project is rejected after it
+	// has settled, e.g., the following will generate a
+	// PromiseRejectAfterResolved event.
+	//
+	// 	new Promise((resolve, reject) => {
+	// 		resolve()
+	// 		reject()
+	// 	})
+	//
+	// If the first resolve call is replaced with a reject, a
+	// kPromiseRejectWithNoHandler event is sent first, followed by the
+	// PromiseRejectAfterResolved event.
+	PromiseRejectAfterResolved PromiseRejectEvent = 2
+	// PromiseResolveAfterResolved is sent when a project is resolves after it
+	// has settled, e.g., the following will generate a
+	// PromiseResolveAfterResolved event.
+	//
+	// 	new Promise((resolve, reject) => {
+	// 		resolve() // or reject()
+	// 		resolve()
+	// 	})
+	//
+	// If the first resolve call is replaced with a reject, a
+	// kPromiseRejectWithNoHandler event is sent first, followed by the
+	// PromiseResolveAfterResolved event.
+	PromiseResolveAfterResolved PromiseRejectEvent = 3
+)
+
+func (u PromiseRejectEvent) String() string {
+	switch u {
+	case PromiseRejectWithNoHandler:
+		return "kPromiseRejectWithNoHandler"
+	case PromiseHandlerAddedAfterReject:
+		return "kPromiseHandlerAddedAfterReject"
+	case PromiseRejectAfterResolved:
+		return "kPromiseRejectAfterResolved"
+	case PromiseResolveAfterResolved:
+		return "kPromiseResolveAfterResolved"
+	default:
+		return strconv.Itoa(int(u))
+	}
+}
 
 // Isolate is a JavaScript VM instance with its own heap and
 // garbage collector. Most applications will create one isolate
@@ -22,6 +87,7 @@ type Isolate struct {
 	cbMutex sync.RWMutex
 	cbSeq   int
 	cbs     map[int]FunctionCallbackWithError
+	handles []cgo.Handle
 
 	null      *Value
 	undefined *Value
@@ -182,6 +248,9 @@ func (i *Isolate) Dispose() {
 	if i.ptr == nil {
 		return
 	}
+	for _, h := range i.handles {
+		h.Delete()
+	}
 	C.IsolateDispose(i.ptr)
 	i.ptr = nil
 }
@@ -221,4 +290,51 @@ func (i *Isolate) getCallback(ref int) FunctionCallbackWithError {
 	i.cbMutex.RLock()
 	defer i.cbMutex.RUnlock()
 	return i.cbs[ref]
+}
+
+//export goRejectedPromiseCallback
+func goRejectedPromiseCallback(ctxref int, handle unsafe.Pointer, event PromiseRejectEvent, promise C.ValuePtr, value C.ValuePtr) {
+	if p, err := (&Value{ptr: promise}).AsPromise(); err == nil {
+		msg := PromiseRejectMessage{
+			Context: getContext(ctxref),
+			Promise: p,
+			Event:   event,
+		}
+		if value != nil {
+			msg.Value = &Value{ptr: value}
+		}
+		cb := (cgo.Handle)(handle).Value().(RejectedPromiseCallback)
+		cb(msg)
+	}
+}
+
+// PromiseRejectMessage is passed to a [RejectedPromiseCallback] that is
+// installed using [Isolate.SetPromiseRejectedCallback]. The values reflect the
+// values in V8::PromiseRejectMessage
+//
+// See also: https://v8.github.io/api/head/classv8_1_1PromiseRejectMessage.html
+type PromiseRejectMessage struct {
+	// Context contains the execution context where the promise was rejected
+	Context *Context
+	Promise *Promise
+	Event   PromiseRejectEvent
+	// Value contains the rejected value
+	Value *Value
+}
+
+// RejectedPromiseCallback is the type for a callback clients can supply to be
+// notified of rejected promises.
+type RejectedPromiseCallback = func(PromiseRejectMessage)
+
+func (i *Isolate) addHandle(h cgo.Handle) cgo.Handle {
+	i.handles = append(i.handles, h)
+	return h
+}
+
+// SetPromiseRejectedCallback installs a callback to be called when a promise is
+// rejected. This includes rejections that may occur after a script value has
+// been evaluated and V8 is running microtasks.
+func (i *Isolate) SetPromiseRejectedCallback(cb RejectedPromiseCallback) {
+	handle := unsafe.Pointer(uintptr(i.addHandle(cgo.NewHandle(cb))))
+	C.IsolateSetPromiseRejectedCallback(i.ptr, handle)
 }

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -130,7 +131,9 @@ func TestIsolateCompileUnboundScript_InvalidOptions(t *testing.T) {
 		CachedData: &v8.CompilerCachedData{Bytes: []byte("unused")},
 		Mode:       v8.CompileModeEager,
 	}
-	panicErr := recoverPanic(func() { iso.CompileUnboundScript("console.log(1)", "script.js", opts) })
+	panicErr := recoverPanic(
+		func() { iso.CompileUnboundScript("console.log(1)", "script.js", opts) },
+	)
 	if panicErr == nil {
 		t.Error("expected panic")
 	}
@@ -252,6 +255,74 @@ func TestIsolateThrowException(t *testing.T) {
 	iso.Dispose()
 	if recoverPanic(func() { iso.ThrowException(strErr) }) == nil {
 		t.Error("expected panic")
+	}
+}
+
+func TestIsolateSetPromiseRejectedCallback(t *testing.T) {
+	t.Parallel()
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	ctx := v8.NewContext(iso)
+	defer ctx.Close()
+
+	var events []v8.PromiseRejectEvent
+	var lastValue *v8.Value
+
+	iso.SetPromiseRejectedCallback(func(msg v8.PromiseRejectMessage) {
+		events = append(events, msg.Event)
+		lastValue = msg.Value
+	})
+
+	_, err := ctx.RunScript("Promise.reject('value')", "")
+	fatalIf(t, err)
+
+	want := []v8.PromiseRejectEvent{v8.PromiseRejectWithNoHandler}
+	if !reflect.DeepEqual(events, want) {
+		t.Errorf("Unexpected events. Want: %v. Got: %v", want, events)
+	}
+	if lastValue == nil || lastValue.String() != "value" {
+		t.Errorf("Unexpected value. Want 'value', got: %v", lastValue)
+	}
+
+	events = nil
+	_, err = ctx.RunScript("Promise.reject('value').catch(err => { /* ignore */ })", "")
+	fatalIf(t, err)
+
+	want = []v8.PromiseRejectEvent{v8.PromiseRejectWithNoHandler, v8.PromiseHandlerAddedAfterReject}
+	if !reflect.DeepEqual(events, want) {
+		t.Errorf("Unexpected events. Want: %v. Got: %v", want, events)
+	}
+
+	testsWithMultipleResolutions := []struct {
+		op1  string                  // The first operation to run, resolve() or reject()
+		op2  string                  // The second operation to run, resolve() or reject()
+		want []v8.PromiseRejectEvent // The expected events generated
+	}{
+		{"resolve()", "resolve()", []v8.PromiseRejectEvent{v8.PromiseResolveAfterResolved}},
+		{"resolve()", "reject()", []v8.PromiseRejectEvent{v8.PromiseRejectAfterResolved}},
+		{
+			"reject()", "resolve()",
+			[]v8.PromiseRejectEvent{v8.PromiseRejectWithNoHandler, v8.PromiseResolveAfterResolved},
+		},
+		{
+			"reject()", "reject()",
+			[]v8.PromiseRejectEvent{v8.PromiseRejectWithNoHandler, v8.PromiseRejectAfterResolved},
+		},
+	}
+	for _, test := range testsWithMultipleResolutions {
+		name := fmt.Sprintf("Call %s after %s", test.op2, test.op1)
+		t.Run(name, func(t *testing.T) {
+			events = nil
+			ctx.RunScript(`
+				new Promise((resolve, reject) => {
+					`+test.op1 /* resolve() or reject() */ +`
+					`+test.op2 /* resolve() or reject() */ +`
+				})
+			`, "")
+			if !reflect.DeepEqual(test.want, events) {
+				t.Errorf("Unexpected events. Want: %v. Get: %v", test.want, events)
+			}
+		})
 	}
 }
 
