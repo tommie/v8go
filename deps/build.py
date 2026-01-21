@@ -39,7 +39,9 @@ deps_path = os.path.dirname(os.path.realpath(__file__))
 v8_path = os.path.join(deps_path, "v8")
 tools_path = os.path.join(deps_path, "depot_tools")
 is_windows = platform.system().lower() == "windows"
-is_clang = args.clang if args.clang is not None else args.os != "linux"
+# Chromium defaults to clang on Linux for x86_64/arm64.
+# GCC is only used for s390x, ppc, mips, riscv which we don't support.
+is_clang = args.clang if args.clang is not None else True
 
 def get_custom_deps():
     # These deps are unnecessary for building.
