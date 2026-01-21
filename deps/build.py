@@ -321,7 +321,11 @@ def main():
     gnargs = build_gn_args()
 
     subprocess_check_call([gn_path, "gen", build_path, "--args=" + gnargs.replace('\n', ' ')], cwd=v8_path)
-    subprocess_check_call([ninja_path, "-v", "-C", build_path, "v8_monolith"], cwd=v8_path)
+    # Build v8_monolith and libc++ (needed for linking on Linux when use_custom_libcxx=true)
+    ninja_targets = ["v8_monolith"]
+    if args.os == "linux":
+        ninja_targets += ["libc++", "libc++abi"]
+    subprocess_check_call([ninja_path, "-v", "-C", build_path] + ninja_targets, cwd=v8_path)
 
     dest_path = os.path.join(deps_path, os_arch())
     dest_obj_dn = os.path.join(dest_path, "obj")
@@ -333,6 +337,29 @@ def main():
     finally:
         if os.path.exists(dest_obj_dn):
             shutil.rmtree(dest_obj_dn)
+
+    # Copy libc++ libraries for Linux (convert thin archives to regular archives)
+    if args.os == "linux":
+        copy_libcxx(build_path, dest_path)
+
+def copy_libcxx(build_path, dest_path):
+    """Copy libc++ and libc++abi as regular (non-thin) archives.
+
+    Named with -cr suffix to avoid conflicts with system libc++.
+    """
+    ar_path = os.path.abspath(os.path.join(v8_path, "third_party/llvm-build/Release+Asserts/bin/llvm-ar"))
+
+    for lib, dest_name in [("libc++", "libc++-cr"), ("libc++abi", "libc++abi-cr")]:
+        src = os.path.join(build_path, "obj/buildtools/third_party", lib, lib + ".a")
+        dest = os.path.join(dest_path, dest_name + ".a")
+
+        # Extract object files and list them
+        obj_files = subprocess_check_output_text([ar_path, "t", src], cwd=build_path).splitlines()
+
+        # Create a regular (non-thin) archive
+        if os.path.exists(dest):
+            os.unlink(dest)
+        subprocess_check_call([ar_path, "qcs", dest] + obj_files, cwd=build_path)
 
 if __name__ == "__main__":
     main()
