@@ -92,6 +92,7 @@ icu_use_data_file=false
 v8_enable_test_features=false
 exclude_unwind_tables=true
 v8_android_log_stdout=true
+enable_crel=false
 """
 
 def v8deps():
@@ -169,6 +170,20 @@ def apply_mingw_patches():
 def apply_patch(patch_name, working_dir):
     patch_path = os.path.join(deps_path, os_arch(), patch_name + ".patch")
     subprocess_check_call(["git", "apply", "-v", patch_path], cwd=working_dir)
+
+def apply_build_patches():
+    """Apply patches to files downloaded by gclient (v8/build/, etc.)."""
+    patches_path = os.path.join(os.path.dirname(deps_path), "patches", "build")
+    if not os.path.isdir(patches_path):
+        return
+
+    repo_root = os.path.dirname(deps_path)
+    for patch_name in sorted(os.listdir(patches_path)):
+        if not patch_name.endswith(".patch"):
+            continue
+        patch_path = os.path.join(patches_path, patch_name)
+        # These patches use deps/v8/build paths, so apply from repo root
+        subprocess_check_call(["patch", "-p1", "-i", patch_path], cwd=repo_root)
 
 def update_last_change():
     out_path = os.path.join(v8_path, "build", "util", "LASTCHANGE")
@@ -292,6 +307,7 @@ def allocate_disjoint_files(ar_files, case_sensitive=True):
 
 def main():
     v8deps()
+    apply_build_patches()
     if is_windows:
         apply_mingw_patches()
 
