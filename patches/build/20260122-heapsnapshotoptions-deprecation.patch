@@ -1,0 +1,18 @@
+--- a/deps/v8/include/v8-profiler.h
++++ b/deps/v8/include/v8-profiler.h
+@@ -1119,7 +1119,14 @@
+     // Manually define default constructor here to be able to use it in
+     // `TakeSnapshot()` below.
+     // NOLINTNEXTLINE
+-    HeapSnapshotOptions() {}
++#if defined(__GNUC__) || defined(__clang__)
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
++#endif
++    HeapSnapshotOptions() = default;
++#if defined(__GNUC__) || defined(__clang__)
++#pragma GCC diagnostic pop
++#endif
+ 
+     // TODO(https://crbug.com/333672197): remove once ObjectNameResolver is
+     // removed.
