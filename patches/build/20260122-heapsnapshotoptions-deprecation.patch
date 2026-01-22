@@ -4,12 +4,11 @@
      // Manually define default constructor here to be able to use it in
      // `TakeSnapshot()` below.
      // NOLINTNEXTLINE
--    HeapSnapshotOptions() {}
 +#if defined(__GNUC__) || defined(__clang__)
 +#pragma GCC diagnostic push
 +#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 +#endif
-+    HeapSnapshotOptions() = default;
+     HeapSnapshotOptions() {}
 +#if defined(__GNUC__) || defined(__clang__)
 +#pragma GCC diagnostic pop
 +#endif
