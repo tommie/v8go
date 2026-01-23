@@ -5,5 +5,6 @@ package darwin_amd64
 // #cgo LDFLAGS: -pthread -L${SRCDIR}
 // #cgo LDFLAGS: -lv8-0 -lv8-1 -lv8-2
 // #cgo libgcompat LDFLAGS: -lgcompat
-// #cgo linux LDFLAGS: -ldl -lc++-cr -lc++abi-cr
+// #cgo linux LDFLAGS: -ldl
+// #cgo darwin,android LDFLAGS: -lc++-cr -lc++abi-cr
 import "C"

@@ -3,7 +3,8 @@
 package linux_arm64
 
 // #cgo LDFLAGS: -pthread -L${SRCDIR}
-// #cgo LDFLAGS: -Wl,--start-group -lv8-0 -lv8-1 -lv8-2 -lv8-3 -Wl,--end-group
+// #cgo LDFLAGS: -Wl,--start-group -lv8-0 -lv8-1 -lv8-2 -Wl,--end-group
 // #cgo libgcompat LDFLAGS: -lgcompat
-// #cgo linux LDFLAGS: -ldl -lc++-cr -lc++abi-cr
+// #cgo linux LDFLAGS: -ldl
+// #cgo darwin,android LDFLAGS: -lc++-cr -lc++abi-cr
 import "C"
