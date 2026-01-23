@@ -1119,7 +1119,14 @@ class V8_EXPORT HeapProfiler {
     // Manually define default constructor here to be able to use it in
     // `TakeSnapshot()` below.
     // NOLINTNEXTLINE
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
     HeapSnapshotOptions() {}
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
     // TODO(https://crbug.com/333672197): remove once ObjectNameResolver is
     // removed.
