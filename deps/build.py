@@ -76,7 +76,7 @@ target_os="%s"
 target_cpu="%s"
 v8_target_cpu="%s"
 clang_use_chrome_plugins=false
-use_custom_libcxx=true
+use_custom_libcxx=%s
 use_sysroot=false
 use_glib=false
 symbol_level=%s
@@ -93,6 +93,7 @@ v8_enable_test_features=false
 exclude_unwind_tables=true
 v8_android_log_stdout=true
 enable_crel=false
+v8_enable_temporal_support=false
 """
 
 def v8deps():
@@ -112,6 +113,9 @@ def build_gn_args():
     #   compiled library by an order of magnitude and further slow down compilation
     symbol_level = 1 if args.debug else 0
     strip_debug_info = not args.debug
+    # Use system libc++ on Linux to avoid ABI mismatch with v8go code.
+    # Other platforms (macOS, Android) need custom libc++.
+    use_custom_libcxx = args.os != "linux"
 
     gnargs = gn_args % (
         str(bool(is_debug)).lower(),
@@ -119,6 +123,7 @@ def build_gn_args():
         v8_os(),
         arch,
         arch,
+        str(use_custom_libcxx).lower(),
         symbol_level,
         str(strip_debug_info).lower(),
     )
@@ -321,9 +326,10 @@ def main():
     gnargs = build_gn_args()
 
     subprocess_check_call([gn_path, "gen", build_path, "--args=" + gnargs.replace('\n', ' ')], cwd=v8_path)
-    # Build v8_monolith and libc++ (needed for linking on Linux when use_custom_libcxx=true)
+    # Build v8_monolith and libc++ (needed for linking on non-Linux when use_custom_libcxx=true)
     ninja_targets = ["v8_monolith"]
-    if args.os == "linux":
+    use_custom_libcxx = args.os != "linux"
+    if use_custom_libcxx:
         ninja_targets += ["libc++", "libc++abi"]
     subprocess_check_call([ninja_path, "-v", "-C", build_path] + ninja_targets, cwd=v8_path)
 
@@ -338,8 +344,8 @@ def main():
         if os.path.exists(dest_obj_dn):
             shutil.rmtree(dest_obj_dn)
 
-    # Copy libc++ libraries for Linux (convert thin archives to regular archives)
-    if args.os == "linux":
+    # Copy libc++ libraries when using custom libc++ (non-Linux platforms)
+    if use_custom_libcxx:
         copy_libcxx(build_path, dest_path)
 
 def copy_libcxx(build_path, dest_path):
