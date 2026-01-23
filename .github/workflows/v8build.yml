@@ -234,6 +234,7 @@ jobs:
         add: |
           - cgo.go
           - CHANGELOG.md
+          - deps/*_*/cgo.go
           - deps/*_*/lib*.a
           - deps/*_*/libmanifest
           - deps/include/**
