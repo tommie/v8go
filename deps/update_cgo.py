@@ -55,7 +55,7 @@ package {os}_{arch}
 // #cgo LDFLAGS: -pthread -L${{SRCDIR}}
 // #cgo LDFLAGS: {ldflags}
 // #cgo libgcompat LDFLAGS: -lgcompat
-// #cgo linux LDFLAGS: -ldl
+// #cgo linux LDFLAGS: -ldl -latomic
 // #cgo darwin,android LDFLAGS: -lc++-cr -lc++abi-cr
 import "C"
 """
