@@ -5,6 +5,6 @@ package android_amd64
 // #cgo LDFLAGS: -pthread -L${SRCDIR}
 // #cgo LDFLAGS: -Wl,--start-group -lv8-0 -lv8-1 -lv8-2 -lv8-3 -Wl,--end-group
 // #cgo libgcompat LDFLAGS: -lgcompat
-// #cgo linux LDFLAGS: -ldl
+// #cgo linux LDFLAGS: -ldl -latomic
 // #cgo darwin,android LDFLAGS: -lc++-cr -lc++abi-cr
 import "C"
