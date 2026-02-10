@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Remove obsolete `20250331-stringhasher-arm64.patch`; the fix is now upstream in V8 and patch application fails as already-applied.
+
 ## [v0.34.0] - 2025-10-07
 
 ### Added
