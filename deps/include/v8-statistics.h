@@ -9,11 +9,11 @@
 #include <stdint.h>
 
 #include <memory>
+#include <span>
 #include <utility>
 #include <vector>
 
 #include "v8-local-handle.h"  // NOLINT(build/include_directory)
-#include "v8-memory-span.h"   // NOLINT(build/include_directory)
 #include "v8-promise.h"       // NOLINT(build/include_directory)
 #include "v8config.h"         // NOLINT(build/include_directory)
 
@@ -69,8 +69,8 @@ class V8_EXPORT MeasureMemoryDelegate {
      * the memory measurement was in progress; the second includes the size
      * of the respective context.
      */
-    const MemorySpan<const Local<Context>>& contexts;
-    const MemorySpan<const size_t>& sizes_in_bytes;
+    const std::span<const Local<Context>>& contexts;
+    const std::span<const size_t>& sizes_in_bytes;
 
     /**
      * Total size of objects that were not attributed to any context (i.e. are
@@ -155,6 +155,13 @@ class V8_EXPORT HeapStatistics {
   size_t number_of_detached_contexts() { return number_of_detached_contexts_; }
 
   /**
+   * Returns the total number of bytes allocated since the Isolate was created.
+   * This includes all heap objects allocated in any space (new, old, code,
+   * etc.).
+   */
+  uint64_t total_allocated_bytes() { return total_allocated_bytes_; }
+
+  /**
    * Returns a 0/1 boolean, which signifies whether the V8 overwrite heap
    * garbage with a bit pattern.
    */
@@ -175,6 +182,7 @@ class V8_EXPORT HeapStatistics {
   size_t number_of_detached_contexts_;
   size_t total_global_handles_size_;
   size_t used_global_handles_size_;
+  uint64_t total_allocated_bytes_;
 
   friend class V8;
   friend class Isolate;

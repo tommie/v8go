@@ -8,11 +8,13 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
 
 #include "cppgc/common.h"
+#include "cppgc/macros.h"
 #include "v8-array-buffer.h"       // NOLINT(build/include_directory)
 #include "v8-callbacks.h"          // NOLINT(build/include_directory)
 #include "v8-data.h"               // NOLINT(build/include_directory)
@@ -154,6 +156,10 @@ class V8_EXPORT ResourceConstraints {
     initial_young_generation_size_ = initial_size;
   }
 
+  uint64_t physical_memory_size_in_bytes() const {
+    return physical_memory_size_;
+  }
+
  private:
   static constexpr size_t kMB = 1048576u;
   size_t code_range_size_ = 0;
@@ -161,6 +167,7 @@ class V8_EXPORT ResourceConstraints {
   size_t max_young_generation_size_ = 0;
   size_t initial_old_generation_size_ = 0;
   size_t initial_young_generation_size_ = 0;
+  uint64_t physical_memory_size_ = 0;
   uint32_t* stack_limit_ = nullptr;
 };
 
@@ -253,6 +260,17 @@ class V8_EXPORT IsolateGroup {
     return !operator==(other);
   }
 
+#ifdef V8_ENABLE_SANDBOX
+  /**
+   * Whether the sandbox of the isolate group contains a given pointer.
+   * Will always return true if the sandbox is not enabled.
+   */
+  bool SandboxContains(void* pointer) const;
+  VirtualAddressSpace* GetSandboxAddressSpace();
+#else
+  V8_INLINE bool SandboxContains(void* pointer) const { return true; }
+#endif
+
  private:
   friend class Isolate;
   friend class ArrayBuffer::Allocator;
@@ -341,14 +359,6 @@ class V8_EXPORT Isolate {
     bool allow_atomics_wait = true;
 
     /**
-     * The following parameters describe the offsets for addressing type info
-     * for wrapped API objects and are used by the fast C API
-     * (for details see v8-fast-api-calls.h).
-     */
-    int embedder_wrapper_type_index = -1;
-    int embedder_wrapper_object_index = -1;
-
-    /**
      * Callbacks to invoke in case of fatal or OOM errors.
      */
     FatalErrorCallback fatal_error_callback = nullptr;
@@ -429,6 +439,8 @@ class V8_EXPORT Isolate {
    * automatically executed otherwise.
    */
   class V8_EXPORT V8_NODISCARD SuppressMicrotaskExecutionScope {
+    CPPGC_STACK_ALLOCATED();
+
    public:
     explicit SuppressMicrotaskExecutionScope(
         Isolate* isolate, MicrotaskQueue* microtask_queue = nullptr);
@@ -557,7 +569,8 @@ class V8_EXPORT Isolate {
     kBreakIteratorTypeWord = 88,
     kBreakIteratorTypeLine = 89,
     kInvalidatedArrayBufferDetachingProtector = 90,
-    kInvalidatedArrayConstructorProtector = 91,
+    kInvalidatedArrayConstructorProtector V8_DEPRECATE_SOON(
+        "The ArrayConstructorProtector has been removed") = 91,
     kInvalidatedArrayIteratorLookupChainProtector = 92,
     kInvalidatedArraySpeciesLookupChainProtector = 93,
     kInvalidatedIsConcatSpreadableLookupChainProtector = 94,
@@ -575,8 +588,8 @@ class V8_EXPORT Isolate {
     kWasmSimdOpcodes = 106,
     kVarRedeclaredCatchBinding = 107,
     kWasmRefTypes = 108,
-    kOBSOLETE_WasmBulkMemory = 109,
-    kOBSOLETE_WasmMultiValue = 110,
+    kWasmBulkMemory = 109,
+    kWasmMultiValue = 110,
     kWasmExceptionHandling = 111,
     kInvalidatedMegaDOMProtector = 112,
     kFunctionPrototypeArguments = 113,
@@ -634,6 +647,28 @@ class V8_EXPORT Isolate {
     kFloat16Array = 165,
     kExplicitResourceManagement = 166,
     kWasmBranchHinting = 167,
+    kWasmMutableGlobals = 168,
+    kUint8ArrayToFromBase64AndHex = 169,
+    kAtomicsPause = 170,
+    kTopLevelAwait = 171,
+    kLogicalAssignment = 172,
+    kNullishCoalescing = 173,
+    kInvalidatedNoDateTimeConfigurationChangeProtector = 174,
+    kWasmNonTrappingFloatToInt = 175,
+    kWasmSignExtensionOps = 176,
+    kRegExpCompile = 177,
+    kRegExpStaticProperties = 178,
+    kRegExpStaticPropertiesWithLastMatch = 179,
+    kWithStatement = 180,
+    kHtmlWrapperMethods = 181,
+    kWasmCustomDescriptors = 182,
+    kOBSOLETE_WasmResizableBuffers = 183,
+    kInvalidatedArrayBufferMutableProtector = 184,
+    kHoleyArrayReadthrough = 185,
+    kWasmGCAllocation = 186,
+    kModuleNamespaceMissingDefaultWithStarExport = 187,
+    kRegExpMatcherFlagsMismatch = 188,
+    kRegExpCustomSpecies = 189,
 
     // If you add new values here, you'll also need to update Chromium's:
     // web_feature.mojom, use_counter_callback.cc, and enums.xml. V8 changes to
@@ -828,6 +863,12 @@ class V8_EXPORT Isolate {
   void MemoryPressureNotification(MemoryPressureLevel level);
 
   /**
+   * This triggers garbage collections until either `allocate` succeeds, or
+   * until v8 gives up and triggers an OOM error.
+   */
+  bool RetryCustomAllocate(std::function<bool()> allocate);
+
+  /**
    * Optional request from the embedder to tune v8 towards energy efficiency
    * rather than speed if `battery_saver_mode_enabled` is true, because the
    * embedder is in battery saver mode. If false, the correct tuning is left
@@ -872,10 +913,25 @@ class V8_EXPORT Isolate {
   void Exit();
 
   /**
-   * Disposes the isolate.  The isolate must not be entered by any
+   * Deinitializes and frees the isolate. The isolate must not be entered by any
    * thread to be disposable.
    */
   void Dispose();
+
+  /**
+   * Deinitializes the isolate, but does not free the address. The isolate must
+   * not be entered by any thread to be deinitializable. Embedders must call
+   * Isolate::Free() to free the isolate afterwards.
+   */
+  void Deinitialize();
+
+  /**
+   * Frees the memory allocated for the isolate. Can only be called after the
+   * Isolate has already been deinitialized with Isolate::Deinitialize(). After
+   * the isolate is freed, the next call to Isolate::New() or
+   * Isolate::Allocate() might return the same address that just get freed.
+   */
+  static void Free(Isolate* isolate);
 
   /**
    * Dumps activated low-level V8 internal stats. This can be used instead
@@ -919,16 +975,34 @@ class V8_EXPORT Isolate {
   V8_INLINE MaybeLocal<T> GetDataFromSnapshotOnce(size_t index);
 
   /**
-   * Returns the value that was set or restored by
-   * SetContinuationPreservedEmbedderData(), if any.
+   * Returns the value set by `SetContinuationPreservedEmbedderData()` or
+   * restored during microtask execution for the currently running continuation,
+   * if any. Returns undefiend if no continuation preserved embedder data was
+   * set.
    */
-  Local<Value> GetContinuationPreservedEmbedderData();
+  Local<Data> GetContinuationPreservedEmbedderData();
 
   /**
-   * Sets a value that will be stored on continuations and reset while the
-   * continuation runs.
+   * Sets a value that will be stored on continuations and restored while the
+   * continuation runs. If `data` is empty, the continuation preserved embedder
+   * data is set to undefined.
    */
-  void SetContinuationPreservedEmbedderData(Local<Value> data);
+  void SetContinuationPreservedEmbedderData(Local<Data> data);
+
+  /**
+   * Returns the value set by `SetContinuationPreservedEmbedderDataV2()` or
+   * restored during microtask execution for the currently running continuation,
+   * if any. Returns undefiend if no continuation preserved embedder data was
+   * set.
+   */
+  Local<Data> GetContinuationPreservedEmbedderDataV2();
+
+  /**
+   * Sets a value that will be stored on continuations and restored while the
+   * continuation runs. If `data` is empty, the continuation preserved embedder
+   * data is set to undefined.
+   */
+  void SetContinuationPreservedEmbedderDataV2(Local<Data> data);
 
   /**
    * Get statistics about the heap memory usage.
@@ -1338,11 +1412,13 @@ class V8_EXPORT Isolate {
   /**
    * Enqueues the callback to the default MicrotaskQueue
    */
+  V8_DEPRECATE_SOON("Use *MicrotaskQueue::EnqueueMicrotask* instead")
   void EnqueueMicrotask(Local<Function> microtask);
 
   /**
-   * Enqueues the callback to the default MicrotaskQueue
+   * Enqueues the callback to the default MicrotaskQueue.
    */
+  V8_DEPRECATE_SOON("Use *MicrotaskQueue::EnqueueMicrotask* instead")
   void EnqueueMicrotask(MicrotaskCallback callback, void* data = nullptr);
 
   /**
@@ -1417,6 +1493,13 @@ class V8_EXPORT Isolate {
   void SetAddCrashKeyCallback(AddCrashKeyCallback);
 
   /**
+   * Enables the host application to provide a mechanism for allocating a new
+   * crash key and setting/updating values for them.
+   */
+  void SetCrashKeyStringCallbacks(AllocateCrashKeyStringCallback,
+                                  SetCrashKeyStringCallback);
+
+  /**
    * Optional notification that the system is running low on memory.
    * V8 uses these notifications to attempt to free memory.
    */
@@ -1431,7 +1514,7 @@ class V8_EXPORT Isolate {
    * The optional parameter |dependant_context| specifies whether the disposed
    * context was depending on state from other contexts or not.
    */
-  V8_DEPRECATE_SOON("Use version that passes ContextDependants.")
+  V8_DEPRECATED("Use version that passes ContextDependants.")
   int ContextDisposedNotification(bool dependant_context = true);
 
   /**
@@ -1476,6 +1559,19 @@ class V8_EXPORT Isolate {
    * may change frequently.
    */
   void SetIsLoading(bool is_loading);
+
+  /**
+   * Optional notification to tell V8 whether the embedder is currently
+   * handling user input. If the embedder uses this notification, it should
+   * call SetIsInputHandling(true) when input handling starts, and
+   * SetIsInputHandling(false) when it ends.
+   * Calling SetIsInputHandling(true) while handling input, or calling
+   * SetIsInputHandling(false) while not handling input, both have no effect.
+   * V8 uses these notifications to guide heuristics.
+   * This is an unfinished experimental feature. Semantics and implementation
+   * may change frequently.
+   */
+  void SetIsInputHandling(bool is_input_handling);
 
   /**
    * Optional notification to tell V8 whether the embedder is currently frozen.
@@ -1590,6 +1686,13 @@ class V8_EXPORT Isolate {
   void SetOOMErrorHandler(OOMErrorCallback that);
 
   /**
+   * \copydoc SetOOMErrorHandler(OOMErrorCallback)
+   *
+   * \param data Additional data that should be passed to the callback.
+   */
+  void SetOOMErrorHandler(OOMErrorCallbackWithData that, void* data);
+
+  /**
    * Add a callback to invoke in case the heap size is close to the heap limit.
    * If multiple callbacks are added, only the most recently added callback is
    * invoked.
@@ -1642,23 +1745,11 @@ class V8_EXPORT Isolate {
 
   void SetWasmLoadSourceMapCallback(WasmLoadSourceMapCallback callback);
 
-  void SetWasmImportedStringsEnabledCallback(
-      WasmImportedStringsEnabledCallback callback);
+  void SetWasmCustomDescriptorsEnabledCallback(
+      WasmCustomDescriptorsEnabledCallback callback);
 
   void SetSharedArrayBufferConstructorEnabledCallback(
       SharedArrayBufferConstructorEnabledCallback callback);
-
-  void SetWasmJSPIEnabledCallback(WasmJSPIEnabledCallback callback);
-
-  /**
-   * Register callback to control whether compile hints magic comments are
-   * enabled.
-   */
-  V8_DEPRECATED(
-      "Will be removed, use ScriptCompiler::CompileOptions for enabling the "
-      "compile hints magic comments")
-  void SetJavaScriptCompileHintsMagicEnabledCallback(
-      JavaScriptCompileHintsMagicEnabledCallback callback);
 
   /**
    * This function can be called by the embedder to signal V8 that the dynamic
@@ -1682,7 +1773,7 @@ class V8_EXPORT Isolate {
    * If data is specified, it will be passed to the callback when it is called.
    * Otherwise, the exception object will be passed to the callback instead.
    */
-  bool AddMessageListener(MessageCallback that,
+  bool AddMessageListener(MessageCallback callback,
                           Local<Value> data = Local<Value>());
 
   /**
@@ -1696,14 +1787,14 @@ class V8_EXPORT Isolate {
    *
    * A listener can listen for particular error levels by providing a mask.
    */
-  bool AddMessageListenerWithErrorLevel(MessageCallback that,
+  bool AddMessageListenerWithErrorLevel(MessageCallback callback,
                                         int message_levels,
                                         Local<Value> data = Local<Value>());
 
   /**
    * Remove all message listeners from the specified callback function.
    */
-  void RemoveMessageListeners(MessageCallback that);
+  void RemoveMessageListeners(MessageCallback callback);
 
   /** Callback function for reporting failed access checks.*/
   void SetFailedAccessCheckCallbackFunction(FailedAccessCheckCallback);
@@ -1775,6 +1866,21 @@ class V8_EXPORT Isolate {
   std::string GetDefaultLocale();
 
   /**
+   * Returns a canonical and case-regularized form of locale if Intl support is
+   * enabled. If the locale is not syntactically well-formed, throws a
+   * RangeError.
+   *
+   * If Intl support is not enabled, returns Nothing<std::string>().
+   *
+   * Corresponds to the combination of the abstract operations
+   * IsStructurallyValidLanguageTag and CanonicalizeUnicodeLocaleId. See:
+   * https://tc39.es/ecma402/#sec-isstructurallyvalidlanguagetag
+   * https://tc39.es/ecma402/#sec-canonicalizeunicodelocaleid
+   */
+  V8_WARN_UNUSED_RESULT Maybe<std::string>
+  ValidateAndCanonicalizeUnicodeLocaleId(std::string_view locale);
+
+  /**
    * Returns the hash seed for that isolate, for testing purposes.
    */
   uint64_t GetHashSeed();
@@ -1798,7 +1904,6 @@ class V8_EXPORT Isolate {
   internal::ValueHelper::InternalRepresentationType GetDataFromSnapshotOnce(
       size_t index);
   int64_t AdjustAmountOfExternalAllocatedMemoryImpl(int64_t change_in_bytes);
-  void HandleExternalMemoryInterrupt();
 };
 
 void Isolate::SetData(uint32_t slot, void* data) {

@@ -108,11 +108,6 @@ class V8_EXPORT Message {
  public:
   Local<String> Get() const;
 
-  /**
-   * Return the isolate to which the Message belongs.
-   */
-  Isolate* GetIsolate() const;
-
   V8_WARN_UNUSED_RESULT MaybeLocal<String> GetSource(
       Local<Context> context) const;
   V8_WARN_UNUSED_RESULT MaybeLocal<String> GetSourceLine(
@@ -144,13 +139,15 @@ class V8_EXPORT Message {
 
   /**
    * Returns the index within the script of the first character where
-   * the error occurred.
+   * the error occurred. This is best effort and not guaranteed. It may be -1 or
+   * even > EndPosition in some cases.
    */
   int GetStartPosition() const;
 
   /**
    * Returns the index within the script of the last character where
-   * the error occurred.
+   * the error occurred. This is best effort and not guaranteed. It may be -1 or
+   * even < StartPosition in some cases.
    */
   int GetEndPosition() const;
 

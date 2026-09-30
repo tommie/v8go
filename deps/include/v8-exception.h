@@ -276,15 +276,26 @@ class V8_EXPORT TryCatch {
 
   void ResetInternal();
 
+  /**
+   * Set whether or not this TryCatch is internal.
+   * Internal TryCatch blocks are not treated as external handlers for the
+   * purposes of the debugger.
+   */
+  void SetIsInternal(bool value);
+  bool IsInternal() const;
+
+  // Helper methods for internal::Isolate.
+  bool capture_message() const;
+  void set_can_continue(bool value);
+  bool rethrow() const;
+  void set_rethrow(bool value);
+
   internal::Isolate* i_isolate_;
   TryCatch* next_;
   void* exception_;
   void* message_obj_;
   internal::Address js_stack_comparable_address_;
-  bool is_verbose_ : 1;
-  bool can_continue_ : 1;
-  bool capture_message_ : 1;
-  bool rethrow_ : 1;
+  uint8_t flags_;
 
   friend class internal::Isolate;
   friend class internal::ThreadLocalTop;
