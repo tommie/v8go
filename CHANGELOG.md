@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Pin depot_tools in V8 builds, upgrading it together with V8, instead of self-updating it during builds.
+- Link Clang's compiler-rt builtins on Linux, instead of relying on libgcc from GCC 12 or newer.
 
 ### Fixed
 - Linux libraries can be linked with glibc older than 2.38, e.g. on Debian 12, Ubuntu 22.04 and RHEL 9. V8 is now built against Chromium's Debian bullseye sysroot, making glibc 2.31 the minimum.

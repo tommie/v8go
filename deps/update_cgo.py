@@ -19,12 +19,12 @@ def get_all_libs(manifest_glob):
         os_arch = os.path.basename(os.path.dirname(manifest_path))
         os_arch = os_arch.split("_", 1)
         libs = get_libs(manifest_path)
-        # Chromium's libc++ must come after libv8, which uses it.
-        libs += [name for name in LIBCXX_LIBS if os.path.isfile(os.path.join(os.path.dirname(manifest_path), name))]
+        # Runtime libraries must come after libv8, which uses them.
+        libs += [name for name in RUNTIME_LIBS if os.path.isfile(os.path.join(os.path.dirname(manifest_path), name))]
         yield os_arch, manifest_path, libs
 
-# Created by build.py.
-LIBCXX_LIBS = ["libc++-cr.a", "libc++abi-cr.a"]
+# Created by build.py, in link order.
+RUNTIME_LIBS = ["libc++-cr.a", "libc++abi-cr.a", "libclang_rt.builtins-cr.a"]
 
 def format_ldflag(lib):
     name = os.path.basename(lib)

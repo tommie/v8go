@@ -384,6 +384,23 @@ def copy_libcxx(build_path, dest_path):
             os.unlink(dest)
         subprocess_check_call([ar_path, "qcs", dest] + members, cwd=build_path)
 
+# Target triples of Chromium's Clang runtime libraries.
+LINUX_TRIPLES = {"amd64": "x86_64-unknown-linux-gnu", "arm64": "aarch64-unknown-linux-gnu"}
+
+def copy_builtins(dest_path):
+    """Copies Clang's compiler-rt builtins next to libv8.
+
+    V8 can call builtins, like __extendhfsf2 for Float16, that libgcc
+    only provides from GCC 12. Chromium links these instead of libgcc,
+    and so do we, for a known minimum.
+    """
+    clang_path = os.path.join(v8_path, "third_party", "llvm-build", "Release+Asserts", "bin", "clang")
+    src = subprocess_check_output_text([clang_path, "--target=" + LINUX_TRIPLES[args.arch], "--rtlib=compiler-rt", "-print-libgcc-file-name"], stderr=subprocess.DEVNULL).strip()
+    if not os.path.isfile(src):
+        raise RuntimeError("compiler-rt builtins not found: {}".format(src))
+
+    shutil.copyfile(src, os.path.join(dest_path, "libclang_rt.builtins-cr.a"))
+
 def allocate_disjoint_files(ar_files, case_sensitive=True):
     ar_file_counts = {} # file -> count
     for ar_file in ar_files:
@@ -440,6 +457,8 @@ def main():
             os.path.join(dest_path, "libv8.a"),
             dest_obj_dn)
         copy_libcxx(build_path, dest_path)
+        if args.os == "linux":
+            copy_builtins(dest_path)
         if use_sysroot():
             check_sysroot_symbols(dest_path)
     finally:
