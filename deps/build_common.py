@@ -26,6 +26,55 @@ v8_path = os.path.join(deps_path, "v8")
 v8_include_path = os.path.join(v8_path, "include")
 deps_include_path = os.path.join(deps_path, "include")
 
+# The cgo bridge must be compiled with the libc++ that V8 was built
+# with, since V8's API uses std:: types. These are gclient
+# dependencies, not part of the V8 repository.
+libcxx_headers = [
+  (os.path.join(v8_path, "third_party", "libc++", "src", "include"),
+   os.path.join(deps_path, "include_libcxx")),
+  (os.path.join(v8_path, "third_party", "libc++abi", "src", "include"),
+   os.path.join(deps_path, "include_libcxxabi")),
+]
+# Chromium's configuration of libc++, e.g. the std::__Cr ABI namespace.
+libcxx_config_path = os.path.join(v8_path, "buildtools", "third_party", "libc++")
+
+gclient_sln = [
+  { "name"        : "v8",
+    "url"         : "https://chromium.googlesource.com/v8/v8.git",
+    "deps_file"   : "DEPS",
+    "managed"     : False,
+    "custom_deps" : {
+      "v8/testing/gmock"                : None,
+      "v8/test/wasm-js"                 : None,
+      "v8/third_party/colorama/src"     : None,
+      "v8/tools/gyp"                    : None,
+      "v8/tools/luci-go"                : None,
+      "v8/third_party/catapult"         : None,
+      "v8/third_party/android_tools"    : None,
+    },
+    "custom_vars": {
+      "build_for_node" : True,
+    },
+  },
+]
+
+def v8deps():
+  spec = "solutions = %s\n" % gclient_sln
+  sync_env = env.copy()
+  sync_env["PATH"] = os.path.join(deps_path, "depot_tools") + os.pathsep + sync_env["PATH"]
+  subprocess.check_call(["gclient", "sync", "--no-history", "--spec", spec],
+                        cwd=deps_path,
+                        env=sync_env)
+
+def copy_libcxx_headers():
+  for src, dest in libcxx_headers:
+    if os.path.exists(dest):
+      shutil.rmtree(dest)
+    shutil.copytree(src, dest)
+
+  for name in ("__config_site", "__assertion_handler"):
+    shutil.copy2(os.path.join(libcxx_config_path, name), libcxx_headers[0][1])
+
 def get_directories_names(path):
   flist = []
   for p in pathlib.Path(path).iterdir():
@@ -72,6 +121,8 @@ def create_vendor_files(src_path, module):
 
 if __name__ == "__main__":
   module = get_module_name()
+  v8deps()
   shutil.rmtree(deps_include_path)
   shutil.copytree(v8_include_path, deps_include_path, dirs_exist_ok=True)
   create_vendor_files(deps_include_path, module)
+  copy_libcxx_headers()

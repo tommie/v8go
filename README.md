@@ -28,6 +28,21 @@ Major differences include
   * The library builder commits directly, without a PR, avoiding PR blow-up.
   * Using ccache, based on https://github.com/kuoruan/libv8.
 
+## Requirements
+
+V8 is built with Chromium's hardened libc++, and v8go must be compiled
+against the same headers. This requires Clang, in a version recent
+enough for the libc++ headers in `deps/include_libcxx/`, currently
+Clang 21. Since `-nostdinc++` isn't allowed in `#cgo` directives, it
+must also be set in `CGO_CXXFLAGS`:
+
+```sh
+CC=clang-21 CXX=clang++-21 CGO_CXXFLAGS=-nostdinc++ go build
+```
+
+Note that these environment variables apply to all cgo packages in the
+build.
+
 ## Usage
 
 ```go

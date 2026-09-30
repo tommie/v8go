@@ -2,6 +2,11 @@ name: V8 Build
 
 on:
   workflow_dispatch:
+    inputs:
+      v8_hash:
+        description: The V8 commit hash to build at. Defaults to the previously built version.
+        required: false
+        type: string
   workflow_call:
     inputs:
       sha:
@@ -54,6 +59,9 @@ jobs:
           done
         fi
 
+    - name: Update depot_tools fetch config
+      run: cd deps/depot_tools && git config --unset-all remote.origin.fetch; git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/*
+
     - name: Create include files
       run: cd deps && ./build_common.py
 
@@ -64,6 +72,24 @@ jobs:
         name: include
         if-no-files-found: error
         path: deps/include/
+        retention-days: 2
+
+    - name: Upload include_libcxx/ Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        # The name matches the directory under deps/.
+        name: include_libcxx
+        if-no-files-found: error
+        path: deps/include_libcxx/
+        retention-days: 2
+
+    - name: Upload include_libcxxabi/ Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        # The name matches the directory under deps/.
+        name: include_libcxxabi
+        if-no-files-found: error
+        path: deps/include_libcxxabi/
         retention-days: 2
 
   build:
@@ -208,8 +234,10 @@ jobs:
         git checkout "${latest_v8_version:-$latest_v8_hash}"
         echo "latest_v8_version=${latest_v8_version:-$latest_v8_hash}" >>"$GITHUB_OUTPUT"
 
-    - name: Remove old static libraries
-      run: "find deps -maxdepth 2 -type f -name libmanifest | xargs -rn1 dirname | xargs -r rm -fr"
+    - name: Remove old generated files
+      run: |
+        find deps -maxdepth 2 -type f -name libmanifest | xargs -rn1 dirname | xargs -r rm -fr
+        rm -fr deps/include deps/include_libcxx deps/include_libcxxabi
 
     - name: Download Artifacts
       uses: actions/download-artifact@v4
@@ -234,9 +262,12 @@ jobs:
         add: |
           - cgo.go
           - CHANGELOG.md
-          - deps/*_*/libv8*.a
+          - deps/*_*/cgo.go
+          - deps/*_*/lib*.a
           - deps/*_*/libmanifest
           - deps/include/**
+          - deps/include_libcxx/**
+          - deps/include_libcxxabi/**
           - deps/depot_tools
           - deps/v8
           - deps/v8_hash

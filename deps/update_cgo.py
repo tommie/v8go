@@ -19,7 +19,20 @@ def get_all_libs(manifest_glob):
         os_arch = os.path.basename(os.path.dirname(manifest_path))
         os_arch = os_arch.split("_", 1)
         libs = get_libs(manifest_path)
+        # Chromium's libc++ must come after libv8, which uses it.
+        libs += [name for name in LIBCXX_LIBS if os.path.isfile(os.path.join(os.path.dirname(manifest_path), name))]
         yield os_arch, manifest_path, libs
+
+# Created by build.py.
+LIBCXX_LIBS = ["libc++-cr.a", "libc++abi-cr.a"]
+
+def format_ldflag(lib):
+    name = os.path.basename(lib)
+    if name.startswith("lib"):
+        name = name[len("lib"):]
+    if name.endswith(".a"):
+        name = name[:-len(".a")]
+    return "-l" + name
 
 def format_ldflags_libs(os, arch, libs):
     # Since libraries are split without caring about dependencies,
@@ -30,9 +43,12 @@ def format_ldflags_libs(os, arch, libs):
     # However, XCode ld(1) does not support it, but says it "will continually search a static library": https://keith.github.io/xcode-man-pages/ld.1.html
     start_group = "-Wl,--start-group " if os != "darwin" else ""
     end_group = " -Wl,--end-group" if os != "darwin" else ""
+    # V8 uses CoreFoundation utilities, and Security for code signing entitlements.
+    frameworks = " -framework CoreFoundation -framework Security" if os == "darwin" else ""
     return (start_group +
-        " ".join("-l{}".format(lib.replace(".a", "").replace("libv8", "v8")) for lib in libs) +
-        end_group)
+        " ".join(format_ldflag(lib) for lib in libs) +
+        end_group +
+        frameworks)
 
 def generate_imported_mod_file(path, root_module, os, arch, min_go_version):
     with open(path, "wt") as f:

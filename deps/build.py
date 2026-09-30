@@ -39,7 +39,9 @@ deps_path = os.path.dirname(os.path.realpath(__file__))
 v8_path = os.path.join(deps_path, "v8")
 tools_path = os.path.join(deps_path, "depot_tools")
 is_windows = platform.system().lower() == "windows"
-is_clang = args.clang if args.clang is not None else args.os != "linux"
+# Chromium only supports Clang for our targets, and its libc++ requires
+# it.
+is_clang = args.clang if args.clang is not None else True
 
 def get_custom_deps():
     # These deps are unnecessary for building.
@@ -74,7 +76,7 @@ target_os="%s"
 target_cpu="%s"
 v8_target_cpu="%s"
 clang_use_chrome_plugins=false
-use_custom_libcxx=false
+use_custom_libcxx=true
 use_sysroot=false
 use_glib=false
 symbol_level=%s
@@ -90,6 +92,7 @@ icu_use_data_file=false
 v8_enable_test_features=false
 exclude_unwind_tables=true
 v8_android_log_stdout=true
+v8_enable_temporal_support=false
 """
 
 def v8deps():
@@ -97,9 +100,30 @@ def v8deps():
     spec += "target_os = [%r]" % (v8_os(),)
     env = os.environ.copy()
     env["PATH"] = tools_path + os.pathsep + env["PATH"]
-    subprocess_check_call(["gclient", "sync", "--delete_unversioned_trees", "--no-history", "--spec", spec],
+    # --force: the CI cache restores v8/build, which we modify in
+    # disable_crel().
+    subprocess_check_call(["gclient", "sync", "--force", "--delete_unversioned_trees", "--no-history", "--spec", spec],
                         cwd=deps_path,
                         env=env)
+
+CREL_CFLAGS = 'cflags += [ "-Wa,--crel,--allow-experimental-crel" ]'
+CREL_DISABLED = "# v8go: CREL disabled."
+
+def disable_crel():
+    """Stops Chromium's Clang from emitting CREL relocations.
+
+    Only LLD reads them, while cgo users link with the system linker.
+    There is no GN argument for this, so we edit the build config.
+    """
+    path = os.path.join(v8_path, "build", "config", "compiler", "BUILD.gn")
+    with open(path, "rt") as f:
+        source = f.read()
+
+    if CREL_CFLAGS in source:
+        with open(path, "wt") as f:
+            f.write(source.replace(CREL_CFLAGS, CREL_DISABLED))
+    elif CREL_DISABLED not in source:
+        raise RuntimeError("CREL flags not found in {}; check if disable_crel() is still needed".format(path))
 
 def build_gn_args():
     is_debug = args.debug
@@ -260,6 +284,27 @@ def split_ar(src_fn, dest_fn, dest_obj_dn):
         for dest_fn in dest_fns:
             print(dest_fn, file=f)
 
+def copy_libcxx(build_path, dest_path):
+    """Copies Chromium's libc++ and libc++abi next to libv8.
+
+    They are named *-cr.a to avoid confusion with the system library.
+    Ninja produces thin archives, which only reference object files, so
+    we create regular archives from the members.
+    """
+    ar_path = os.path.abspath(os.path.join(v8_path, "third_party/llvm-build/Release+Asserts/bin/llvm-ar"))
+
+    for name in ("libc++", "libc++abi"):
+        src = os.path.join(build_path, "obj", "buildtools", "third_party", name, name + ".a")
+        dest = os.path.join(dest_path, name + "-cr.a")
+
+        members = subprocess_check_output_text([ar_path, "t", src], cwd=build_path).splitlines()
+        if not members:
+            raise RuntimeError("archive is empty: {}".format(src))
+
+        if os.path.exists(dest):
+            os.unlink(dest)
+        subprocess_check_call([ar_path, "qcs", dest] + members, cwd=build_path)
+
 def allocate_disjoint_files(ar_files, case_sensitive=True):
     ar_file_counts = {} # file -> count
     for ar_file in ar_files:
@@ -290,6 +335,7 @@ def allocate_disjoint_files(ar_files, case_sensitive=True):
 
 def main():
     v8deps()
+    disable_crel()
     if is_windows:
         apply_mingw_patches()
 
@@ -303,7 +349,7 @@ def main():
     gnargs = build_gn_args()
 
     subprocess_check_call([gn_path, "gen", build_path, "--args=" + gnargs.replace('\n', ' ')], cwd=v8_path)
-    subprocess_check_call([ninja_path, "-v", "-C", build_path, "v8_monolith"], cwd=v8_path)
+    subprocess_check_call([ninja_path, "-v", "-C", build_path, "v8_monolith", "libc++", "libc++abi"], cwd=v8_path)
 
     dest_path = os.path.join(deps_path, os_arch())
     dest_obj_dn = os.path.join(dest_path, "obj")
@@ -312,6 +358,7 @@ def main():
             os.path.join(build_path, "obj/libv8_monolith.a"),
             os.path.join(dest_path, "libv8.a"),
             dest_obj_dn)
+        copy_libcxx(build_path, dest_path)
     finally:
         if os.path.exists(dest_obj_dn):
             shutil.rmtree(dest_obj_dn)

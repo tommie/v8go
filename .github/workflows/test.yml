@@ -38,6 +38,9 @@ jobs:
       with:
         ref: ${{ inputs.sha }}
 
+    - name: Set Up Clang
+      uses: ./.github/actions/setup-clang
+
     - name: Install Go
       uses: actions/setup-go@v5
       with:
@@ -57,7 +60,7 @@ jobs:
         # https://github.com/tommie/v8go/actions/runs/7363603520/job/20043211523 shows that TestCPUProfileNode can be flaky.
         go test -v -coverprofile coverage.out ./... || go test -v -coverprofile coverage.out ./...
       env:
-        CGO_CXXFLAGS: "-Werror"
+        CGO_CXXFLAGS: "-nostdinc++ -Werror"
 
     - name: Upload Coverage To Codecov
       uses: codecov/codecov-action@v3
