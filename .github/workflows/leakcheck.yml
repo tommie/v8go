@@ -23,6 +23,12 @@ jobs:
       with:
         ref: ${{ inputs.sha }}
 
+    - name: Set Up Clang
+      uses: ./.github/actions/setup-clang
+      with:
+        # For -fsanitize=address.
+        extra-packages: libclang-rt-{version}-dev
+
     - name: Install Go
       uses: actions/setup-go@v5
       with:
@@ -36,8 +42,7 @@ jobs:
 
     - name: Build Test
       env:
-        CC: clang
-        CXX: clang++
+        CGO_CXXFLAGS: "-nostdinc++"
       run: |
         go test -c --tags leakcheck
 
