@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- Pin depot_tools in V8 builds, upgrading it together with V8, instead of self-updating it during builds.
 
 ## [v0.35.0] - 2026-09-30
 

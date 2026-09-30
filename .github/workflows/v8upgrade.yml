@@ -12,6 +12,7 @@ jobs:
     outputs:
       has_upgrade: ${{ steps.check_v8.outputs.has_upgrade }}
       latest_v8_hash: ${{ steps.check_v8.outputs.latest_v8_hash }}
+      latest_depot_tools_hash: ${{ steps.check_depot_tools.outputs.latest_depot_tools_hash }}
     steps:
     - name: Install Utilities
       run: |
@@ -37,10 +38,22 @@ jobs:
           echo "has_upgrade=$(git status --porcelain | grep -q . && echo true || echo false)" >>"$GITHUB_OUTPUT"
         fi
 
+    - id: check_depot_tools
+      name: Check Latest depot_tools
+      # Upgraded together with V8, so the submodule records what built
+      # the committed libraries.
+      if: ${{ steps.check_v8.outputs.has_upgrade == 'true' }}
+      run: |
+        set -o pipefail
+        hash="$(git ls-remote "$(git config -f .gitmodules submodule.deps/depot_tools.url)" refs/heads/main | cut -f1)"
+        [ -n "$hash" ]
+        echo "latest_depot_tools_hash=$hash" >>"$GITHUB_OUTPUT"
+
     - name: Create Summary
       if: ${{ steps.check_v8.outputs.has_upgrade == 'true' }}
       run: |
         echo "New V8 hash: ${{ steps.check_v8.outputs.latest_v8_hash }}" >>"$GITHUB_STEP_SUMMARY"
+        echo "New depot_tools hash: ${{ steps.check_depot_tools.outputs.latest_depot_tools_hash }}" >>"$GITHUB_STEP_SUMMARY"
 
     - name: Create Summary (no upgrade)
       if: ${{ steps.check_v8.outputs.has_upgrade != 'true' }}
@@ -57,6 +70,7 @@ jobs:
     uses: ./.github/workflows/v8build.yml
     with:
       v8_hash: ${{ needs.upgrade.outputs.latest_v8_hash }}
+      depot_tools_hash: ${{ needs.upgrade.outputs.latest_depot_tools_hash }}
 
   release:
     name: Make A Release

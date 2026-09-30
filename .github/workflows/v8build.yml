@@ -7,6 +7,10 @@ on:
         description: The V8 commit hash to build at. Defaults to the previously built version.
         required: false
         type: string
+      depot_tools_hash:
+        description: The depot_tools commit hash to build with. Defaults to the deps/depot_tools submodule.
+        required: false
+        type: string
   workflow_call:
     inputs:
       sha:
@@ -17,6 +21,10 @@ on:
         description: The V8 commit hash to build at. Defaults to the previously built version.
         required: false
         type: string
+      depot_tools_hash:
+        description: The depot_tools commit hash to build with. Defaults to the deps/depot_tools submodule.
+        required: false
+        type: string
     outputs:
       committed:
         description: Whether built files were comitted.
@@ -25,12 +33,17 @@ on:
         description: The resulting SHA commitish.
         value: ${{ jobs.syncsubdeps.outputs.sha }}
 
+env:
+  # depot_tools is pinned, and upgraded by the V8 Upgrade workflow.
+  DEPOT_TOOLS_UPDATE: '0'
+
 jobs:
   build_common:
     name: Build Architecture Independent Files
     runs-on: ubuntu-latest
     outputs:
       v8_hash: ${{ steps.update_v8.outputs.v8_hash }}
+      depot_tools_hash: ${{ steps.depot_tools.outputs.hash }}
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -59,8 +72,15 @@ jobs:
           done
         fi
 
-    - name: Update depot_tools fetch config
-      run: cd deps/depot_tools && git config --unset-all remote.origin.fetch; git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/*
+    - id: depot_tools
+      name: Resolve depot_tools
+      run: |
+        hash="${{ inputs.depot_tools_hash }}"
+        echo "hash=${hash:-$(git rev-parse HEAD:deps/depot_tools)}" >>"$GITHUB_OUTPUT"
+
+    - uses: ./.github/actions/checkout-depot-tools
+      with:
+        hash: ${{ steps.depot_tools.outputs.hash }}
 
     - name: Create include files
       run: cd deps && ./build_common.py
@@ -184,8 +204,9 @@ jobs:
         restore-keys: |
           libv8:v8build:${{ matrix.os }}:${{ matrix.arch }}:
 
-    - name: Update depot_tools fetch config
-      run: cd deps/depot_tools && git config --unset-all remote.origin.fetch; git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/*
+    - uses: ./.github/actions/checkout-depot-tools
+      with:
+        hash: ${{ needs.build_common.outputs.depot_tools_hash }}
 
     - name: Build V8 (${{ matrix.os }})
       run: cd deps && ./build.py --ccache --verbose --arch ${{ matrix.arch }} --os ${{ matrix.os }}
@@ -233,6 +254,12 @@ jobs:
         latest_v8_version="$(git tag --points-at "$latest_v8_hash" | grep -v -- '-pgo' | head -n1)"
         git checkout "${latest_v8_version:-$latest_v8_hash}"
         echo "latest_v8_version=${latest_v8_version:-$latest_v8_hash}" >>"$GITHUB_OUTPUT"
+
+    - name: Update depot_tools
+      uses: ./.github/actions/checkout-depot-tools
+      with:
+        hash: ${{ needs.build_common.outputs.depot_tools_hash }}
+        bootstrap: 'false'
 
     - name: Remove old generated files
       run: |
@@ -288,6 +315,7 @@ jobs:
 
         echo "V8 Commit: $(<deps/v8_hash)" >>"$GITHUB_STEP_SUMMARY"
         echo "V8 Version: ${{ steps.update_v8.outputs.latest_v8_version }}" >>"$GITHUB_STEP_SUMMARY"
+        echo "depot_tools Commit: ${{ needs.build_common.outputs.depot_tools_hash }}" >>"$GITHUB_STEP_SUMMARY"
         echo "Commit: https://github.com/tommie/v8go/commit/$commit_sha" >>"$GITHUB_STEP_SUMMARY"
 
         echo "sha=$commit_sha" >>"$GITHUB_OUTPUT"
