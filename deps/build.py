@@ -99,9 +99,30 @@ def v8deps():
     spec += "target_os = [%r]" % (v8_os(),)
     env = os.environ.copy()
     env["PATH"] = tools_path + os.pathsep + env["PATH"]
-    subprocess_check_call(["gclient", "sync", "--delete_unversioned_trees", "--no-history", "--spec", spec],
+    # --force: the CI cache restores v8/build, which we modify in
+    # disable_crel().
+    subprocess_check_call(["gclient", "sync", "--force", "--delete_unversioned_trees", "--no-history", "--spec", spec],
                         cwd=deps_path,
                         env=env)
+
+CREL_CFLAGS = 'cflags += [ "-Wa,--crel,--allow-experimental-crel" ]'
+CREL_DISABLED = "# v8go: CREL disabled."
+
+def disable_crel():
+    """Stops Chromium's Clang from emitting CREL relocations.
+
+    Only LLD reads them, while cgo users link with the system linker.
+    There is no GN argument for this, so we edit the build config.
+    """
+    path = os.path.join(v8_path, "build", "config", "compiler", "BUILD.gn")
+    with open(path, "rt") as f:
+        source = f.read()
+
+    if CREL_CFLAGS in source:
+        with open(path, "wt") as f:
+            f.write(source.replace(CREL_CFLAGS, CREL_DISABLED))
+    elif CREL_DISABLED not in source:
+        raise RuntimeError("CREL flags not found in {}; check if disable_crel() is still needed".format(path))
 
 def build_gn_args():
     is_debug = args.debug
@@ -292,6 +313,7 @@ def allocate_disjoint_files(ar_files, case_sensitive=True):
 
 def main():
     v8deps()
+    disable_crel()
     if is_windows:
         apply_mingw_patches()
 
