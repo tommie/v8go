@@ -2,6 +2,11 @@ name: V8 Build
 
 on:
   workflow_dispatch:
+    inputs:
+      v8_hash:
+        description: The V8 commit hash to build at. Defaults to the previously built version.
+        required: false
+        type: string
   workflow_call:
     inputs:
       sha:
