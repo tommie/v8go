@@ -17,9 +17,9 @@ using namespace v8;
 
 RtnString StringToRtnString(v8::Isolate* iso, Local<String> val) {
   RtnString res = {};
-  res.length = val->Utf8LengthV2(iso);
+  res.length = val->Utf8Length(iso);
   res.data = static_cast<char*>(malloc(res.length));
-  val->WriteUtf8V2(iso, res.data, res.length);
+  val->WriteUtf8(iso, res.data, res.length);
   return res;
 }
 
