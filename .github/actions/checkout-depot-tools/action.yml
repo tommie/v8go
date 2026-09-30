@@ -1,0 +1,35 @@
+name: Check Out depot_tools
+description: |
+  Checks out deps/depot_tools at a given commit, instead of letting
+  gclient self-update it. The workflow must set DEPOT_TOOLS_UPDATE=0.
+
+  The commit only differs from the submodule when V8 Upgrade passes a
+  newer depot_tools. It is committed as the submodule pointer only
+  after all builds succeed, so there is no partial upgrade.
+
+  Skipping the update also skips depot_tools' bootstrap (CIPD and
+  Python), so that is always done here, unless only the submodule
+  pointer is needed.
+
+inputs:
+  hash:
+    description: The depot_tools commit hash.
+    required: true
+  bootstrap:
+    description: Whether to bootstrap depot_tools for running gclient.
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+  - name: Check out depot_tools
+    shell: bash
+    run: |
+      cd deps/depot_tools
+      git fetch --depth=1 origin "${{ inputs.hash }}"
+      git checkout "${{ inputs.hash }}"
+
+  - name: Bootstrap depot_tools
+    if: inputs.bootstrap == 'true'
+    shell: bash
+    run: cd deps/depot_tools && ./ensure_bootstrap
