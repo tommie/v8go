@@ -178,8 +178,8 @@ def v8deps():
     spec += "target_os = [%r]" % (v8_os(),)
     env = os.environ.copy()
     env["PATH"] = tools_path + os.pathsep + env["PATH"]
-    # --force: the CI cache restores v8/build, which we modify in
-    # disable_crel().
+    # --force: disable_crel() modifies v8/build, which would otherwise
+    # stop a sync when build.py runs again on the same tree.
     subprocess_check_call(["gclient", "sync", "--force", "--delete_unversioned_trees", "--no-history", "--spec", spec],
                         cwd=deps_path,
                         env=env)
