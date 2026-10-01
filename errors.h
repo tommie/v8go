@@ -5,6 +5,10 @@ typedef struct {
   char* msg;
   char* location;
   char* stack;
+  // The exception message, if IsolateSetExceptionMessages is enabled.
+  // The format is parsed by parseMessage in errors.go.
+  char* message;
+  int message_length;
   // Non-zero if execution was terminated because the heap limit was
   // reached.
   int heap_limit_reached;
