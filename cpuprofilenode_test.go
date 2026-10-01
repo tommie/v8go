@@ -11,7 +11,8 @@ import (
 )
 
 func TestCPUProfileNode(t *testing.T) {
-	t.Parallel()
+	// Not parallel: CPU profiles are sampled, and other tests can starve
+	// the profiler enough that short calls, like bar, are missing.
 
 	ctx := v8.NewContext(nil)
 	iso := ctx.Isolate()
@@ -68,7 +69,6 @@ func TestCPUProfileNode(t *testing.T) {
 	delayNode := findChild(t, fooNode, "delay")
 	checkNode(t, delayNode, "script.js", "delay", 12, 15)
 
-	// TODO: this is flaky? https://github.com/tommie/v8go/actions/runs/7363603520/job/20043211523
 	barNode := findChild(t, fooNode, "bar")
 	checkNode(t, barNode, "script.js", "bar", 13, 13)
 
