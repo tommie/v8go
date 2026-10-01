@@ -2,6 +2,9 @@
 #include "deps/include/v8-initialization.h"
 #include "deps/include/v8-locker.h"
 #include "deps/include/v8-platform.h"
+#include "deps/include/v8-profiler.h"
+
+#include "_cgo_export.h"
 
 #include "context.h"
 #include "isolate.h"
@@ -11,6 +14,25 @@ using namespace v8;
 
 auto default_platform = platform::NewDefaultPlatform();
 ArrayBuffer::Allocator* default_allocator;
+
+// Forwards heap snapshot chunks to a Go io.Writer.
+class GoOutputStream : public OutputStream {
+ public:
+  // writerRef is a cgo.Handle used by goWriteHeapSnapshotChunk.
+  explicit GoOutputStream(uintptr_t writerRef) : writerRef_(writerRef) {}
+
+  int GetChunkSize() override { return 64 * 1024; }
+
+  void EndOfStream() override {}
+
+  WriteResult WriteAsciiChunk(char* data, int size) override {
+    return goWriteHeapSnapshotChunk(writerRef_, data, size) ? kContinue
+                                                            : kAbort;
+  }
+
+ private:
+  uintptr_t writerRef_;
+};
 
 extern "C" {
 
@@ -94,6 +116,21 @@ void IsolateTerminateExecution(IsolatePtr iso) {
 
 int IsolateIsExecutionTerminating(IsolatePtr iso) {
   return iso->IsExecutionTerminating();
+}
+
+void IsolateLowMemoryNotification(IsolatePtr iso) {
+  ISOLATE_SCOPE(iso);
+  iso->LowMemoryNotification();
+}
+
+void IsolateWriteHeapSnapshot(IsolatePtr iso, uintptr_t writerRef) {
+  ISOLATE_SCOPE(iso);
+
+  // This runs a full garbage collection first.
+  const HeapSnapshot* snapshot = iso->GetHeapProfiler()->TakeHeapSnapshot();
+  GoOutputStream stream(writerRef);
+  snapshot->Serialize(&stream, HeapSnapshot::kJSON);
+  const_cast<HeapSnapshot*>(snapshot)->Delete();
 }
 
 IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr iso) {

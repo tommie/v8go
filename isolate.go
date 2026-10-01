@@ -9,6 +9,8 @@ package v8go
 import "C"
 
 import (
+	"io"
+	"runtime/cgo"
 	"sync"
 	"unsafe"
 )
@@ -175,6 +177,57 @@ func (i *Isolate) GetHeapStatistics() HeapStatistics {
 		NumberOfNativeContexts:   uint64(hs.number_of_native_contexts),
 		NumberOfDetachedContexts: uint64(hs.number_of_detached_contexts),
 	}
+}
+
+// LowMemoryNotification tells V8 that the system is running low on
+// memory. V8 then performs a full garbage collection, and frees other
+// memory it can, e.g. caches.
+func (i *Isolate) LowMemoryNotification() {
+	C.IsolateLowMemoryNotification(i.ptr)
+}
+
+// WriteHeapSnapshot takes a snapshot of the JavaScript heap and writes it
+// to w, in the JSON format that Chrome DevTools can load (".heapsnapshot"
+// files). Comparing snapshots taken at different times is useful for
+// finding memory leaks. V8 performs a full garbage collection before
+// taking the snapshot.
+//
+// The isolate is locked while the snapshot is written. The returned
+// error is the first error returned by w.
+func (i *Isolate) WriteHeapSnapshot(w io.Writer) error {
+	hw := heapSnapshotWriter{w: w}
+	h := cgo.NewHandle(&hw)
+	defer h.Delete()
+
+	C.IsolateWriteHeapSnapshot(i.ptr, C.uintptr_t(h))
+	return hw.err
+}
+
+// heapSnapshotWriter is the state of a WriteHeapSnapshot call.
+type heapSnapshotWriter struct {
+	w   io.Writer
+	err error
+}
+
+// goWriteHeapSnapshotChunk is called by C code for each chunk of a heap
+// snapshot. writerRef is a [cgo.Handle] of a *heapSnapshotWriter. It
+// returns zero to abort the snapshot.
+//
+//export goWriteHeapSnapshotChunk
+func goWriteHeapSnapshotChunk(writerRef C.uintptr_t, data *C.char, size C.int) C.int {
+	hw := cgo.Handle(writerRef).Value().(*heapSnapshotWriter)
+
+	// io.Writer implementations must not retain the slice, so it can
+	// refer to the C memory.
+	n, err := hw.w.Write(unsafe.Slice((*byte)(unsafe.Pointer(data)), int(size)))
+	if err == nil && n < int(size) {
+		err = io.ErrShortWrite
+	}
+	if err != nil {
+		hw.err = err
+		return 0
+	}
+	return 1
 }
 
 // Dispose will dispose the Isolate VM; subsequent calls will panic.
