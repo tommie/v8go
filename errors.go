@@ -8,9 +8,15 @@ package v8go
 // #include "errors.h"
 import "C"
 import (
+	"errors"
 	"fmt"
 	"io"
 )
+
+// ErrHeapLimitReached is matched by errors.Is for errors from executing
+// JavaScript that was terminated because the isolate's heap limit was
+// reached. The process isn't killed; the isolate can be used again.
+var ErrHeapLimitReached = errors.New("heap limit reached")
 
 // JSError is an error that is returned if there is are any
 // JavaScript exceptions handled in the context. When used with the fmt
@@ -19,6 +25,9 @@ type JSError struct {
 	Message    string
 	Location   string
 	StackTrace string
+
+	// cause is returned by Unwrap, e.g. ErrHeapLimitReached.
+	cause error
 }
 
 func newJSError(rtnErr C.RtnError) error {
@@ -27,8 +36,16 @@ func newJSError(rtnErr C.RtnError) error {
 		Location:   C.GoString(rtnErr.location),
 		StackTrace: C.GoString(rtnErr.stack),
 	}
+	if rtnErr.heap_limit_reached != 0 {
+		err.cause = ErrHeapLimitReached
+	}
 	C.ErrorRelease(rtnErr)
 	return err
+}
+
+// Unwrap returns the underlying cause, if known.
+func (e *JSError) Unwrap() error {
+	return e.cause
 }
 
 func (e *JSError) Error() string {

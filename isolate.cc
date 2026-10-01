@@ -38,6 +38,15 @@ extern "C" {
 
 /********** Isolate **********/
 
+// Per-isolate state, in data slot 1. Slot 0 holds the internal context.
+struct IsolateState {
+  // Set when NearMemoryLimitCallback terminates execution, and cleared
+  // when the termination is reported.
+  bool heap_limit_reached = false;
+};
+
+#define ISOLATE_STATE_SLOT 1
+
 #define ISOLATE_SCOPE(iso)           \
   Locker locker(iso);                \
   Isolate::Scope isolate_scope(iso); \
@@ -57,6 +66,8 @@ void Init() {
 size_t NearMemoryLimitCallback(void* data, size_t current_heap_limit, size_t initial_heap_limit)
 {
   auto iso = static_cast<Isolate*>(data);
+  auto state = static_cast<IsolateState*>(iso->GetData(ISOLATE_STATE_SLOT));
+  state->heap_limit_reached = true;
   iso->TerminateExecution();
 
   // if we return the initial heap limit, the VM will crash, so here we give it room to exit gracefully
@@ -84,7 +95,12 @@ IsolatePtr NewIsolate(IsolateConstraintsPtr constraints) {
   iso->SetCaptureStackTraceForUncaughtExceptions(true);
 
   // Try to catch the OOM condition and stop execution before killing the process
+  iso->SetData(ISOLATE_STATE_SLOT, new IsolateState);
   iso->AddNearHeapLimitCallback(NearMemoryLimitCallback, iso);
+  // The callback raises the heap limit, so the isolate can be reused
+  // after the termination. Without this, the raised limit is kept, and
+  // raised again on every termination.
+  iso->AutomaticallyRestoreInitialHeapLimit(0.5);
 
   // Create a Context for internal use
   m_ctx* ctx = new m_ctx;
@@ -106,8 +122,19 @@ void IsolateDispose(IsolatePtr iso) {
   }
   auto ctx = static_cast<m_ctx*>(iso->GetData(0));
   ContextFree(ctx);
+  auto state = static_cast<IsolateState*>(iso->GetData(ISOLATE_STATE_SLOT));
 
   iso->Dispose();
+  delete state;
+}
+
+int IsolateTakeHeapLimitReached(IsolatePtr iso) {
+  auto state = static_cast<IsolateState*>(iso->GetData(ISOLATE_STATE_SLOT));
+  if (!state->heap_limit_reached) {
+    return 0;
+  }
+  state->heap_limit_reached = false;
+  return 1;
 }
 
 void IsolateTerminateExecution(IsolatePtr iso) {

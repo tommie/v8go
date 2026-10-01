@@ -2,10 +2,12 @@
 #include <sstream>
 
 #include "deps/include/v8-exception.h"
+#include "deps/include/v8-isolate.h"
 #include "deps/include/v8-message.h"
 #include "deps/include/v8-primitive.h"
 
 #include "errors.h"
+#include "isolate.h"
 #include "utils.h"
 
 using namespace v8;
@@ -13,11 +15,21 @@ using namespace v8;
 RtnError ExceptionError(TryCatch& try_catch, Isolate* iso, Local<Context> ctx) {
   HandleScope handle_scope(iso);
 
-  RtnError rtn = {nullptr, nullptr, nullptr};
+  RtnError rtn = {nullptr, nullptr, nullptr, 0};
 
   if (try_catch.HasTerminated()) {
-    rtn.msg =
-        CopyString("ExecutionTerminated: script execution has been terminated");
+    if (IsolateTakeHeapLimitReached(iso)) {
+      // The script has unwound, so its garbage can be collected. This
+      // makes AutomaticallyRestoreInitialHeapLimit restore the limit,
+      // which it only does when the heap is small enough. Otherwise, the
+      // next script reaching the limit would raise it further.
+      iso->LowMemoryNotification();
+      rtn.msg = CopyString("ExecutionTerminated: heap limit reached");
+      rtn.heap_limit_reached = 1;
+    } else {
+      rtn.msg = CopyString(
+          "ExecutionTerminated: script execution has been terminated");
+    }
     return rtn;
   }
 
