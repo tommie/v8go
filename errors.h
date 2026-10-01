@@ -5,6 +5,9 @@ typedef struct {
   char* msg;
   char* location;
   char* stack;
+  // Non-zero if execution was terminated because the heap limit was
+  // reached.
+  int heap_limit_reached;
 } RtnError;
 
 #ifdef __cplusplus

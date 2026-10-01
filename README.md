@@ -168,7 +168,8 @@ case <- time.After(200 * time.Milliseconds):
 ### Setting memory limits
 V8 supports setting a hard limit on Javascript memory usage.
 To do so, add a call to `WithResourceConstraints` to the `NewIsolate` invocation.
-If the limit is hit, this results in a call to `TerminateExecution` as shown above.
+If the limit is hit, v8go terminates the running script, like `TerminateExecution` above, instead of letting V8 end the process.
+The error matches `v8.ErrHeapLimitReached`, and the isolate can be used again.
 
 ```go
 vm := v8.NewIsolate(v8.WithResourceConstraints(8*1024*1024, 16*1024*1024))
@@ -180,7 +181,7 @@ val, err = ctx.RunScript(`
     }
     data.length;
   `, "memory-test.js")
-// err is 'ExecutionTerminated: script execution has been terminated'
+// errors.Is(err, v8.ErrHeapLimitReached) is true.
 ```
 
 ### CPU Profiler

@@ -59,6 +59,10 @@ extern void IsolateTerminateExecution(IsolatePtr ptr);
 extern int IsolateIsExecutionTerminating(IsolatePtr ptr);
 extern IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr);
 extern void IsolateLowMemoryNotification(IsolatePtr ptr);
+
+// Returns whether execution was terminated because the heap limit was
+// reached, since the last call.
+extern int IsolateTakeHeapLimitReached(IsolatePtr ptr);
 extern void IsolateWriteHeapSnapshot(IsolatePtr ptr, uintptr_t writerRef);
 
 extern ValuePtr IsolateThrowException(IsolatePtr iso, ValuePtr value);

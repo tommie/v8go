@@ -48,6 +48,9 @@ func TestIsolateTerminateExecution(t *testing.T) {
 	if e == nil || !strings.HasPrefix(e.Error(), "ExecutionTerminated") {
 		t.Errorf("unexpected error: %v", e)
 	}
+	if errors.Is(e, v8.ErrHeapLimitReached) {
+		t.Errorf("error matched ErrHeapLimitReached: %v", e)
+	}
 
 	if !terminating {
 		t.Error("expected execution to have been terminating in function")
@@ -376,6 +379,41 @@ func makeObject() interface{} {
 	return map[string]interface{}{
 		"a": rand.Intn(1000000),
 		"b": "AAAABBBBAAAABBBBAAAABBBBAAAABBBBAAAABBBB",
+	}
+}
+
+func TestIsolateHeapLimitReached(t *testing.T) {
+	t.Parallel()
+
+	iso := v8.NewIsolate(v8.WithResourceConstraints(8<<20, 16<<20))
+	defer iso.Dispose()
+	ctx := v8.NewContext(iso)
+	defer ctx.Close()
+
+	limit := iso.GetHeapStatistics().HeapSizeLimit
+
+	// Reaching the limit repeatedly must neither crash the process, nor
+	// raise the limit permanently.
+	for i := 0; i < 3; i++ {
+		_, err := ctx.RunScript(`{ const data = []; for (;;) data.push("x".repeat(1000) + Math.random()); }`, "oom.js")
+		if !errors.Is(err, v8.ErrHeapLimitReached) {
+			t.Fatalf("RunScript error: got %v, want ErrHeapLimitReached", err)
+		}
+		if !strings.HasPrefix(err.Error(), "ExecutionTerminated") {
+			t.Errorf("RunScript error: got %q, want ExecutionTerminated prefix", err)
+		}
+
+		if got := iso.GetHeapStatistics().HeapSizeLimit; got != limit {
+			t.Errorf("HeapSizeLimit after %d terminations: got %d, want %d", i+1, got, limit)
+		}
+
+		val, err := ctx.RunScript("40 + 2", "after.js")
+		if err != nil {
+			t.Fatalf("RunScript after termination failed: %v", err)
+		}
+		if val.Integer() != 42 {
+			t.Errorf("RunScript after termination: got %v, want 42", val)
+		}
 	}
 }
 

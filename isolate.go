@@ -58,7 +58,10 @@ type isolateConfig struct {
 }
 
 // WithResourceConstraints sets memory constraints for the isolate.
-// If constraints are set, v8go will try to call `TerminateExecution` when the hard limit is hit.
+//
+// When any isolate reaches its heap limit, v8go terminates the running
+// script instead of letting V8 end the process. The returned error then
+// matches ErrHeapLimitReached, and the isolate can be used again.
 func WithResourceConstraints(initialHeapSizeInBytes, maxHeapSizeInBytes uint64) IsolateOption {
 	return func(config *isolateConfig) {
 		config.resourceConstraints = &resourceConstraints{
