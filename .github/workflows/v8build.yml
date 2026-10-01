@@ -187,18 +187,13 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.ccache
-        key: libv8:ccache:${{ matrix.os }}:${{ matrix.arch }}:${{ hashFiles('deps/v8_hash') }}:${{ runner.os }}
+        # Keyed on what is being built, since a cache is only saved if
+        # the key didn't match exactly. ccache itself is content
+        # addressed, so any older cache is a useful fallback.
+        key: libv8:ccache:${{ runner.os }}:${{ matrix.os }}:${{ matrix.arch }}:${{ needs.build_common.outputs.v8_hash }}:${{ hashFiles('deps/build.py', 'patches/*.patch') }}
         restore-keys: |
-          libv8:ccache:${{ matrix.os }}:${{ matrix.arch }}:
-          ${{ runner.os }}:${{ matrix.os }}:${{ matrix.arch }}:libv8:ccache
-
-    - name: Restore V8 Build Cache
-      uses: actions/cache@v4
-      with:
-        path: deps/v8/build
-        key: libv8:v8build:${{ matrix.os }}:${{ matrix.arch }}:${{ hashFiles('deps/v8_hash') }}:${{ runner.os }}
-        restore-keys: |
-          libv8:v8build:${{ matrix.os }}:${{ matrix.arch }}:
+          libv8:ccache:${{ runner.os }}:${{ matrix.os }}:${{ matrix.arch }}:${{ needs.build_common.outputs.v8_hash }}:
+          libv8:ccache:${{ runner.os }}:${{ matrix.os }}:${{ matrix.arch }}:
 
     - uses: ./.github/actions/checkout-depot-tools
       with:
