@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+## [v0.36.0] - 2026-10-01
+
 ### Added
 - Add `Isolate.WriteHeapSnapshot` to write a heap snapshot for Chrome DevTools, and `Isolate.LowMemoryNotification`, based on [#110](https://github.com/tommie/v8go/pull/110).
 - Add `ErrHeapLimitReached`, matched by `errors.Is` when execution was terminated because the isolate reached its heap limit.
