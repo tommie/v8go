@@ -21,7 +21,8 @@ func TestVersion(t *testing.T) {
 }
 
 func TestSetFlag(t *testing.T) {
-	t.Parallel()
+	// Not parallel: V8 flags are process-wide, so --use_strict would
+	// apply to scripts compiled by other tests running at the same time.
 	ctx := v8.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
