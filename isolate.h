@@ -1,6 +1,8 @@
 #ifndef V8GO_ISOLATE_H
 #define V8GO_ISOLATE_H
 
+#include <stdint.h>
+
 #include "unbound_script.h"
 
 #ifdef __cplusplus
@@ -56,6 +58,8 @@ extern void IsolateDispose(IsolatePtr ptr);
 extern void IsolateTerminateExecution(IsolatePtr ptr);
 extern int IsolateIsExecutionTerminating(IsolatePtr ptr);
 extern IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr);
+extern void IsolateLowMemoryNotification(IsolatePtr ptr);
+extern void IsolateWriteHeapSnapshot(IsolatePtr ptr, uintptr_t writerRef);
 
 extern ValuePtr IsolateThrowException(IsolatePtr iso, ValuePtr value);
 

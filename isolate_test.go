@@ -5,7 +5,9 @@
 package v8go_test
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -157,6 +159,86 @@ func TestIsolateGetHeapStatistics(t *testing.T) {
 	if hs.NumberOfDetachedContexts != 0 {
 		t.Error("expect NumberOfDetachedContexts return 0, got", hs.NumberOfDetachedContexts)
 	}
+}
+
+func TestIsolateLowMemoryNotification(t *testing.T) {
+	t.Parallel()
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+
+	iso.LowMemoryNotification()
+}
+
+func TestIsolateWriteHeapSnapshot(t *testing.T) {
+	t.Parallel()
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	ctx := v8.NewContext(iso)
+	defer ctx.Close()
+
+	if _, err := ctx.RunScript("class HeapSnapshotMarker {}; globalThis.marker = new HeapSnapshotMarker();", "main.js"); err != nil {
+		t.Fatalf("RunScript failed: %v", err)
+	}
+
+	var buf bytes.Buffer
+	if err := iso.WriteHeapSnapshot(&buf); err != nil {
+		t.Fatalf("WriteHeapSnapshot failed: %v", err)
+	}
+
+	// The format Chrome DevTools reads.
+	var snapshot struct {
+		Snapshot struct {
+			Meta struct {
+				NodeFields []string `json:"node_fields"`
+			} `json:"meta"`
+			NodeCount int `json:"node_count"`
+		} `json:"snapshot"`
+		Nodes   []int    `json:"nodes"`
+		Strings []string `json:"strings"`
+	}
+	if err := json.Unmarshal(buf.Bytes(), &snapshot); err != nil {
+		t.Fatalf("Unmarshal failed: %v", err)
+	}
+
+	if nf := len(snapshot.Snapshot.Meta.NodeFields); nf == 0 || snapshot.Snapshot.NodeCount*nf != len(snapshot.Nodes) {
+		t.Errorf("got %d nodes with %d fields, want %d values", snapshot.Snapshot.NodeCount, nf, len(snapshot.Nodes))
+	}
+	found := false
+	for _, s := range snapshot.Strings {
+		if s == "HeapSnapshotMarker" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("HeapSnapshotMarker not found in snapshot strings")
+	}
+}
+
+func TestIsolateWriteHeapSnapshot_WriterError(t *testing.T) {
+	t.Parallel()
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+
+	wantErr := errors.New("write failed")
+	w := &failingWriter{err: wantErr}
+	if err := iso.WriteHeapSnapshot(w); !errors.Is(err, wantErr) {
+		t.Errorf("WriteHeapSnapshot error: got %v, want %v", err, wantErr)
+	}
+	if w.calls != 1 {
+		t.Errorf("Write calls: got %d, want 1", w.calls)
+	}
+}
+
+// failingWriter is an io.Writer that always fails.
+type failingWriter struct {
+	err   error
+	calls int
+}
+
+func (w *failingWriter) Write(p []byte) (int, error) {
+	w.calls++
+	return 0, w.err
 }
 
 func TestCallbackRegistry(t *testing.T) {
