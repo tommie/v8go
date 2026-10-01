@@ -2,7 +2,8 @@
 
 package android_arm64
 
-// #cgo LDFLAGS: -pthread -L${SRCDIR}
+// #cgo LDFLAGS: -L${SRCDIR}
+// #cgo !windows LDFLAGS: -pthread
 // #cgo LDFLAGS: -Wl,--start-group -lv8-0 -lv8-1 -lv8-2 -lv8-3 -lc++-cr -lc++abi-cr -Wl,--end-group
 // #cgo libgcompat LDFLAGS: -lgcompat
 // #cgo linux LDFLAGS: -ldl
