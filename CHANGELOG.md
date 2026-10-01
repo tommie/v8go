@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Add `Isolate.WriteHeapSnapshot` to write a heap snapshot for Chrome DevTools, and `Isolate.LowMemoryNotification`, based on [#110](https://github.com/tommie/v8go/pull/110).
 - Add `ErrHeapLimitReached`, matched by `errors.Is` when execution was terminated because the isolate reached its heap limit.
+- Add `WithExceptionMessages` and `JSError.ExceptionMessage`, returning the exception's script, line, columns, source line, and stack frames.
 
 ### Changed
 - Pin depot_tools in V8 builds, upgrading it together with V8, instead of self-updating it during builds.

@@ -43,6 +43,9 @@ struct IsolateState {
   // Set when NearMemoryLimitCallback terminates execution, and cleared
   // when the termination is reported.
   bool heap_limit_reached = false;
+
+  // Whether errors include a serialized exception message.
+  bool exception_messages = false;
 };
 
 #define ISOLATE_STATE_SLOT 1
@@ -126,6 +129,16 @@ void IsolateDispose(IsolatePtr iso) {
 
   iso->Dispose();
   delete state;
+}
+
+void IsolateSetExceptionMessages(IsolatePtr iso, int enabled) {
+  auto state = static_cast<IsolateState*>(iso->GetData(ISOLATE_STATE_SLOT));
+  state->exception_messages = enabled;
+}
+
+int IsolateExceptionMessages(IsolatePtr iso) {
+  auto state = static_cast<IsolateState*>(iso->GetData(ISOLATE_STATE_SLOT));
+  return state->exception_messages;
 }
 
 int IsolateTakeHeapLimitReached(IsolatePtr iso) {

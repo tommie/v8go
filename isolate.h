@@ -60,6 +60,10 @@ extern int IsolateIsExecutionTerminating(IsolatePtr ptr);
 extern IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr);
 extern void IsolateLowMemoryNotification(IsolatePtr ptr);
 
+// Sets whether errors include a serialized exception message.
+extern void IsolateSetExceptionMessages(IsolatePtr ptr, int enabled);
+extern int IsolateExceptionMessages(IsolatePtr ptr);
+
 // Returns whether execution was terminated because the heap limit was
 // reached, since the last call.
 extern int IsolateTakeHeapLimitReached(IsolatePtr ptr);

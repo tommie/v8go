@@ -55,6 +55,16 @@ type IsolateOption func(*isolateConfig)
 // isolateConfig holds the configuration for creating an isolate.
 type isolateConfig struct {
 	resourceConstraints *resourceConstraints
+	exceptionMessages   bool
+}
+
+// WithExceptionMessages makes errors from JavaScript exceptions include
+// details, such as the stack frames, returned by JSError.ExceptionMessage.
+// This costs time and memory on every error, so it's off by default.
+func WithExceptionMessages() IsolateOption {
+	return func(config *isolateConfig) {
+		config.exceptionMessages = true
+	}
 }
 
 // WithResourceConstraints sets memory constraints for the isolate.
@@ -97,6 +107,9 @@ func NewIsolate(opts ...IsolateOption) *Isolate {
 	iso := &Isolate{
 		ptr: C.NewIsolate(cConstraints),
 		cbs: make(map[int]FunctionCallbackWithError),
+	}
+	if config.exceptionMessages {
+		C.IsolateSetExceptionMessages(iso.ptr, 1)
 	}
 	iso.null = newValueNull(iso)
 	iso.undefined = newValueUndefined(iso)
