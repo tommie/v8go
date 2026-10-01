@@ -11,6 +11,9 @@ inputs:
   version:
     description: The LLVM major version.
     default: '21'
+  windows-version:
+    description: The full LLVM version on Windows, as Chocolatey needs it.
+    default: '21.1.8'
   extra-packages:
     description: Additional Debian packages, with {version} substituted.
     default: ''
@@ -37,3 +40,15 @@ runs:
       prefix="$(brew --prefix llvm@${{ inputs.version }})"
       echo "CC=$prefix/bin/clang" >>"$GITHUB_ENV"
       echo "CXX=$prefix/bin/clang++" >>"$GITHUB_ENV"
+
+  - name: Install Clang (Windows)
+    if: runner.os == 'Windows'
+    shell: bash
+    run: |
+      choco install llvm --version=${{ inputs.windows-version }} -y --no-progress --force
+      echo "C:\\Program Files\\LLVM\\bin" >>"$GITHUB_PATH"
+      # Go splits CC on spaces, so it can't be a full path under
+      # "Program Files". Go's linker only skips GNU-only flags for
+      # MSVC-target clang if it sees -fuse-ld=lld here or in -extldflags.
+      echo "CC=clang -fuse-ld=lld" >>"$GITHUB_ENV"
+      echo "CXX=clang++ -fuse-ld=lld" >>"$GITHUB_ENV"

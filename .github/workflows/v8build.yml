@@ -118,8 +118,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [android, darwin, linux]
+        os: [android, darwin, linux, windows]
         arch: [amd64, arm64]
+        exclude:
+        # TODO: cross-compile windows/arm64, and test on windows-11-arm.
+        - os: windows
+          arch: arm64
         include:
         - os: android
           platform: ubuntu-latest
@@ -127,8 +131,21 @@ jobs:
           platform: ubuntu-latest
         - os: darwin
           platform: macos-latest
+        - os: windows
+          platform: windows-latest
     runs-on: ${{ matrix.platform }}
+    defaults:
+      run:
+        # Also on Windows, which defaults to PowerShell.
+        shell: bash
+    env:
+      # Use the runner's Visual Studio, not Google's internal toolchain.
+      DEPOT_TOOLS_WIN_TOOLCHAIN: '0'
     steps:
+    - name: Enable long paths
+      if: matrix.os == 'windows'
+      run: git config --global core.longpaths true
+
     - name: Install setuptools
       if: matrix.platform == 'macos-latest'
       run: python3 -m pip install --upgrade setuptools
@@ -176,6 +193,7 @@ jobs:
         fi
 
     - name: Configure CCache
+      if: matrix.os != 'windows'
       run: |
         ccacheDir="$HOME/.ccache"
         mkdir -p "$ccacheDir"
@@ -184,6 +202,7 @@ jobs:
         echo "CCACHE_SLOPPINESS=time_macros" >> "$GITHUB_ENV"
 
     - name: Restore CCache
+      if: matrix.os != 'windows'
       uses: actions/cache@v6
       with:
         path: ~/.ccache
@@ -199,10 +218,31 @@ jobs:
       with:
         hash: ${{ needs.build_common.outputs.depot_tools_hash }}
 
+    - name: Install Windows SDK 10.0.28000
+      if: matrix.os == 'windows'
+      # Chromium's build/vs_toolchain.py requires exactly this version
+      # (SDK_VERSION), which windows-latest doesn't have. The URL and hash
+      # are from winget's Microsoft.WindowsSDK.10.0.28000 manifest. The
+      # feature IDs are from a full install's log.
+      shell: pwsh
+      run: |
+        $url = "https://download.microsoft.com/download/06fc99ac-527e-451e-a536-8866695a2e7e/KIT_BUNDLE_WINDOWSSDK_MEDIACREATION/winsdksetup.exe"
+        Invoke-WebRequest -Uri $url -OutFile winsdksetup.exe
+        $hash = (Get-FileHash winsdksetup.exe -Algorithm SHA256).Hash
+        if ($hash -ne "02988EA51EAB2A2DB53E19735E51C97A6D221ADA74B9174FA0868870B9403BA0") { throw "unexpected hash $hash" }
+        $p = Start-Process winsdksetup.exe -Wait -PassThru -ArgumentList "/features OptionId.DesktopCPPx64 OptionId.DesktopCPParm64 OptionId.WindowsDesktopDebuggers /quiet /norestart /ceip off /log sdk.log"
+        if ($p.ExitCode -ne 0) { Get-Content sdk.log -Tail 50; throw "winsdksetup failed: $($p.ExitCode)" }
+
     - name: Build V8 (${{ matrix.os }})
+      if: matrix.os != 'windows'
       run: cd deps && ./build.py --ccache --verbose --arch ${{ matrix.arch }} --os ${{ matrix.os }}
 
+    - name: Build V8 (${{ matrix.os }})
+      if: matrix.os == 'windows'
+      run: python deps/build.py --verbose --arch ${{ matrix.arch }} --os ${{ matrix.os }}
+
     - name: Show CCache Status
+      if: matrix.os != 'windows'
       run: ccache -s
 
     - name: Upload Artifacts
@@ -279,9 +319,12 @@ jobs:
       with:
         add: |
           - cgo.go
+          - cgo_*.go
           - CHANGELOG.md
           - deps/*_*/cgo.go
+          - deps/*_*/go.mod
           - deps/*_*/lib*.a
+          - deps/*_*/*.lib
           - deps/*_*/libmanifest
           - deps/include/**
           - deps/include_libcxx/**

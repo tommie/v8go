@@ -18,7 +18,7 @@ jobs:
     name: Tests on ${{ matrix.os }} ${{ matrix.arch }} with Go ${{ matrix.go-version }}
     strategy:
       matrix:
-        os: [darwin, linux]
+        os: [darwin, linux, windows]
         arch: [amd64, arm64]
         go-version:
         # Check the earliest and two trailing versions, to keep
@@ -26,12 +26,27 @@ jobs:
         - 1.19
         - oldstable
         - stable
+        exclude:
+        # Go supports MSVC-target clang with LLD since 1.27.
+        - os: windows
+          go-version: 1.19
+        - os: windows
+          go-version: oldstable
+        # TODO: test windows/arm64 on windows-11-arm.
+        - os: windows
+          arch: arm64
         include:
         - os: linux
           platform: ubuntu-latest
         - os: darwin
           platform: macos-latest
+        - os: windows
+          platform: windows-latest
     runs-on: ${{ matrix.platform }}
+    defaults:
+      run:
+        # Also on Windows, which defaults to PowerShell.
+        shell: bash
     steps:
     - name: Checkout
       uses: actions/checkout@v7
