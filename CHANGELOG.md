@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pin depot_tools in V8 builds, upgrading it together with V8, instead of self-updating it during builds.
 - Link Clang's compiler-rt builtins on Linux, instead of relying on libgcc from GCC 12 or newer.
 - The error message when the heap limit is reached is now `ExecutionTerminated: heap limit reached`.
-- Auto-bumped V8 to 15.4.80.19.
+- Building requires Clang 21 or newer, and `CGO_CXXFLAGS=-nostdinc++`, since V8 and v8go use Chromium's libc++. See the README. This already applied to v0.35.0.
 
 ### Fixed
 - Linux libraries can be linked with glibc older than 2.38, e.g. on Debian 12, Ubuntu 22.04 and RHEL 9. V8 is now built against Chromium's Debian bullseye sysroot, making glibc 2.31 the minimum.
