@@ -34,7 +34,7 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         ref: ${{ inputs.sha }}
 
@@ -42,7 +42,7 @@ jobs:
       uses: ./.github/actions/setup-clang
 
     - name: Install Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v7
       with:
         go-version: ${{ matrix.go-version }}
 
@@ -61,7 +61,7 @@ jobs:
         CGO_CXXFLAGS: "-nostdinc++ -Werror"
 
     - name: Upload Coverage To Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v7
       if: env._HAS_CODECOV_TOKEN == 'true'
       env:
         _HAS_CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN != '' }}

@@ -46,7 +46,7 @@ jobs:
       depot_tools_hash: ${{ steps.depot_tools.outputs.hash }}
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         submodules: true
         fetch-depth: 1
@@ -86,7 +86,7 @@ jobs:
       run: cd deps && ./build_common.py
 
     - name: Upload include/ Artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         # The name matches the directory under deps/.
         name: include
@@ -95,7 +95,7 @@ jobs:
         retention-days: 2
 
     - name: Upload include_libcxx/ Artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         # The name matches the directory under deps/.
         name: include_libcxx
@@ -104,7 +104,7 @@ jobs:
         retention-days: 2
 
     - name: Upload include_libcxxabi/ Artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         # The name matches the directory under deps/.
         name: include_libcxxabi
@@ -153,7 +153,7 @@ jobs:
         echo "$(brew --prefix ccache)/libexec" >> "$GITHUB_PATH"
 
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         submodules: true
         fetch-depth: 1
@@ -184,7 +184,7 @@ jobs:
         echo "CCACHE_SLOPPINESS=time_macros" >> "$GITHUB_ENV"
 
     - name: Restore CCache
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: ~/.ccache
         # Keyed on what is being built, since a cache is only saved if
@@ -206,7 +206,7 @@ jobs:
       run: ccache -s
 
     - name: Upload Artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         # The name matches the directory under deps/.
         name: ${{ matrix.os }}_${{ matrix.arch }}
@@ -225,7 +225,7 @@ jobs:
       sha: ${{ steps.create_summary.outputs.sha }}
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         submodules: true
         fetch-depth: 1
@@ -258,7 +258,7 @@ jobs:
         rm -fr deps/include deps/include_libcxx deps/include_libcxxabi
 
     - name: Download Artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         path: deps
 
@@ -275,7 +275,7 @@ jobs:
 
     - id: commit
       name: Commit
-      uses: EndBug/add-and-commit@v9
+      uses: EndBug/add-and-commit@v11
       with:
         add: |
           - cgo.go
@@ -327,7 +327,7 @@ jobs:
       sha: ${{ steps.create_summary.outputs.sha }}
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         # Our git log in deps/ requires an arbitrarily deep history.
         fetch-depth: 0
@@ -362,7 +362,7 @@ jobs:
 
     - id: commit
       name: Commit
-      uses: EndBug/add-and-commit@v9
+      uses: EndBug/add-and-commit@v11
       with:
         add: |
           go.mod
