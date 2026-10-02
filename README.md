@@ -1,7 +1,6 @@
 # Execute JavaScript from Go
 
 <a href="https://github.com/tommie/v8go/releases"><img src="https://img.shields.io/github/v/release/tommie/v8go" alt="Github release"></a>
-[![Go Report Card](https://goreportcard.com/badge/github.com/tommie/v8go)](https://goreportcard.com/report/github.com/tommie/v8go)
 [![Go Reference](https://pkg.go.dev/badge/github.com/tommie/v8go.svg)](https://pkg.go.dev/github.com/tommie/v8go)
 [![Test](https://github.com/tommie/v8go/actions/workflows/test.yml/badge.svg)](https://github.com/tommie/v8go/actions/workflows/test.yml)
 
