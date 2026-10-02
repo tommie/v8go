@@ -24,18 +24,16 @@ func TestCPUProfile(t *testing.T) {
 
 	title := "cpuprofiletest"
 	start := time.Now()
-	cpuProfiler.StartProfiling(title)
-
-	_, err := ctx.RunScript(profileScript, "script.js")
-	fatalIf(t, err)
-	val, err := ctx.Global().Get("start")
-	fatalIf(t, err)
-	fn, err := val.AsFunction()
-	fatalIf(t, err)
-	_, err = fn.Call(ctx.Global())
-	fatalIf(t, err)
-
-	cpuProfile := cpuProfiler.StopProfiling(title)
+	cpuProfile := cpuProfiler.Do(title, func() {
+		_, err := ctx.RunScript(profileScript, "script.js")
+		fatalIf(t, err)
+		val, err := ctx.Global().Get("start")
+		fatalIf(t, err)
+		fn, err := val.AsFunction()
+		fatalIf(t, err)
+		_, err = fn.Call(ctx.Global())
+		fatalIf(t, err)
+	})
 	elapsed := time.Since(start)
 	defer cpuProfile.Delete()
 
@@ -68,8 +66,7 @@ func TestCPUProfile_Delete(t *testing.T) {
 	cpuProfiler := v8.NewCPUProfiler(iso)
 	defer cpuProfiler.Dispose()
 
-	cpuProfiler.StartProfiling("cpuprofiletest")
-	cpuProfile := cpuProfiler.StopProfiling("cpuprofiletest")
+	cpuProfile := cpuProfiler.Do("cpuprofiletest", func() {})
 	cpuProfile.Delete()
 	// noop when called multiple times
 	cpuProfile.Delete()

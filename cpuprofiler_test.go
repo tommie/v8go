@@ -6,6 +6,7 @@ package v8go_test
 
 import (
 	"testing"
+	"time"
 
 	v8 "github.com/tommie/v8go"
 )
@@ -30,6 +31,10 @@ func TestCPUProfiler_Dispose(t *testing.T) {
 		t.Error("expected panic")
 	}
 
+	if recoverPanic(func() { cpuProfiler.Do("", func() {}) }) == nil {
+		t.Error("expected panic")
+	}
+
 	cpuProfiler = v8.NewCPUProfiler(iso)
 	defer cpuProfiler.Dispose()
 	iso.Dispose()
@@ -41,6 +46,34 @@ func TestCPUProfiler_Dispose(t *testing.T) {
 
 	if recoverPanic(func() { cpuProfiler.StopProfiling("") }) == nil {
 		t.Error("expected panic")
+	}
+
+	if recoverPanic(func() { cpuProfiler.Do("", func() {}) }) == nil {
+		t.Error("expected panic")
+	}
+}
+
+func TestCPUProfiler_DoPanic(t *testing.T) {
+	t.Parallel()
+
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	cpuProfiler := v8.NewCPUProfiler(iso)
+	defer cpuProfiler.Dispose()
+
+	title := "cpuprofilerdopanic"
+	if recoverPanic(func() { cpuProfiler.Do(title, func() { panic("fn") }) }) == nil {
+		t.Fatal("expected panic")
+	}
+
+	// Had the panic left the first profile running, StartProfiling would
+	// ignore the duplicate title, and this profile would start before the sleep.
+	time.Sleep(100 * time.Millisecond)
+	cpuProfile := cpuProfiler.Do(title, func() {})
+	defer cpuProfile.Delete()
+
+	if d := cpuProfile.GetDuration(); d >= 100*time.Millisecond {
+		t.Errorf("expected the profile to start after the panic, but its duration is %v", d)
 	}
 }
 
@@ -56,20 +89,18 @@ func TestCPUProfiler(t *testing.T) {
 	defer cpuProfiler.Dispose()
 
 	title := "cpuprofilertest"
-	cpuProfiler.StartProfiling(title)
-
-	_, err := ctx.RunScript(profileScript, "script.js")
-	fatalIf(t, err)
-	val, err := ctx.Global().Get("start")
-	fatalIf(t, err)
-	fn, err := val.AsFunction()
-	fatalIf(t, err)
-	timeout, err := v8.NewValue(iso, int32(0))
-	fatalIf(t, err)
-	_, err = fn.Call(ctx.Global(), timeout)
-	fatalIf(t, err)
-
-	cpuProfile := cpuProfiler.StopProfiling(title)
+	cpuProfile := cpuProfiler.Do(title, func() {
+		_, err := ctx.RunScript(profileScript, "script.js")
+		fatalIf(t, err)
+		val, err := ctx.Global().Get("start")
+		fatalIf(t, err)
+		fn, err := val.AsFunction()
+		fatalIf(t, err)
+		timeout, err := v8.NewValue(iso, int32(0))
+		fatalIf(t, err)
+		_, err = fn.Call(ctx.Global(), timeout)
+		fatalIf(t, err)
+	})
 	defer cpuProfile.Delete()
 
 	if cpuProfile.GetTitle() != title {

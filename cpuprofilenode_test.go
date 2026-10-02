@@ -13,8 +13,7 @@ import (
 )
 
 func TestCPUProfileNode(t *testing.T) {
-	// Not parallel: CPU profiles are sampled, and other tests can starve
-	// the profiler enough that short calls, like bar, are missing.
+	t.Parallel()
 
 	ctx := v8.NewContext(nil)
 	iso := ctx.Isolate()
@@ -24,21 +23,18 @@ func TestCPUProfileNode(t *testing.T) {
 	cpuProfiler := v8.NewCPUProfiler(iso)
 	defer cpuProfiler.Dispose()
 
-	title := "cpuprofilenodetest"
-	cpuProfiler.StartProfiling(title)
-
-	_, err := ctx.RunScript(profileScript, "script.js")
-	fatalIf(t, err)
-	val, err := ctx.Global().Get("start")
-	fatalIf(t, err)
-	fn, err := val.AsFunction()
-	fatalIf(t, err)
-	timeout, err := v8.NewValue(iso, int32(1000))
-	fatalIf(t, err)
-	_, err = fn.Call(ctx.Global(), timeout)
-	fatalIf(t, err)
-
-	cpuProfile := cpuProfiler.StopProfiling(title)
+	cpuProfile := cpuProfiler.Do("cpuprofilenodetest", func() {
+		_, err := ctx.RunScript(profileScript, "script.js")
+		fatalIf(t, err)
+		val, err := ctx.Global().Get("start")
+		fatalIf(t, err)
+		fn, err := val.AsFunction()
+		fatalIf(t, err)
+		timeout, err := v8.NewValue(iso, int32(1000))
+		fatalIf(t, err)
+		_, err = fn.Call(ctx.Global(), timeout)
+		fatalIf(t, err)
+	})
 	if cpuProfile == nil {
 		t.Fatal("expected profile not to be nil")
 	}

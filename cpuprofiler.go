@@ -10,6 +10,7 @@ package v8go
 */
 import "C"
 import (
+	"runtime"
 	"time"
 	"unsafe"
 )
@@ -38,9 +39,44 @@ func (c *CPUProfiler) Dispose() {
 	c.p = nil
 }
 
+// Do collects a CPU profile of fn, and returns it.
+//
+// The profile only contains samples from JavaScript executing on the
+// calling goroutine, so fn must not execute JavaScript on other goroutines.
+// To ensure this, Do locks the goroutine to its OS thread while running fn.
+// If fn panics, or calls runtime.Goexit, the profile is discarded.
+//
+// Do is the preferred way of profiling, since it guarantees the thread
+// requirements of StartProfiling.
+func (c *CPUProfiler) Do(title string, fn func()) *CPUProfile {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	c.StartProfiling(title)
+
+	completed := false
+	defer func() {
+		if !completed {
+			c.StopProfiling(title).Delete()
+		}
+	}()
+
+	fn()
+	completed = true
+
+	return c.StopProfiling(title)
+}
+
 // StartProfiling starts collecting a CPU profile. Title may be an empty string. Several
 // profiles may be collected at once. Attempts to start collecting several
 // profiles with the same title are silently ignored.
+//
+// V8 only samples the OS thread that called StartProfiling. Until
+// StopProfiling, JavaScript executing on any other thread is silently missing
+// from the profile. Since the Go scheduler may move goroutines between OS
+// threads, the caller must call runtime.LockOSThread before StartProfiling,
+// and execute JavaScript on the same goroutine. Use Do to have this done
+// automatically.
 func (c *CPUProfiler) StartProfiling(title string) {
 	if c.p == nil || c.iso.ptr == nil {
 		panic("profiler or isolate are nil")
