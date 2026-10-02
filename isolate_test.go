@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -337,6 +338,78 @@ func TestIsolateThrowException(t *testing.T) {
 	iso.Dispose()
 	if recoverPanic(func() { iso.ThrowException(strErr) }) == nil {
 		t.Error("expected panic")
+	}
+}
+
+func TestIsolateSetPromiseRejectedCallback(t *testing.T) {
+	t.Parallel()
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	ctx := v8.NewContext(iso)
+	defer ctx.Close()
+
+	var events []v8.PromiseRejectEvent
+	var lastValue *v8.Value
+
+	iso.SetPromiseRejectedCallback(func(msg v8.PromiseRejectMessage) {
+		if msg.Context != ctx {
+			t.Errorf("Context: got %p, want %p", msg.Context, ctx)
+		}
+		if msg.Promise == nil {
+			t.Error("Promise: got nil")
+		}
+		events = append(events, msg.Event)
+		lastValue = msg.Value
+	})
+
+	_, err := ctx.RunScript("Promise.reject('value')", "")
+	fatalIf(t, err)
+
+	want := []v8.PromiseRejectEvent{v8.PromiseRejectWithNoHandler}
+	if !reflect.DeepEqual(events, want) {
+		t.Errorf("Unexpected events. Want: %v. Got: %v", want, events)
+	}
+	if lastValue == nil || lastValue.String() != "value" {
+		t.Errorf("Unexpected value. Want 'value', got: %v", lastValue)
+	}
+
+	events = nil
+	_, err = ctx.RunScript("Promise.reject('value').catch(err => { /* ignore */ })", "")
+	fatalIf(t, err)
+
+	want = []v8.PromiseRejectEvent{v8.PromiseRejectWithNoHandler, v8.PromiseHandlerAddedAfterReject}
+	if !reflect.DeepEqual(events, want) {
+		t.Errorf("Unexpected events. Want: %v. Got: %v", want, events)
+	}
+	if lastValue != nil {
+		t.Errorf("Unexpected value for %v. Want nil, got: %v", v8.PromiseHandlerAddedAfterReject, lastValue)
+	}
+
+}
+
+func TestIsolateSetPromiseRejectedCallback_Replace(t *testing.T) {
+	t.Parallel()
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	ctx := v8.NewContext(iso)
+	defer ctx.Close()
+
+	var first, second int
+	iso.SetPromiseRejectedCallback(func(v8.PromiseRejectMessage) { first++ })
+	iso.SetPromiseRejectedCallback(func(v8.PromiseRejectMessage) { second++ })
+
+	_, err := ctx.RunScript("Promise.reject('value')", "")
+	fatalIf(t, err)
+	if first != 0 || second != 1 {
+		t.Errorf("After replacing: got calls %d, %d, want 0, 1", first, second)
+	}
+
+	iso.SetPromiseRejectedCallback(nil)
+
+	_, err = ctx.RunScript("Promise.reject('value')", "")
+	fatalIf(t, err)
+	if first != 0 || second != 1 {
+		t.Errorf("After clearing: got calls %d, %d, want 0, 1", first, second)
 	}
 }
 

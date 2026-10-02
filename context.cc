@@ -1,3 +1,4 @@
+#include "context.h"
 #include "deps/include/v8-template.h"
 
 #include "context-macros.h"
@@ -27,7 +28,7 @@ ContextPtr NewContext(IsolatePtr iso,
   // side to lookup the context in the context registry. We use slot 1 as slot 0
   // has special meaning for the Chrome debugger.
   Local<Context> local_ctx = Context::New(iso, nullptr, global_template);
-  local_ctx->SetEmbedderDataV2(1, Integer::New(iso, ref));
+  local_ctx->SetEmbedderDataV2(ContextDataIndex::REF, Integer::New(iso, ref));
 
   m_ctx* ctx = new m_ctx;
   ctx->ptr.Reset(iso, local_ctx);
@@ -54,6 +55,15 @@ void ContextFree(ContextPtr ctx) {
   }
 
   delete ctx;
+}
+
+m_value* track_value(m_ctx* ctx, Local<Value> value) {
+  m_value* val = new m_value;
+  val->id = 0;
+  val->iso = ctx->iso;
+  val->ctx = ctx;
+  val->ptr = Global<Value>(ctx->iso, value);
+  return tracked_value(ctx, val);
 }
 
 m_value* tracked_value(m_ctx* ctx, m_value* val) {

@@ -1,6 +1,7 @@
 #ifndef V8GO_ISOLATE_H
 #define V8GO_ISOLATE_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "unbound_script.h"
@@ -56,6 +57,7 @@ extern IsolatePtr NewIsolate(IsolateConstraintsPtr constraints);
 extern void IsolatePerformMicrotaskCheckpoint(IsolatePtr ptr);
 extern void IsolateDispose(IsolatePtr ptr);
 extern void IsolateTerminateExecution(IsolatePtr ptr);
+extern void IsolateSetPromiseRejectedCallback(IsolatePtr iso, bool enable);
 extern int IsolateIsExecutionTerminating(IsolatePtr ptr);
 extern IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr);
 extern void IsolateLowMemoryNotification(IsolatePtr ptr);

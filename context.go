@@ -161,9 +161,15 @@ func getContext(ref int) *Context {
 	return r.ctx
 }
 
+// goContext returns the context with the given ref, or nil if it is
+// closed.
+//
 //export goContext
 func goContext(ref int) C.ContextPtr {
 	ctx := getContext(ref)
+	if ctx == nil {
+		return nil
+	}
 	return ctx.ptr
 }
 

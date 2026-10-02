@@ -3,9 +3,9 @@
 #include "deps/include/v8-locker.h"
 #include "deps/include/v8-platform.h"
 #include "deps/include/v8-profiler.h"
+#include "deps/include/v8-promise.h"
 
 #include "_cgo_export.h"
-
 #include "context.h"
 #include "isolate.h"
 #include "libplatform/libplatform.h"
@@ -171,6 +171,44 @@ void IsolateWriteHeapSnapshot(IsolatePtr iso, uintptr_t writerRef) {
   GoOutputStream stream(writerRef);
   snapshot->Serialize(&stream, HeapSnapshot::kJSON);
   const_cast<HeapSnapshot*>(snapshot)->Delete();
+}
+
+// The Go PromiseRejectEvent constants mirror v8::PromiseRejectEvent.
+static_assert(kPromiseRejectWithNoHandler == 0);
+static_assert(kPromiseHandlerAddedAfterReject == 1);
+
+static void PromiseRejectedCallback(PromiseRejectMessage message) {
+  Isolate* iso = Isolate::GetCurrent();
+  Local<Promise> promise = message.GetPromise();
+
+  Local<Context> local_ctx;
+  if (!promise->GetCreationContext(iso).ToLocal(&local_ctx)) {
+    // Promises are always created in a context, but if there is none,
+    // there is no Go Context to report it in either.
+    return;
+  }
+
+  // The context is looked up through the Go registry, rather than
+  // through a pointer stored in the V8 context, since the V8 context
+  // can outlive a closed Context.
+  int ctx_ref = local_ctx->GetEmbedderDataV2(ContextDataIndex::REF)
+                    .As<Integer>()
+                    ->Value();
+  m_ctx* ctx = goContext(ctx_ref);
+  if (ctx == nullptr) {
+    return;
+  }
+
+  // The value is empty for kPromiseHandlerAddedAfterReject.
+  Local<Value> value = message.GetValue();
+  goPromiseRejectedCallback(
+      ctx_ref, message.GetEvent(), track_value(ctx, promise),
+      value.IsEmpty() ? nullptr : track_value(ctx, value));
+}
+
+void IsolateSetPromiseRejectedCallback(IsolatePtr iso, bool enable) {
+  ISOLATE_SCOPE(iso);
+  iso->SetPromiseRejectCallback(enable ? PromiseRejectedCallback : nullptr);
 }
 
 IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr iso) {

@@ -11,9 +11,41 @@ import "C"
 import (
 	"io"
 	"runtime/cgo"
+	"strconv"
 	"sync"
 	"unsafe"
 )
+
+// PromiseRejectEvent is the kind of event passed to a
+// [PromiseRejectedCallback]. The values mirror v8::PromiseRejectEvent.
+//
+// See also: https://v8.github.io/api/head/namespacev8.html
+type PromiseRejectEvent uint8
+
+const (
+	// PromiseRejectWithNoHandler is sent when a promise is rejected, and
+	// it has no rejection handler.
+	PromiseRejectWithNoHandler PromiseRejectEvent = 0
+
+	// PromiseHandlerAddedAfterReject is sent when a rejection handler is
+	// added to a promise that has already been rejected. E.g., the
+	// following sends a PromiseRejectWithNoHandler event, followed by a
+	// PromiseHandlerAddedAfterReject event:
+	//
+	// 	Promise.reject("dummy").catch(e => {})
+	PromiseHandlerAddedAfterReject PromiseRejectEvent = 1
+)
+
+func (e PromiseRejectEvent) String() string {
+	switch e {
+	case PromiseRejectWithNoHandler:
+		return "PromiseRejectWithNoHandler"
+	case PromiseHandlerAddedAfterReject:
+		return "PromiseHandlerAddedAfterReject"
+	default:
+		return "PromiseRejectEvent(" + strconv.Itoa(int(e)) + ")"
+	}
+}
 
 // Isolate is a JavaScript VM instance with its own heap and
 // garbage collector. Most applications will create one isolate
@@ -24,6 +56,9 @@ type Isolate struct {
 	cbMutex sync.RWMutex
 	cbSeq   int
 	cbs     map[int]FunctionCallbackWithError
+
+	// promiseRejectedCallback is called from goPromiseRejectedCallback.
+	promiseRejectedCallback PromiseRejectedCallback
 
 	null      *Value
 	undefined *Value
@@ -290,4 +325,56 @@ func (i *Isolate) getCallback(ref int) FunctionCallbackWithError {
 	i.cbMutex.RLock()
 	defer i.cbMutex.RUnlock()
 	return i.cbs[ref]
+}
+
+// PromiseRejectMessage is passed to a [PromiseRejectedCallback]. The fields
+// reflect v8::PromiseRejectMessage.
+//
+// See also: https://v8.github.io/api/head/classv8_1_1PromiseRejectMessage.html
+type PromiseRejectMessage struct {
+	// Context is the context the promise was created in.
+	Context *Context
+	Promise *Promise
+	Event   PromiseRejectEvent
+	// Value is the rejection value. It is nil for
+	// PromiseHandlerAddedAfterReject.
+	Value *Value
+}
+
+// PromiseRejectedCallback is called with promise rejection events. See
+// [Isolate.SetPromiseRejectedCallback].
+type PromiseRejectedCallback func(PromiseRejectMessage)
+
+// SetPromiseRejectedCallback sets the callback to be called for promise
+// rejection events. This includes rejections that happen while V8 runs
+// microtasks after a script has finished. A nil callback removes it. An
+// Isolate has at most one callback, so this replaces any previous one.
+//
+// The callback runs synchronously inside V8, and must not run JavaScript
+// in the context of the promise.
+func (i *Isolate) SetPromiseRejectedCallback(cb PromiseRejectedCallback) {
+	i.promiseRejectedCallback = cb
+	C.IsolateSetPromiseRejectedCallback(i.ptr, C.bool(cb != nil))
+}
+
+// goPromiseRejectedCallback is the V8 promise reject callback set by
+// SetPromiseRejectedCallback. value is nil if the event has no value.
+//
+//export goPromiseRejectedCallback
+func goPromiseRejectedCallback(ctxref int, event C.int, promise C.ValuePtr, value C.ValuePtr) {
+	ctx := getContext(ctxref)
+	cb := ctx.iso.promiseRejectedCallback
+	if cb == nil {
+		return
+	}
+
+	msg := PromiseRejectMessage{
+		Context: ctx,
+		Promise: &Promise{&Object{&Value{ptr: promise, ctx: ctx}}},
+		Event:   PromiseRejectEvent(event),
+	}
+	if value != nil {
+		msg.Value = &Value{ptr: value, ctx: ctx}
+	}
+	cb(msg)
 }

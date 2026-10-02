@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Add Windows amd64 support, requiring Go 1.27 and LLVM's MSVC-target clang with LLD. See the README for details. In [#121](https://github.com/tommie/v8go/issues/121).
 - Add `CPUProfiler.Do` to profile a function. It keeps the function on the OS thread V8 samples.
+- Add `Isolate.SetPromiseRejectedCallback` to be notified of unhandled promise rejections, and of rejection handlers added after the fact. Based on [#108](https://github.com/tommie/v8go/pull/108).
 
 ### Changed
 - Document that `CPUProfiler.StartProfiling` requires JavaScript to execute on the calling OS thread. V8 only samples that thread, so the profile silently missed samples when Go moved the goroutine to another thread.
