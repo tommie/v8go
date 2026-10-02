@@ -68,8 +68,8 @@ func (c *CPUProfiler) StopProfiling(title string) *CPUProfile {
 		p:               profile,
 		title:           C.GoString(profile.title),
 		root:            newCPUProfileNode(profile.root, nil),
-		startTimeOffset: time.Duration(profile.startTime) * time.Millisecond,
-		endTimeOffset:   time.Duration(profile.endTime) * time.Millisecond,
+		startTimeOffset: time.Duration(profile.startTime) * time.Microsecond,
+		endTimeOffset:   time.Duration(profile.endTime) * time.Microsecond,
 	}
 }
 

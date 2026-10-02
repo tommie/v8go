@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+### Fixed
+- `CPUProfile.GetDuration` was 1000 times too long, since V8's microseconds were read as milliseconds.
+
 ## [v0.37.0] - 2026-10-02
 
 ### Changed

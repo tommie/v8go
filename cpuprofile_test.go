@@ -6,6 +6,7 @@ package v8go_test
 
 import (
 	"testing"
+	"time"
 
 	v8 "github.com/tommie/v8go"
 )
@@ -22,6 +23,7 @@ func TestCPUProfile(t *testing.T) {
 	defer cpuProfiler.Dispose()
 
 	title := "cpuprofiletest"
+	start := time.Now()
 	cpuProfiler.StartProfiling(title)
 
 	_, err := ctx.RunScript(profileScript, "script.js")
@@ -34,6 +36,7 @@ func TestCPUProfile(t *testing.T) {
 	fatalIf(t, err)
 
 	cpuProfile := cpuProfiler.StopProfiling(title)
+	elapsed := time.Since(start)
 	defer cpuProfile.Delete()
 
 	if cpuProfile.GetTitle() != title {
@@ -48,8 +51,11 @@ func TestCPUProfile(t *testing.T) {
 		t.Errorf("expected (root), but got %v", root.GetFunctionName())
 	}
 
-	if cpuProfile.GetDuration() <= 0 {
-		t.Fatalf("expected positive profile duration (%s)", cpuProfile.GetDuration())
+	// V8 and Go use different clocks, e.g. on Windows, Go's has the
+	// granularity of the timer interrupt, so V8's duration can exceed the
+	// elapsed time measured around it. A unit error would be far larger.
+	if d := cpuProfile.GetDuration(); d <= 0 || d > 2*elapsed {
+		t.Fatalf("expected profile duration (%s) to be positive, and at most twice the elapsed time (%s)", d, elapsed)
 	}
 }
 
