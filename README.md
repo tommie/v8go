@@ -204,20 +204,23 @@ val, err = ctx.RunScript(`
 
 ### CPU Profiler
 
+V8 only samples the OS thread that started profiling.
+`CPUProfiler.Do` keeps the profiled function on that thread.
+When using `StartProfiling` and `StopProfiling` directly, call `runtime.LockOSThread` first, and execute JavaScript on the same goroutine.
+Otherwise, samples are silently missing from the profile.
+
 ```go
 func createProfile() {
 	iso := v8.NewIsolate()
 	ctx := v8.NewContext(iso)
 	cpuProfiler := v8.NewCPUProfiler(iso)
 
-	cpuProfiler.StartProfiling("my-profile")
-
-	ctx.RunScript(profileScript, "script.js") # this script is defined in cpuprofiler_test.go
-	val, _ := ctx.Global().Get("start")
-	fn, _ := val.AsFunction()
-	fn.Call(ctx.Global())
-
-	cpuProfile := cpuProfiler.StopProfiling("my-profile")
+	cpuProfile := cpuProfiler.Do("my-profile", func() {
+		ctx.RunScript(profileScript, "script.js") # this script is defined in cpuprofiler_test.go
+		val, _ := ctx.Global().Get("start")
+		fn, _ := val.AsFunction()
+		fn.Call(ctx.Global())
+	})
 
 	printTree("", cpuProfile.GetTopDownRoot()) # helper function to print the profile
 }
