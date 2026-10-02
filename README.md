@@ -43,6 +43,24 @@ CC=clang-21 CXX=clang++-21 CGO_CXXFLAGS=-nostdinc++ go build
 Note that these environment variables apply to all cgo packages in the
 build.
 
+### Windows
+
+Windows amd64 is supported with Go 1.27 or newer. V8 is built with the
+MSVC ABI, so v8go must also be compiled with an MSVC-target clang,
+which is what [LLVM's Windows release](https://releases.llvm.org/) is,
+not MinGW. It must link with LLD, and the Microsoft C runtime and
+Windows SDK libraries must be installed, e.g. with the Visual Studio
+Build Tools:
+
+```sh
+CC="clang -fuse-ld=lld" CXX="clang++ -fuse-ld=lld" CGO_CXXFLAGS=-nostdinc++ go build
+```
+
+`-fuse-ld=lld` must be in `CC`, or in `-ldflags=-extldflags=-fuse-ld=lld`,
+for Go to detect LLD. Otherwise, it passes flags only GNU ld accepts.
+Since Go splits `CC` on spaces, clang must be in `PATH`, rather than
+given as a full path.
+
 ## Usage
 
 ```go

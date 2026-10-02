@@ -30,6 +30,11 @@ runs:
       git checkout "${{ inputs.hash }}"
 
   - name: Bootstrap depot_tools
-    if: inputs.bootstrap == 'true'
+    if: inputs.bootstrap == 'true' && runner.os != 'Windows'
     shell: bash
     run: cd deps/depot_tools && ./ensure_bootstrap
+
+  - name: Bootstrap depot_tools (Windows)
+    if: inputs.bootstrap == 'true' && runner.os == 'Windows'
+    shell: cmd
+    run: cd deps\depot_tools && call bootstrap\win_tools.bat
