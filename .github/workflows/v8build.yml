@@ -277,6 +277,12 @@ jobs:
       name: Update to latest V8
       run: |
         latest_v8_hash="${{ needs.build_common.outputs.v8_hash }}"
+        # Rebuilding the same V8, e.g. for build changes, isn't a V8 upgrade.
+        if [ "$(<deps/v8_hash)" = "$latest_v8_hash" ]; then
+          echo "v8_changed=false" >>"$GITHUB_OUTPUT"
+        else
+          echo "v8_changed=true" >>"$GITHUB_OUTPUT"
+        fi
         echo "$latest_v8_hash" >deps/v8_hash
 
         cd deps/v8
@@ -308,6 +314,7 @@ jobs:
       run: ./deps/update_cgo.py
 
     - name: Update Changelog
+      if: steps.update_v8.outputs.v8_changed == 'true'
       run: |
         ./tools/modifychangelog.py \
         --unchanged '- Auto-bumped V8 .*' \
