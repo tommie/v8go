@@ -152,6 +152,27 @@ func TestRegistryFromJSON(t *testing.T) {
 	}
 }
 
+func TestContextIsEmpty(t *testing.T) {
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+
+	t.Run("Closed", func(t *testing.T) {
+		ctx := v8.NewContext(iso)
+		ctx.Close()
+
+		if !ctx.IsEmpty() {
+			t.Error("expected context to be empty. ctx.IsEmpty() == false")
+		}
+	})
+
+	t.Run("Active", func(t *testing.T) {
+		ctx := v8.NewContext(iso)
+		if ctx.IsEmpty() {
+			t.Error("expected context to be active. ctx.IsEmpty() == true")
+		}
+	})
+}
+
 func BenchmarkContext(b *testing.B) {
 	b.ReportAllocs()
 	iso := v8.NewIsolate()
