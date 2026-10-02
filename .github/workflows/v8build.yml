@@ -239,6 +239,8 @@ jobs:
 
     - name: Build V8 (${{ matrix.os }})
       if: matrix.os == 'windows'
+      # TODO: use ccache. It doesn't cache clang-cl calls with /clang:
+      # options, which Chromium uses (ccache/ccache#1780).
       run: python deps/build.py --verbose --arch ${{ matrix.arch }} --os ${{ matrix.os }}
 
     - name: Show CCache Status
