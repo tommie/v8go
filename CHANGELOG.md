@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add Windows amd64 support, requiring Go 1.27 and LLVM's MSVC-target clang with LLD. See the README for details. In [#121](https://github.com/tommie/v8go/issues/121).
 
 ### Changed
+- Auto-bumped V8 to 15.4.80.20.
 
 ## [v0.37.0] - 2026-10-02
 
