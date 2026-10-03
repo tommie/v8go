@@ -140,23 +140,17 @@ func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 	return rtnVal, nil
 }
 
-// NewValueExternal allows storing an [unsafe.Pointer] in a value. This function
-// is discouraged, prefer using [NewValueExternalHandle] instead. This function
-// exists primarily for code that already uses unsafe pointers.
-//
-// An unsafe pointer can be read using [Value.External]
-func NewValueExternal(iso *Isolate, val unsafe.Pointer) *Value {
-	return &Value{
-		ptr: C.NewValueExternal(iso.ptr, val),
-	}
-}
-
 // NewValueExternalHandle can store a reference to a Go object as an "external"
 // v8 value, by using a [cgo.Handle]. The primary use case is when exposing
-// native Go objects to JavaScript code.
+// native Go objects to JavaScript code. The handle can be read back using
+// [Value.ExternalHandle].
 //
 // Native external values can be stored as "internal fields" on v8 objects;
 // using [Object.SetInternalField].
+//
+// There is no variant taking a pointer, since cgo doesn't allow C code to
+// retain Go pointers, and the Go garbage collector can't see references held
+// by V8.
 //
 // Warning: A cgo handle should be deleted through a call to [cgo.Handle.Delete]
 // when you are done with the object. Unfortunately v8go doesn't yet support
@@ -167,37 +161,19 @@ func NewValueExternal(iso *Isolate, val unsafe.Pointer) *Value {
 // delete the cgo handles when the context is disposed.
 func NewValueExternalHandle(iso *Isolate, val cgo.Handle) *Value {
 	return &Value{
-		ptr: C.NewValueExternalUintptr(iso.ptr, C.uintptr_t(val)),
+		ptr: C.NewValueExternal(iso.ptr, C.uintptr_t(val)),
 	}
-}
-
-// External retrieves an [unsafe.Pointer]. This value must have been created
-// using [NewValueExternal].
-//
-// The use of this pair of functions is discouraged. Prefer using
-// [NewValueExternalHandle]/[Value.ExternalHandle] instead.
-//
-// This will return nil, if the value does not contain an external value.
-func (v *Value) External() unsafe.Pointer {
-	if !v.IsExternal() {
-		return nil
-	}
-	return C.ValueToExternal(v.ptr)
 }
 
 // ExternalHandle retrieves the [cgo.Handle] from a [Value] that was created
 // using [NewValueExternalHandle].
 //
-// This will return an zero handle if the value is not an external value.
-//
-// Warning, reading a value that was created using [NewValueExternal] is
-// invalid, but will not be detected by v8go. Prefer using only handles if
-// possible.
+// This will return a zero handle if the value is not an external value.
 func (v *Value) ExternalHandle() cgo.Handle {
 	if !v.IsExternal() {
 		return 0
 	}
-	return cgo.Handle(C.ValueToExternalUintptr(v.ptr))
+	return cgo.Handle(C.ValueToExternal(v.ptr))
 }
 
 // Format implements the fmt.Formatter interface to provide a custom formatter
