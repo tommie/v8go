@@ -1,10 +1,12 @@
 #include "value.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 
 #include "context.h"
 #include "deps/include/v8-context.h"
 #include "deps/include/v8-exception.h"
+#include "deps/include/v8-external.h"
 #include "errors.h"
 #include "isolate-macros.h"
 #include "value-macros.h"
@@ -214,6 +216,17 @@ ValuePtr NewValueError(IsolatePtr iso,
   return tracked_value(ctx, val);
 }
 
+ValuePtr NewValueExternal(IsolatePtr iso, uintptr_t v) {
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
+  m_value* val = new m_value;
+  val->id = 0;
+  val->iso = iso;
+  val->ctx = ctx;
+  val->ptr = Global<Value>(
+      iso, External::New(iso, (void*)v, kExternalPointerTypeTagDefault));
+  return tracked_value(ctx, val);
+}
+
 const uint32_t* ValueToArrayIndex(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
   Local<Uint32> array_index;
@@ -224,6 +237,11 @@ const uint32_t* ValueToArrayIndex(ValuePtr ptr) {
   uint32_t* idx = (uint32_t*)malloc(sizeof(uint32_t));
   *idx = array_index->Value();
   return idx;
+}
+
+uintptr_t ValueToExternal(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+  return (uintptr_t)value.As<External>()->Value(kExternalPointerTypeTagDefault);
 }
 
 int ValueToBoolean(ValuePtr ptr) {

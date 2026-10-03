@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"runtime/cgo"
 	"unsafe"
 )
 
@@ -137,6 +138,42 @@ func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 	}
 
 	return rtnVal, nil
+}
+
+// NewValueExternalHandle can store a reference to a Go object as an "external"
+// v8 value, by using a [cgo.Handle]. The primary use case is when exposing
+// native Go objects to JavaScript code. The handle can be read back using
+// [Value.ExternalHandle].
+//
+// Native external values can be stored as "internal fields" on v8 objects;
+// using [Object.SetInternalField].
+//
+// There is no variant taking a pointer, since cgo doesn't allow C code to
+// retain Go pointers, and the Go garbage collector can't see references held
+// by V8.
+//
+// Warning: A cgo handle should be deleted through a call to [cgo.Handle.Delete]
+// when you are done with the object. Unfortunately v8go doesn't yet support
+// a callback when a JavaScript object is garbage collected.
+//
+// For a v8 context that is not short lived, this will cause a memory leak if
+// new objects are created continuously. For a short-lived context, be sure to
+// delete the cgo handles when the context is disposed.
+func NewValueExternalHandle(iso *Isolate, val cgo.Handle) *Value {
+	return &Value{
+		ptr: C.NewValueExternal(iso.ptr, C.uintptr_t(val)),
+	}
+}
+
+// ExternalHandle retrieves the [cgo.Handle] from a [Value] that was created
+// using [NewValueExternalHandle].
+//
+// This will return a zero handle if the value is not an external value.
+func (v *Value) ExternalHandle() cgo.Handle {
+	if !v.IsExternal() {
+		return 0
+	}
+	return cgo.Handle(C.ValueToExternal(v.ptr))
 }
 
 // Format implements the fmt.Formatter interface to provide a custom formatter
@@ -337,8 +374,7 @@ func (v *Value) IsNumber() bool {
 
 // IsExternal returns true if this value is an `External` object.
 func (v *Value) IsExternal() bool {
-	// TODO(rogchap): requires test case
-	return v.ctx != nil && C.ValueIsExternal(v.ptr) != 0
+	return C.ValueIsExternal(v.ptr) != 0
 }
 
 // IsInt32 returns true if this value is a 32-bit signed integer.
