@@ -223,7 +223,8 @@ ValuePtr NewValueExternal(IsolatePtr iso, void* v) {
   val->id = 0;
   val->iso = iso;
   val->ctx = ctx;
-  val->ptr = Global<Value>(iso, External::New(iso, v));
+  val->ptr =
+      Global<Value>(iso, External::New(iso, v, kExternalPointerTypeTagDefault));
   return tracked_value(ctx, val);
 }
 
@@ -245,7 +246,7 @@ const uint32_t* ValueToArrayIndex(ValuePtr ptr) {
 
 void* ValueToExternal(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
-  return value.As<External>()->Value();
+  return value.As<External>()->Value(kExternalPointerTypeTagDefault);
 }
 
 uintptr_t ValueToExternalUintptr(ValuePtr ptr) {
