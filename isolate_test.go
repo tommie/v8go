@@ -413,6 +413,50 @@ func TestIsolateSetPromiseRejectedCallback_Replace(t *testing.T) {
 	}
 }
 
+func TestIsolateSetPromiseRejectedCallback_ClosedContext(t *testing.T) {
+	t.Parallel()
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	closedCtx := v8.NewContext(iso)
+	ctx := v8.NewContext(iso)
+	defer ctx.Close()
+
+	var events []v8.PromiseRejectEvent
+	iso.SetPromiseRejectedCallback(func(msg v8.PromiseRejectMessage) {
+		events = append(events, msg.Event)
+	})
+
+	// The reject function keeps the promise, and its creation context,
+	// alive after closedCtx is closed.
+	reject, err := closedCtx.RunScript("let r; new Promise((_, rej) => { r = rej }); r", "")
+	fatalIf(t, err)
+	fatalIf(t, ctx.Global().Set("reject", reject))
+	closedCtx.Close()
+
+	_, err = ctx.RunScript("reject('value')", "")
+	fatalIf(t, err)
+	if len(events) != 0 {
+		t.Errorf("Got events %v, want none", events)
+	}
+
+	// Promises in open contexts are still reported.
+	_, err = ctx.RunScript("Promise.reject('value')", "")
+	fatalIf(t, err)
+	if want := []v8.PromiseRejectEvent{v8.PromiseRejectWithNoHandler}; !reflect.DeepEqual(events, want) {
+		t.Errorf("Got events %v, want %v", events, want)
+	}
+}
+
+func TestIsolateSetPromiseRejectedCallback_Disposed(t *testing.T) {
+	t.Parallel()
+	iso := v8.NewIsolate()
+	iso.Dispose()
+
+	if recoverPanic(func() { iso.SetPromiseRejectedCallback(nil) }) == nil {
+		t.Error("Got no panic, want one")
+	}
+}
+
 func BenchmarkIsolateInitialization(b *testing.B) {
 	b.ReportAllocs()
 	for n := 0; n < b.N; n++ {

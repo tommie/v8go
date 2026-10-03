@@ -352,7 +352,14 @@ type PromiseRejectedCallback func(PromiseRejectMessage)
 //
 // The callback runs synchronously inside V8, and must not run JavaScript
 // in the context of the promise.
+//
+// The callback is not called for promises created in a closed Context,
+// since their values can't be tracked. This can happen if a closed
+// context's promise is still reachable from another context.
 func (i *Isolate) SetPromiseRejectedCallback(cb PromiseRejectedCallback) {
+	if i.ptr == nil {
+		panic("Isolate has been disposed")
+	}
 	i.promiseRejectedCallback = cb
 	C.IsolateSetPromiseRejectedCallback(i.ptr, C.bool(cb != nil))
 }
