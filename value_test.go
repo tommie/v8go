@@ -943,3 +943,20 @@ func TestValueExternalHandle(t *testing.T) {
 		t.Errorf("Value not incremented. Expected 2, got %d", internal.value)
 	}
 }
+
+func TestValueExternalNotExternal(t *testing.T) {
+	t.Parallel()
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+
+	val, err := v8.NewValue(iso, int32(42))
+	if err != nil {
+		t.Fatalf("NewValue failed: %v", err)
+	}
+	if val.IsExternal() {
+		t.Error("IsExternal: got true, want false")
+	}
+	if got := val.ExternalHandle(); got != 0 {
+		t.Errorf("ExternalHandle: got %v, want 0", got)
+	}
+}
