@@ -2,9 +2,11 @@
 
 #include <stdlib.h>
 
+#include "_cgo_export.h"
 #include "context.h"
 #include "deps/include/v8-context.h"
 #include "deps/include/v8-exception.h"
+#include "deps/include/v8-external.h"
 #include "errors.h"
 #include "isolate-macros.h"
 #include "value-macros.h"
@@ -212,6 +214,57 @@ ValuePtr NewValueError(IsolatePtr iso,
   val->ctx = ctx;
   val->ptr = Global<Value>(iso, v);
   return tracked_value(ctx, val);
+}
+
+// Runs when V8 has collected the External. This is a first-pass callback,
+// which must not call into V8, except to reset the handle. Deleting the handle
+// in Go doesn't touch V8.
+static void GoValueWeakCallback(const WeakCallbackInfo<m_value>& info) {
+  m_value* val = info.GetParameter();
+  val->ctx->vals.erase(val->id);
+  val->ptr.Reset();
+  goDeleteHandle(val->go_handle);
+  delete val;
+}
+
+ValuePtr NewValueGo(IsolatePtr iso, uintptr_t handle) {
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
+  Local<External> ext =
+      External::New(iso, (void*)handle, kExternalPointerTypeTagDefault);
+
+  // All Externals in v8go are created here, since ValueToGo reads any
+  // External as a handle, with the default tag. With the sandbox enabled,
+  // V8 aborts if the tag doesn't match.
+  //
+  // The External holds the handle itself, so reading it needs no lookup.
+  // Handles are small integers, which fit in the 48 bits an External holds
+  // with the sandbox enabled. A weak tracked value owns the handle, and
+  // deletes it when V8 collects the External, or the Isolate is disposed.
+  m_value* owner = new m_value;
+  owner->id = 0;
+  owner->iso = iso;
+  owner->ctx = ctx;
+  owner->ptr = Global<Value>(iso, ext);
+  owner->ptr.SetWeak(owner, GoValueWeakCallback, WeakCallbackType::kParameter);
+  owner->go_handle = handle;
+  tracked_value(ctx, owner);
+
+  m_value* val = new m_value;
+  val->id = 0;
+  val->iso = iso;
+  val->ctx = ctx;
+  val->ptr = Global<Value>(iso, ext);
+  return tracked_value(ctx, val);
+}
+
+// Returns the cgo.Handle in an External created by NewValueGo, or zero if
+// the value is not an External.
+uintptr_t ValueToGo(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+  if (!value->IsExternal()) {
+    return 0;
+  }
+  return (uintptr_t)value.As<External>()->Value(kExternalPointerTypeTagDefault);
 }
 
 const uint32_t* ValueToArrayIndex(ValuePtr ptr) {

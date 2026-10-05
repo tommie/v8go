@@ -12,6 +12,8 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"reflect"
+	"runtime/cgo"
 	"unsafe"
 )
 
@@ -62,6 +64,19 @@ func Null(iso *Isolate) *Value {
 //	uint64 -> V8::BigInt
 //	bool -> V8::Boolean
 //	*big.Int -> V8::BigInt
+//
+// Other pointers are wrapped in a V8::External. JavaScript sees an opaque
+// object, which can e.g. be stored in an internal field with
+// [Object.SetInternalField], or passed to a function. The Go value is read
+// back with [Value.External]. Other types are not supported: a slice or map
+// was probably meant to be converted, and a struct would be copied.
+//
+// Each call creates a new External, so wrapping the same pointer twice gives
+// two values that are not equal in JavaScript.
+//
+// V8 keeps the Go value until the External is garbage collected, or the
+// Isolate is disposed. The returned Value keeps the External alive until it
+// is released, like any other Value.
 func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 	if iso == nil {
 		return nil, errors.New("v8go: failed to create new Value: Isolate cannot be <nil>")
@@ -132,11 +147,37 @@ func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 
 		rtn := C.NewValueBigIntFromWords(iso.ptr, C.int(sign), C.int(count), &words[0])
 		return valueResult(nil, rtn)
-	default:
+	case Valuer:
+		// Wrapping a Value in an External is almost certainly a mistake.
 		return nil, fmt.Errorf("v8go: unsupported value type `%T`", v)
+	default:
+		if reflect.ValueOf(v).Kind() != reflect.Pointer {
+			return nil, fmt.Errorf("v8go: unsupported value type `%T`", v)
+		}
+		rtnVal = &Value{
+			ptr: C.NewValueGo(iso.ptr, C.uintptr_t(cgo.NewHandle(v))),
+		}
 	}
 
 	return rtnVal, nil
+}
+
+// External returns the Go value wrapped by [NewValue]. It returns false if
+// the value is not an External.
+func (v *Value) External() (any, bool) {
+	h := cgo.Handle(C.ValueToGo(v.ptr))
+	if h == 0 {
+		return nil, false
+	}
+	return h.Value(), true
+}
+
+// goDeleteHandle is called from C++ when V8 has collected an External
+// created by NewValue, or the Isolate is disposed.
+//
+//export goDeleteHandle
+func goDeleteHandle(h C.uintptr_t) {
+	cgo.Handle(h).Delete()
 }
 
 // Format implements the fmt.Formatter interface to provide a custom formatter
@@ -337,7 +378,6 @@ func (v *Value) IsNumber() bool {
 
 // IsExternal returns true if this value is an `External` object.
 func (v *Value) IsExternal() bool {
-	// TODO(rogchap): requires test case
 	return C.ValueIsExternal(v.ptr) != 0
 }
 
