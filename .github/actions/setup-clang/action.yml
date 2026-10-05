@@ -1,7 +1,8 @@
 name: Set Up Clang
 description: |
   Installs the Clang version required by the libc++ headers in
-  deps/include_libcxx/, and sets CC and CXX.
+  deps/include_libcxx/, and sets CC and CXX. On Linux, it also sets
+  CLANG_FORMAT if clang-format-{version} is in extra-packages.
 
   Chromium's libc++ follows LLVM trunk, so the minimum version increases
   with V8 upgrades. See _LIBCPP_CLANG_VER in
@@ -31,6 +32,9 @@ runs:
       [ -z "$extra" ] || sudo apt-get install -yq ${extra//\{version\}/${{ inputs.version }}}
       echo "CC=clang-${{ inputs.version }}" >>"$GITHUB_ENV"
       echo "CXX=clang++-${{ inputs.version }}" >>"$GITHUB_ENV"
+      if command -v "clang-format-${{ inputs.version }}" >/dev/null; then
+        echo "CLANG_FORMAT=clang-format-${{ inputs.version }}" >>"$GITHUB_ENV"
+      fi
 
   - name: Install Clang (macOS)
     if: runner.os == 'macOS'
