@@ -31,6 +31,9 @@ type Context struct {
 	ref int
 	ptr C.ContextPtr
 	iso *Isolate
+
+	// instantiation is the state of the ongoing Module.Instantiate.
+	instantiation *moduleInstantiation
 }
 
 type contextOptions struct {
