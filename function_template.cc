@@ -40,8 +40,8 @@ void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
     thisAndArgs[i] = tracked_value(ctx, val);
   }
 
-  goFunctionCallback_return retval =
-      goFunctionCallback(ctx_ref, callback_ref, thisAndArgs.data(), thisAndArgs.size() - 1);
+  goFunctionCallback_return retval = goFunctionCallback(
+      ctx_ref, callback_ref, thisAndArgs.data(), thisAndArgs.size() - 1);
   if (retval.r1 != nullptr) {
     iso->ThrowException(retval.r1->ptr.Get(iso));
   } else if (retval.r0 != nullptr) {
