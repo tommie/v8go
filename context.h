@@ -35,7 +35,7 @@ struct m_ctx {
   std::unordered_map<long, m_value*> vals;
   std::vector<m_unboundScript*> unboundScripts;
   v8::Persistent<v8::Context> ptr;
-  long nextValId;
+  long nextValId = 0;
 };
 typedef m_ctx* ContextPtr;
 
