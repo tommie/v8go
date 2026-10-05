@@ -19,6 +19,8 @@ jobs:
 
     - name: Set Up Clang
       uses: ./.github/actions/setup-clang
+      with:
+        extra-packages: clang-format-{version}
 
     - name: go fmt
       run: go fmt
@@ -28,8 +30,13 @@ jobs:
       env:
         CGO_CXXFLAGS: "-nostdinc++"
 
+    # Fails rather than falling back to the runner's clang-format, whose
+    # version can change with the runner image.
     - name: go generate (clang-format)
-      run: go generate
+      run: |
+        test -n "$CLANG_FORMAT"
+        "$CLANG_FORMAT" --version
+        go generate
 
     - name: Display missing format changes
       run: git diff --exit-code

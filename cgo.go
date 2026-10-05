@@ -6,8 +6,10 @@ package v8go
 
 // The C++ code is split into a file per type, so all of them are formatted.
 // go generate doesn't expand globs, hence the shell. The style is in
-// .clang-format.
-//go:generate sh -c "clang-format -i --verbose --style=file *.cc *.h"
+// .clang-format. CLANG_FORMAT selects the binary, so CI can use the version
+// matching the required Clang. go generate expands $NAME itself, so the
+// shell's $ is written as $DOLLAR.
+//go:generate sh -c "${DOLLAR}{CLANG_FORMAT:-clang-format} -i --verbose --style=file *.cc *.h"
 
 // V8 is built with Chromium's libc++, which we must also use. The
 // CGO_CXXFLAGS environment variable must contain -nostdinc++, since it
