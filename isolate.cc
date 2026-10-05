@@ -66,14 +66,16 @@ void Init() {
   return;
 }
 
-size_t NearMemoryLimitCallback(void* data, size_t current_heap_limit, size_t initial_heap_limit)
-{
+size_t NearMemoryLimitCallback(void* data,
+                               size_t current_heap_limit,
+                               size_t initial_heap_limit) {
   auto iso = static_cast<Isolate*>(data);
   auto state = static_cast<IsolateState*>(iso->GetData(ISOLATE_STATE_SLOT));
   state->heap_limit_reached = true;
   iso->TerminateExecution();
 
-  // if we return the initial heap limit, the VM will crash, so here we give it room to exit gracefully
+  // if we return the initial heap limit, the VM will crash, so here we give it
+  // room to exit gracefully
   return current_heap_limit * 2;
 }
 
@@ -83,10 +85,8 @@ IsolatePtr NewIsolate(IsolateConstraintsPtr constraints) {
 
   if (constraints != nullptr) {
     ResourceConstraints rc;
-    rc.ConfigureDefaultsFromHeapSize(
-      constraints->initial_heap_size_in_bytes,
-      constraints->maximum_heap_size_in_bytes
-    );
+    rc.ConfigureDefaultsFromHeapSize(constraints->initial_heap_size_in_bytes,
+                                     constraints->maximum_heap_size_in_bytes);
     params.constraints = rc;
   }
 
@@ -97,7 +97,8 @@ IsolatePtr NewIsolate(IsolateConstraintsPtr constraints) {
 
   iso->SetCaptureStackTraceForUncaughtExceptions(true);
 
-  // Try to catch the OOM condition and stop execution before killing the process
+  // Try to catch the OOM condition and stop execution before killing the
+  // process
   iso->SetData(ISOLATE_STATE_SLOT, new IsolateState);
   iso->AddNearHeapLimitCallback(NearMemoryLimitCallback, iso);
   // The callback raises the heap limit, so the isolate can be reused

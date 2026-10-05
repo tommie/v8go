@@ -371,8 +371,8 @@ The `-ldflags=-compressdwarf=false` is currently (with clang 13) needed to get l
 
 ### Formatting
 
-Go has `go fmt`, C has `clang-format`. Any changes to the `v8go.h|cc` should be formated with `clang-format` with the
-"Chromium" Coding style. This can be done easily by running the `go generate` command.
+Go has `go fmt`, C has `clang-format`. Any changes to the `*.h` and `*.cc` files should be formatted with `clang-format`
+with the "Chromium" Coding style, as configured in `.clang-format`. This can be done easily by running the `go generate` command.
 
 `brew install clang-format` to install on macOS.
 

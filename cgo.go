@@ -4,7 +4,10 @@
 
 package v8go
 
-//go:generate clang-format -i --verbose -style=Chromium v8go.h v8go.cc
+// The C++ code is split into a file per type, so all of them are formatted.
+// go generate doesn't expand globs, hence the shell. The style is in
+// .clang-format.
+//go:generate sh -c "clang-format -i --verbose --style=file *.cc *.h"
 
 // V8 is built with Chromium's libc++, which we must also use. The
 // CGO_CXXFLAGS environment variable must contain -nostdinc++, since it
