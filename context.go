@@ -28,10 +28,12 @@ var ctxSeq = 0
 // Context is a global root execution environment that allows separate,
 // unrelated, JavaScript applications to run in a single instance of V8.
 type Context struct {
-	ref            int
-	ptr            C.ContextPtr
-	iso            *Isolate
-	moduleResolver ResolveModuler
+	ref int
+	ptr C.ContextPtr
+	iso *Isolate
+
+	// instantiation is the state of the ongoing Module.Instantiate.
+	instantiation *moduleInstantiation
 }
 
 type contextOptions struct {
