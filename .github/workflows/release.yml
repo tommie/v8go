@@ -45,9 +45,15 @@ jobs:
     with:
       sha: ${{ inputs.sha }}
 
+  vendor:
+    name: Test (vendor)
+    uses: ./.github/workflows/vendor.yml
+    with:
+      sha: ${{ inputs.sha }}
+
   release:
     name: Release
-    needs: [test, leakcheck]
+    needs: [test, leakcheck, vendor]
     runs-on: ubuntu-latest
     outputs:
       committed: ${{ steps.commit_changelog.outputs.committed }}

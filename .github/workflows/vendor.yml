@@ -1,0 +1,41 @@
+name: Vendor Check
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      sha:
+        description: "The commit to check out at. Defaults to the parent workflow's github.sha."
+        required: false
+        type: string
+
+jobs:
+  test:
+    # Which files go mod vendor copies doesn't depend on the platform,
+    # so one is enough. See tommie/v8go#116.
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v7
+      with:
+        ref: ${{ inputs.sha }}
+
+    - name: Set Up Clang
+      uses: ./.github/actions/setup-clang
+
+    - name: Install Go
+      uses: actions/setup-go@v7
+      with:
+        go-version: stable
+
+    # No workspace is needed, since the script replaces all v8go
+    # modules with the work tree.
+    - name: Build and Run Vendored Module
+      env:
+        CGO_CXXFLAGS: "-nostdinc++ -Werror"
+      run: ./tools/check_vendor.sh

@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - `CPUProfile.GetDuration` was 1000 times too long, since V8's microseconds were read as milliseconds.
+- `go mod vendor` copies the V8 and libc++ header files, so vendored builds work again. In [#116](https://github.com/tommie/v8go/issues/116).
 
 ## [v0.37.0] - 2026-10-02
 
