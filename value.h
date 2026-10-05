@@ -22,6 +22,10 @@ struct m_value {
   v8::Isolate* iso;
   m_ctx* ctx;
   v8::Global<v8::Value> ptr;
+  // Non-zero if ptr is a weak handle to an External holding a Go value, as
+  // created by NewValueGo. It is the cgo.Handle in the External, deleted
+  // when V8 collects it, or the Isolate is disposed.
+  uintptr_t go_handle = 0;
 };
 
 typedef v8::Isolate v8Isolate;
@@ -138,6 +142,8 @@ extern RtnValue NewValueBigIntFromWords(IsolatePtr iso_ptr,
 extern ValuePtr NewValueError(IsolatePtr iso_ptr,
                               ErrorTypeIndex idx,
                               const char* message);
+extern ValuePtr NewValueGo(IsolatePtr iso_ptr, uintptr_t handle);
+extern uintptr_t ValueToGo(ValuePtr ptr);
 
 const char* ExceptionGetMessageString(ValuePtr ptr);
 

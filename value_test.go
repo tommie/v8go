@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"runtime"
 	"testing"
+	"time"
 
 	v8 "github.com/tommie/v8go"
 )
@@ -888,4 +889,126 @@ func TestValueTypeOf(t *testing.T) {
 	if got := num2.TypeOf(); got != "number" {
 		t.Errorf("TypeOf(0.01): expected number, got %s", got)
 	}
+}
+
+func TestValueExternal(t *testing.T) {
+	t.Parallel()
+
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+
+	type wrapped struct{ n int }
+	for _, want := range []any{&wrapped{42}, new(int)} {
+		val, err := v8.NewValue(iso, want)
+		if err != nil {
+			t.Fatalf("NewValue(%T): %v", want, err)
+		}
+		if !val.IsExternal() {
+			t.Errorf("IsExternal(%T): got false, want true", want)
+		}
+		got, ok := val.External()
+		if !ok || !reflect.DeepEqual(got, want) {
+			t.Errorf("External(%T): got %v, %v, want %v, true", want, got, ok, want)
+		}
+	}
+
+	// Types NewValue doesn't convert were probably meant to be converted, and
+	// a struct would be copied, so only pointers are wrapped.
+	type myString string
+	for _, v := range []any{42, float32(1), myString("a"), wrapped{42}, [1]int{1}, []int{1}, map[string]int{}, func() {}, make(chan int), nil, v8.Undefined(iso)} {
+		if _, err := v8.NewValue(iso, v); err == nil {
+			t.Errorf("NewValue(%T): expected error", v)
+		}
+	}
+
+	val, err := v8.NewValue(iso, int32(42))
+	fatalIf(t, err)
+	if got, ok := val.External(); ok {
+		t.Errorf("External on a number: got %v, want false", got)
+	}
+}
+
+func TestValueExternalInternalField(t *testing.T) {
+	t.Parallel()
+
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	ctx := v8.NewContext(iso)
+	defer ctx.Close()
+
+	tmpl := v8.NewObjectTemplate(iso)
+	tmpl.SetInternalFieldCount(1)
+	obj, err := tmpl.NewInstance(ctx)
+	fatalIf(t, err)
+
+	want := &struct{ n int }{42}
+	ext, err := v8.NewValue(iso, want)
+	fatalIf(t, err)
+	fatalIf(t, obj.SetInternalField(0, ext))
+	ext.Release()
+
+	if got, ok := obj.GetInternalField(0).External(); !ok || got != want {
+		t.Errorf("External: got %v, %v, want %v, true", got, ok, want)
+	}
+}
+
+// finalizable is wrapped by tests that wait for its finalizer. The pointer
+// field keeps it out of the tiny allocator, which packs small pointer-free
+// objects into shared blocks. A finalizer only runs once the whole block is
+// unreachable, so it could depend on unrelated objects.
+type finalizable struct{ p *int }
+
+// waitFinalized runs the Go GC until done is closed, or fails the test.
+func waitFinalized(t *testing.T, done <-chan struct{}) {
+	t.Helper()
+	for i := 0; i < 100; i++ {
+		runtime.GC()
+		select {
+		case <-done:
+			return
+		case <-time.After(10 * time.Millisecond):
+		}
+	}
+	t.Fatal("the Go value was not finalized")
+}
+
+func TestValueExternalGC(t *testing.T) {
+	t.Parallel()
+
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+
+	done := make(chan struct{})
+	wrapped := &finalizable{}
+	runtime.SetFinalizer(wrapped, func(any) { close(done) })
+	ext, err := v8.NewValue(iso, wrapped)
+	fatalIf(t, err)
+	wrapped = nil
+	ext.Release()
+
+	// V8 deletes the handle when it collects the External, so the Go GC can
+	// collect the value.
+	iso.LowMemoryNotification()
+	waitFinalized(t, done)
+}
+
+func TestValueExternalDispose(t *testing.T) {
+	t.Parallel()
+
+	iso := v8.NewIsolate()
+
+	done := make(chan struct{})
+	wrapped := &finalizable{}
+	runtime.SetFinalizer(wrapped, func(any) { close(done) })
+	ext, err := v8.NewValue(iso, wrapped)
+	fatalIf(t, err)
+	wrapped = nil
+
+	// The Value keeps the External alive, until the Isolate is disposed.
+	iso.LowMemoryNotification()
+	if got, ok := ext.External(); !ok || got == nil {
+		t.Fatalf("External before Dispose: got %v, %v, want a value", got, ok)
+	}
+	iso.Dispose()
+	waitFinalized(t, done)
 }

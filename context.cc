@@ -1,4 +1,5 @@
 #include "context.h"
+#include "_cgo_export.h"
 #include "deps/include/v8-template.h"
 
 #include "context-macros.h"
@@ -45,6 +46,9 @@ void ContextFree(ContextPtr ctx) {
   for (auto it = ctx->vals.begin(); it != ctx->vals.end(); ++it) {
     auto value = it->second;
     value->ptr.Reset();
+    if (value->go_handle != 0) {
+      goDeleteHandle(value->go_handle);
+    }
     delete value;
   }
   ctx->vals.clear();
