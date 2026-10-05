@@ -2,139 +2,250 @@ package v8go
 
 // #include <stdlib.h>
 // #include "module.h"
-// #include "data.h"
 import "C"
+
 import (
+	"errors"
 	"fmt"
 	"unsafe"
 )
 
-// Module represents an ECMAScript Module (ESM). A module is obtained from
-// [CompileModule]. Before a module can be used, it must be instantiated by
-// calling [Module.InstantiateModule], after which it can be evaluated with
-// [Module.Evaluate].
+// TODO: Support dynamic import() through
+// Isolate::SetHostImportModuleDynamicallyCallback, and import.meta
+// through Isolate::SetHostInitializeImportMetaObjectCallback. Both are
+// isolate-wide, so they don't affect the ModuleResolver passed to
+// Module.Instantiate.
+
+// Module is a compiled ECMAScript module (ESM). It is created with
+// [Isolate.CompileModule], must be linked with [Module.Instantiate], and
+// then run with [Module.Evaluate].
+//
+// A Module belongs to its Isolate, and is released when the Isolate is
+// disposed.
 type Module struct {
-	iso *C.v8Isolate
-	ptr *C.m_module
+	ptr C.ModulePtr
+	iso *Isolate
 }
 
-// ImportAttributes represents the attributes for each module import.
+// ModuleStatus is the state of a Module.
+type ModuleStatus int
+
+// ModuleStatus values, in the order a Module normally passes through
+// them. They mirror v8::Module::Status, which module.cc asserts.
+const (
+	ModuleUninstantiated ModuleStatus = 0
+	ModuleInstantiating  ModuleStatus = 1
+	ModuleInstantiated   ModuleStatus = 2
+	ModuleEvaluating     ModuleStatus = 3
+	ModuleEvaluated      ModuleStatus = 4
+	ModuleErrored        ModuleStatus = 5
+)
+
+// String returns a name for the status.
+func (s ModuleStatus) String() string {
+	switch s {
+	case ModuleUninstantiated:
+		return "uninstantiated"
+	case ModuleInstantiating:
+		return "instantiating"
+	case ModuleInstantiated:
+		return "instantiated"
+	case ModuleEvaluating:
+		return "evaluating"
+	case ModuleEvaluated:
+		return "evaluated"
+	case ModuleErrored:
+		return "errored"
+	default:
+		return fmt.Sprintf("ModuleStatus(%d)", int(s))
+	}
+}
+
+// ImportAttribute is an attribute in an import statement. E.g. this
+// imports with the attribute type="json":
 //
-// NOTE: ImportAttributes cannot be used AFTER ResolveModule returns
-type ImportAttributes struct {
-	fixedArray *C.v8goFixedArray
-}
-
-func (a ImportAttributes) All(ctx *Context) []ImportAttribute {
-	l := int(C.FixedArrayLength(a.fixedArray, ctx.ptr)) / 3
-	if l == 0 {
-		return nil
-	}
-	res := make([]ImportAttribute, l)
-	for i := 0; i < l; i++ {
-		res[i] = a.get(ctx, i)
-	}
-	return res
-}
-
-func (a ImportAttributes) get(ctx *Context, i int) ImportAttribute {
-	d1 := C.FixedArrayGet(a.fixedArray, ctx.ptr, C.int(i*3))
-	d2 := C.FixedArrayGet(a.fixedArray, ctx.ptr, C.int(i*3+1))
-	d3 := C.FixedArrayGet(a.fixedArray, ctx.ptr, C.int(i*3+2))
-	defer C.DataRelease(d1)
-	defer C.DataRelease(d2)
-	defer C.DataRelease(d3)
-	v1 := Value{ptr: C.DataAsValue(d1, ctx.ptr), ctx: ctx}
-	v2 := Value{ptr: C.DataAsValue(d2, ctx.ptr), ctx: ctx}
-	v3 := Value{ptr: C.DataAsValue(d3, ctx.ptr), ctx: ctx}
-	return ImportAttribute{
-		Key:      v1.String(),
-		Value:    v2.String(),
-		Location: int(v3.Int32()),
-	}
-}
-
-// ImportAttribute represents a single import attribute in a module import
-// statment. E.g., the following script has a single import attribute.
-//
-//	import foo from "foo.js" with { data: "value" }
+//	import data from "./data.json" with { type: "json" };
 type ImportAttribute struct {
 	Key   string
 	Value string
-	// Location is the zero-based index in the string where the key is found
-	Location int
+
+	// SourceOffset is the offset of the key in the importing module's
+	// source.
+	SourceOffset int
 }
 
-type FixedArray struct{}
-
-type ResolveModuler interface {
-	ResolveModule(ctx *Context, spec string, attr ImportAttributes, referrer *Module) (*Module, error)
+// A ModuleResolver resolves the imports of a module.
+type ModuleResolver interface {
+	// ResolveModule returns the module the specifier refers to, as
+	// imported by referrer.
+	//
+	// The resolver is responsible for caching: a module imported from
+	// several places must resolve to the same Module each time, or it is
+	// evaluated once per import. Doing so also makes cyclic imports work.
+	//
+	// If the error implements [ValueError], its value is thrown. Either
+	// way, the error returned by Instantiate wraps it. Like
+	// function callbacks, a panic aborts the process, since it would
+	// unwind through V8.
+	ResolveModule(ctx *Context, specifier string, attrs []ImportAttribute, referrer *Module) (*Module, error)
 }
 
-// Evaluate evaluates the module.
-//
-// The returned valus is a promise. If the module is evaluated synchronously,
-// the promise will have settled upon return.
-//
-// If evaluating the script fails, the promise will be rejected; but if an
-// imported module cannot be evaluated, Evaluate will return an error.
-func (m Module) Evaluate(ctx *Context) (*Value, error) {
-	retVal := C.ModuleEvaluate(ctx.ptr, m.ptr)
-	return valueResult(ctx, retVal)
+// ModuleResolverFunc is a function that implements [ModuleResolver].
+type ModuleResolverFunc func(ctx *Context, specifier string, attrs []ImportAttribute, referrer *Module) (*Module, error)
+
+// ResolveModule calls f.
+func (f ModuleResolverFunc) ResolveModule(ctx *Context, specifier string, attrs []ImportAttribute, referrer *Module) (*Module, error) {
+	return f(ctx, specifier, attrs, referrer)
 }
 
-//export resolveModuleCallback
-func resolveModuleCallback(
-	ctxref int,
-	buf *C.char,
-	importAttributes *C.v8goFixedArray,
-	referrer *C.m_module,
-) (*C.m_module, C.ValuePtr) {
-	defer C.free(unsafe.Pointer(buf))
-	spec := C.GoString(buf)
+// ErrNoModuleResolver is matched by errors.Is for errors from
+// [Module.Instantiate], if a module has imports, but no resolver was
+// given.
+var ErrNoModuleResolver = errors.New("no module resolver")
 
-	ctx := getContext(ctxref)
-	ref := &Module{ptr: referrer}
-	res, err := ctx.moduleResolver.ResolveModule(ctx, spec, ImportAttributes{importAttributes}, ref)
-	if err == nil {
-		return res.ptr, nil
-	} else {
-		err = fmt.Errorf("cannot resolve module '%s': %w", spec, err)
-		return nil, NewError(ctx.iso, err.Error()).Value.ptr
+// moduleInstantiation is the state of an ongoing Module.Instantiate.
+type moduleInstantiation struct {
+	resolver ModuleResolver
+
+	// err is the last error from resolving a module. It is returned by
+	// JSError.Unwrap, since the error only reaches V8 as an exception.
+	err error
+}
+
+// CompileModule compiles source as an ECMAScript module. The origin
+// (a.k.a. filename) is used in stack traces. If an error occurs, it is a
+// *JSError.
+func (i *Isolate) CompileModule(source, origin string) (*Module, error) {
+	cSource := C.CString(source)
+	cOrigin := C.CString(origin)
+	defer C.free(unsafe.Pointer(cSource))
+	defer C.free(unsafe.Pointer(cOrigin))
+
+	rtn := C.IsolateCompileModule(i.ptr, cSource, cOrigin)
+	if rtn.ptr == nil {
+		return nil, newJSError(rtn.error)
 	}
+	m := &Module{ptr: rtn.ptr, iso: i}
+	i.modules[m.ptr] = m
+	return m, nil
 }
 
-func (m Module) InstantiateModule(ctx *Context, resolver ResolveModuler) error {
-	ctx.moduleResolver = resolver
+// Status returns the module's status.
+func (m *Module) Status() ModuleStatus {
+	return ModuleStatus(C.ModuleGetStatus(m.iso.ptr, m.ptr))
+}
 
-	err := C.ModuleInstantiateModule(ctx.ptr, m.ptr)
-	if err.msg == nil {
+// ScriptID returns the V8 script ID of the module.
+func (m *Module) ScriptID() int {
+	return int(C.ModuleScriptId(m.iso.ptr, m.ptr))
+}
+
+// Instantiate links the module, and its imports, in ctx. Imports are
+// resolved with resolver, which may be nil if there are no imports. A
+// module can only be instantiated once, and it then belongs to ctx.
+//
+// If an error occurs, it is a *JSError. If resolving a module failed,
+// the resolver's error can be matched with errors.Is and errors.As.
+func (m *Module) Instantiate(ctx *Context, resolver ModuleResolver) error {
+	m.checkIsolate(ctx)
+
+	// V8 calls the resolver synchronously, without a data pointer, so it
+	// is passed through the Context. The previous state is restored, in
+	// case a resolver instantiates another module.
+	inst := &moduleInstantiation{resolver: resolver}
+	prev := ctx.instantiation
+	ctx.instantiation = inst
+	defer func() { ctx.instantiation = prev }()
+
+	rtn := C.ModuleInstantiate(ctx.ptr, m.ptr)
+	if rtn.msg == nil {
 		return nil
 	}
-	return newJSError(err)
+	err := newJSError(rtn).(*JSError)
+	if err.cause == nil {
+		err.cause = inst.err
+	}
+	return err
 }
 
-func (m Module) ScriptID() int {
-	return int(C.ModuleScriptId(m.ptr))
-}
-
-func (m Module) GetStatus() int {
-	return int(C.ModuleGetStatus(m.ptr))
-}
-
-func (m Module) IsSourceTextModule() bool {
-	return bool(C.ModuleIsSourceTextModule(m.ptr))
-}
-
-// GetModuleNamespace returns the module namespace. This is an exotic object
-// containing the exports of the module.
+// Evaluate runs the module, and its imports. The module must have been
+// instantiated in ctx.
 //
-// The module must be instantiated before calling GetModuleNamespace. Before
-// calling [Module.Evaluate] the namespace may have keys corresponding to the
-// exports of the module but they will have undefined value.
+// It returns a promise. A module without top-level await settles it
+// before returning. Exceptions thrown by the module reject the promise,
+// rather than returning an error.
+func (m *Module) Evaluate(ctx *Context) (*Promise, error) {
+	m.checkIsolate(ctx)
+	v, err := valueResult(ctx, C.ModuleEvaluate(ctx.ptr, m.ptr))
+	if err != nil {
+		return nil, err
+	}
+	return v.AsPromise()
+}
+
+// Namespace returns the module namespace object, which holds the
+// exports of the module. The module must have been instantiated in ctx.
+// Before evaluation, the exports exist, but are not initialized.
 //
-// See also: https://tc39.es/ecma262/#sec-module-namespace-exotic-objects
-func (m Module) GetModuleNamespace() *Value {
-	var res = C.ModuleGetModuleNamespace(m.iso, m.ptr)
-	return &Value{res, nil}
+// See https://tc39.es/ecma262/#sec-module-namespace-exotic-objects.
+func (m *Module) Namespace(ctx *Context) (*Object, error) {
+	m.checkIsolate(ctx)
+	return objectResult(ctx, C.ModuleGetNamespace(ctx.ptr, m.ptr))
+}
+
+func (m *Module) checkIsolate(ctx *Context) {
+	if ctx.iso != m.iso {
+		panic("attempted to use a module in a context that belongs to a different isolate")
+	}
+}
+
+//export goResolveModule
+func goResolveModule(
+	ctxref int,
+	specifier *C.char,
+	cattrs *C.ModuleImportAttribute,
+	nattrs C.int,
+	referrer C.ModulePtr,
+) (C.ModulePtr, C.ValuePtr) {
+	ctx := getContext(ctxref)
+	spec := C.GoString(specifier)
+
+	var attrs []ImportAttribute
+	if nattrs > 0 {
+		attrs = make([]ImportAttribute, nattrs)
+		for i, a := range unsafe.Slice(cattrs, nattrs) {
+			attrs[i] = ImportAttribute{
+				Key:          C.GoString(a.key),
+				Value:        C.GoString(a.value),
+				SourceOffset: int(a.source_offset),
+			}
+		}
+	}
+
+	mod, err := resolveModule(ctx, spec, attrs, ctx.iso.modules[referrer])
+	if err != nil {
+		ctx.instantiation.err = fmt.Errorf("cannot resolve module %q: %w", spec, err)
+		if verr, ok := err.(ValueError); ok {
+			return nil, verr.value().ptr
+		}
+		return nil, NewError(ctx.iso, ctx.instantiation.err.Error()).ptr
+	}
+	return mod.ptr, nil
+}
+
+func resolveModule(ctx *Context, spec string, attrs []ImportAttribute, referrer *Module) (*Module, error) {
+	if ctx.instantiation.resolver == nil {
+		return nil, ErrNoModuleResolver
+	}
+	mod, err := ctx.instantiation.resolver.ResolveModule(ctx, spec, attrs, referrer)
+	if err != nil {
+		return nil, err
+	}
+	if mod == nil {
+		return nil, errors.New("resolver returned no module")
+	}
+	if mod.iso != ctx.iso {
+		return nil, errors.New("resolver returned a module from a different isolate")
+	}
+	return mod, nil
 }
