@@ -1,25 +1,19 @@
 #ifndef V8GO_MODULE_H
 #define V8GO_MODULE_H
 
+#include "errors.h"
+
 #ifdef __cplusplus
 
 #include "deps/include/v8-persistent-handle.h"
-#include "isolate-macros.h"
 
 namespace v8 {
-class Module;
 class Isolate;
+class Module;
 }  // namespace v8
 
-class m_module {
- public:
-  v8::Isolate* iso;
+struct m_module {
   v8::Global<v8::Module> ptr;
-  m_module(v8::Isolate* iso, v8::Local<v8::Module> mod) {
-    ISOLATE_SCOPE(iso);
-    this->iso = iso;
-    this->ptr.Reset(iso, mod);
-  }
 };
 
 typedef v8::Isolate v8Isolate;
@@ -27,29 +21,39 @@ typedef v8::Isolate v8Isolate;
 extern "C" {
 #else
 
-typedef struct v8Module v8Module;
-typedef struct m_module m_module;
 typedef struct v8Isolate v8Isolate;
 
 #endif
 
-#include <stdbool.h>
-#include "errors.h"
+typedef v8Isolate* IsolatePtr;
 
-typedef struct m_value m_value;
 typedef struct m_ctx m_ctx;
+typedef m_ctx* ContextPtr;
 
-extern int ModuleGetStatus(m_module* module);
-extern int ModuleScriptId(m_module* module);
-extern bool ModuleIsSourceTextModule(m_module* module);
-extern RtnValue ModuleEvaluate(m_ctx* ctx, m_module* module);
-extern RtnError ModuleInstantiateModule(m_ctx* ctx, m_module* module);
-extern void ModuleDelete(m_module* module);
-extern ValuePtr ModuleGetModuleNamespace(v8Isolate* iso, m_module* module);
+typedef struct m_module m_module;
+typedef m_module* ModulePtr;
 
-extern m_module* ScriptCompilerCompileModule(v8Isolate* iso,
-                                             const char* source,
-                                             const char* origin);
+typedef struct {
+  ModulePtr ptr;
+  RtnError error;
+} RtnModule;
+
+// An import attribute, as given to the module resolver. The strings are
+// only valid during the call.
+typedef struct {
+  const char* key;
+  const char* value;
+  int source_offset;
+} ModuleImportAttribute;
+
+extern RtnModule IsolateCompileModule(IsolatePtr iso,
+                                      const char* source,
+                                      const char* origin);
+extern int ModuleGetStatus(IsolatePtr iso, ModulePtr module);
+extern int ModuleScriptId(IsolatePtr iso, ModulePtr module);
+extern RtnError ModuleInstantiate(ContextPtr ctx, ModulePtr module);
+extern RtnValue ModuleEvaluate(ContextPtr ctx, ModulePtr module);
+extern RtnValue ModuleGetNamespace(ContextPtr ctx, ModulePtr module);
 
 #ifdef __cplusplus
 }  // extern "C"

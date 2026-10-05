@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Add Windows amd64 support, requiring Go 1.27 and LLVM's MSVC-target clang with LLD. See the README for details. In [#121](https://github.com/tommie/v8go/issues/121).
+- Add experimental ES module support: `Isolate.CompileModule`, `Module.Instantiate` with a `ModuleResolver`, `Module.Evaluate` and `Module.Namespace`. Resolver errors can be matched with `errors.Is` on the error from `Module.Instantiate`. Dynamic `import()` and `import.meta` aren't supported yet. Based on [#103](https://github.com/tommie/v8go/pull/103).
 - Add `CPUProfiler.Do` to profile a function. It keeps the function on the OS thread V8 samples.
 - Add `Isolate.SetPromiseRejectedCallback` to be notified of unhandled promise rejections, and of rejection handlers added after the fact. Based on [#108](https://github.com/tommie/v8go/pull/108).
 - `NewValue` wraps Go pointers in V8 Externals, read back with `Value.External`, e.g. to wrap Go objects in JavaScript objects. The Go value is released when V8 garbage collects the External, or the Isolate is disposed. In [#107](https://github.com/tommie/v8go/pull/107).
