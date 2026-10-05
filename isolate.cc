@@ -7,6 +7,7 @@
 
 #include "_cgo_export.h"
 #include "context.h"
+#include "isolate-macros.h"
 #include "isolate.h"
 #include "libplatform/libplatform.h"
 
@@ -49,11 +50,6 @@ struct IsolateState {
 };
 
 #define ISOLATE_STATE_SLOT 1
-
-#define ISOLATE_SCOPE(iso)           \
-  Locker locker(iso);                \
-  Isolate::Scope isolate_scope(iso); \
-  HandleScope handle_scope(iso);
 
 void Init() {
 #ifdef _WIN32
