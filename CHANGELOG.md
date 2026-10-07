@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Document that `CPUProfiler.StartProfiling` requires JavaScript to execute on the calling OS thread. V8 only samples that thread, so the profile silently missed samples when Go moved the goroutine to another thread.
+- Auto-bumped V8 to 15.5.35.20.
 
 ### Fixed
 - `CPUProfile.GetDuration` was 1000 times too long, since V8's microseconds were read as milliseconds.

@@ -4,7 +4,7 @@ package windows_amd64
 
 // #cgo LDFLAGS: -L${SRCDIR}
 // #cgo !windows LDFLAGS: -pthread
-// #cgo LDFLAGS: -lv8-0 -lv8-1 -lv8-2 -lv8-3 -lv8-4 -lv8-5 -lv8-6 -lc++-cr -llibcmt -llibvcruntime -llibucrt -loldnames -ldbghelp -lwinmm -lshlwapi -ladvapi32
+// #cgo LDFLAGS: -lv8-0 -lv8-1 -lv8-2 -lv8-3 -lv8-4 -lv8-5 -lv8-6 -lv8-7 -lc++-cr -llibcmt -llibvcruntime -llibucrt -loldnames -ldbghelp -lwinmm -lshlwapi -ladvapi32
 // #cgo libgcompat LDFLAGS: -lgcompat
 // #cgo linux LDFLAGS: -ldl
 import "C"
