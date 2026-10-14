@@ -69,11 +69,17 @@ func TestCPUProfiler_DoPanic(t *testing.T) {
 	// Had the panic left the first profile running, StartProfiling would
 	// ignore the duplicate title, and this profile would start before the sleep.
 	time.Sleep(100 * time.Millisecond)
+	start := time.Now()
 	cpuProfile := cpuProfiler.Do(title, func() {})
+	elapsed := time.Since(start)
 	defer cpuProfile.Delete()
 
-	if d := cpuProfile.GetDuration(); d >= 100*time.Millisecond {
-		t.Errorf("expected the profile to start after the panic, but its duration is %v", d)
+	// A profile started by Do can't be longer than Do. Starting and
+	// stopping the profiler can itself take over 100ms on a busy CI runner,
+	// so the duration can't be compared to the sleep. V8 timestamps are in
+	// microseconds, hence the margin.
+	if d := cpuProfile.GetDuration(); d > elapsed+1*time.Millisecond {
+		t.Errorf("expected the profile to start after the panic, but its duration is %v, and Do took %v", d, elapsed)
 	}
 }
 
