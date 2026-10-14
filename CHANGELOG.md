@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Add experimental ES module support: `Isolate.CompileModule`, `Module.Instantiate` with a `ModuleResolver`, `Module.Evaluate` and `Module.Namespace`. Resolver errors can be matched with `errors.Is` on the error from `Module.Instantiate`. Dynamic `import()` and `import.meta` aren't supported yet. Based on [#103](https://github.com/tommie/v8go/pull/103).
+
 ### Changed
 
 ## [v0.38.0] - 2026-10-14
