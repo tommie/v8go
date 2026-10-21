@@ -21,7 +21,7 @@ void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
                     ->Value();
   m_ctx* ctx = goContext(ctx_ref);
 
-  int callback_ref = info.Data().As<Integer>()->Value();
+  int callback_ref = info.DataV2().As<Integer>()->Value();
 
   m_value* _this = new m_value;
   _this->id = 0;
