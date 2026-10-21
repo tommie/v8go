@@ -6,6 +6,7 @@ package v8go
 
 // #include <stdlib.h>
 // #include "isolate.h"
+// #include "module.h"
 import "C"
 
 import (
@@ -59,6 +60,10 @@ type Isolate struct {
 
 	// promiseRejectedCallback is called from goPromiseRejectedCallback.
 	promiseRejectedCallback PromiseRejectedCallback
+
+	// modules maps compiled modules back to their Module, so a module
+	// resolver gets the same *Module as referrer.
+	modules map[C.ModulePtr]*Module
 
 	null      *Value
 	undefined *Value
@@ -140,8 +145,9 @@ func NewIsolate(opts ...IsolateOption) *Isolate {
 	}
 
 	iso := &Isolate{
-		ptr: C.NewIsolate(cConstraints),
-		cbs: make(map[int]FunctionCallbackWithError),
+		ptr:     C.NewIsolate(cConstraints),
+		cbs:     make(map[int]FunctionCallbackWithError),
+		modules: make(map[C.ModulePtr]*Module),
 	}
 	if config.exceptionMessages {
 		C.IsolateSetExceptionMessages(iso.ptr, 1)
@@ -288,6 +294,7 @@ func (i *Isolate) Dispose() {
 	}
 	C.IsolateDispose(i.ptr)
 	i.ptr = nil
+	i.modules = nil
 }
 
 // ThrowException schedules an exception to be thrown when returning to
