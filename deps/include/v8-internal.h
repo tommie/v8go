@@ -223,6 +223,11 @@ using SandboxedPointer_t = Address;
 // virtual address space for userspace. As such, limit the sandbox to 128GB (a
 // quarter of the total available address space).
 constexpr size_t kSandboxSizeLog2 = 37;  // 128 GB
+#elif defined(V8_TARGET_ARCH_ARM64) && defined(V8_TARGET_OS_CHROMEOS)
+// On ARM64 ChromeOS, kernel config is 39 bits of virtual address space for
+// userspace, limit the sandbox to 128GB (a quarter of the total available
+// address space).
+constexpr size_t kSandboxSizeLog2 = 37;  // 128 GB
 #elif defined(V8_TARGET_OS_IOS)
 // On iOS, we only get 64 GB of usable virtual address space even with the
 // "jumbo" extended virtual addressing entitlement. Limit the sandbox size to
@@ -305,6 +310,9 @@ static_assert(kMaxSafeBufferSizeForSandbox <= kSandboxGuardRegionSize,
 
 #if defined(V8_TARGET_OS_ANDROID)
 // On Android, we often won't have sufficient virtual address space available.
+constexpr size_t kAdditionalTrailingGuardRegionSize = 0;
+#elif defined(V8_TARGET_ARCH_ARM64) && defined(V8_TARGET_OS_CHROMEOS)
+// On ARM64 ChromeOS, kernel configs 39 bits of virtual address space.
 constexpr size_t kAdditionalTrailingGuardRegionSize = 0;
 #elif defined(V8_TARGET_ARCH_LOONG64)
 // Some hardwares like 2K3000 does not have sufficient virtual address space
@@ -583,16 +591,7 @@ enum class ManagedTypeId : uint32_t {
   kWasmFuncData,
   kWasmManagedData,
   kWasmNativeModule,
-  kIcuBreakIterator,
   kIcuBreakIteratorWithText,
-  kIcuLocale,
-  kIcuSimpleDateFormat,
-  kIcuDateIntervalFormat,
-  kIcuRelativeDateTimeFormatter,
-  kIcuListFormatter,
-  kIcuCollator,
-  kIcuPluralRules,
-  kIcuLocalizedNumberFormatter,
   kTemporalDuration,
   kTemporalInstant,
   kTemporalPlainDate,
@@ -609,8 +608,17 @@ enum class ManagedTypeId : uint32_t {
 
 #define SHARED_MANAGED_TAG_LIST(V) V(WasmFutexManagedObjectWaitListTag)
 
-#define MANAGED_TAG_LIST(V)  \
-  SHARED_MANAGED_TAG_LIST(V)
+#define MANAGED_TAG_LIST(V)          \
+  SHARED_MANAGED_TAG_LIST(V)         \
+  V(IcuBreakIteratorTag)             \
+  V(IcuListFormatterTag)             \
+  V(IcuLocaleTag)                    \
+  V(IcuSimpleDateFormatTag)          \
+  V(IcuDateIntervalFormatTag)        \
+  V(IcuRelativeDateTimeFormatterTag) \
+  V(IcuLocalizedNumberFormatterTag)  \
+  V(IcuPluralRulesTag)               \
+  V(IcuCollatorTag)
 
 #define FOREIGN_TAG_LIST(V)                               \
   V(GenericForeignTag)                                    \
