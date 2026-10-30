@@ -3,12 +3,12 @@ module github.com/tommie/v8go
 go 1.19
 
 require (
-	github.com/tommie/v8go/deps/android_amd64 v0.0.0-20261028065511-ba59e2cba261
-	github.com/tommie/v8go/deps/android_arm64 v0.0.0-20261028065511-ba59e2cba261
-	github.com/tommie/v8go/deps/darwin_amd64 v0.0.0-20261028065511-ba59e2cba261
-	github.com/tommie/v8go/deps/darwin_arm64 v0.0.0-20261028065511-ba59e2cba261
-	github.com/tommie/v8go/deps/linux_amd64 v0.0.0-20261028065511-ba59e2cba261
-	github.com/tommie/v8go/deps/linux_arm64 v0.0.0-20261028065511-ba59e2cba261
+	github.com/tommie/v8go/deps/android_amd64 v0.0.0-20261030070747-09da39b14f1c
+	github.com/tommie/v8go/deps/android_arm64 v0.0.0-20261030070747-09da39b14f1c
+	github.com/tommie/v8go/deps/darwin_amd64 v0.0.0-20261030070747-09da39b14f1c
+	github.com/tommie/v8go/deps/darwin_arm64 v0.0.0-20261030070747-09da39b14f1c
+	github.com/tommie/v8go/deps/linux_amd64 v0.0.0-20261030070747-09da39b14f1c
+	github.com/tommie/v8go/deps/linux_arm64 v0.0.0-20261030070747-09da39b14f1c
 )
 
-require github.com/tommie/v8go/deps/windows_amd64 v0.0.0-20261028065511-ba59e2cba261 // indirect
+require github.com/tommie/v8go/deps/windows_amd64 v0.0.0-20261030070747-09da39b14f1c // indirect
