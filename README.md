@@ -155,6 +155,32 @@ script2, _ := iso2.CompileUnboundScript(source, "math.js", v8.CompileOptions{Cac
 val, _ = script2.Run(ctx2)
 ```
 
+### ES modules
+
+Modules are compiled, instantiated with a resolver for their imports, and evaluated.
+The resolver should cache modules, so each specifier resolves to the same `Module`.
+
+```go
+iso := v8.NewIsolate()
+ctx := v8.NewContext(iso)
+sources := map[string]string{"math.js": "export const multiply = (a, b) => a * b"}
+modules := map[string]*v8.Module{}
+resolver := v8.ModuleResolverFunc(func(ctx *v8.Context, spec string, attrs []v8.ImportAttribute, referrer *v8.Module) (*v8.Module, error) {
+  if mod, ok := modules[spec]; ok {
+    return mod, nil
+  }
+  mod, err := ctx.Isolate().CompileModule(sources[spec], spec)
+  modules[spec] = mod
+  return mod, err
+})
+
+mod, _ := iso.CompileModule(`import { multiply } from "math.js"; export const result = multiply(3, 4);`, "main.js")
+_ = mod.Instantiate(ctx, resolver)
+_, _ = mod.Evaluate(ctx) // the promise is settled, unless the module uses top-level await
+ns, _ := mod.Namespace(ctx)
+result, _ := ns.Get("result")
+```
+
 ### Terminate long running scripts
 
 ```go
