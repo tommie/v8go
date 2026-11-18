@@ -28,8 +28,11 @@ ContextPtr NewContext(IsolatePtr iso,
   // context as a simple integer identifier; this can then be used on the Go
   // side to lookup the context in the context registry. We use slot 1 as slot 0
   // has special meaning for the Chrome debugger.
+  //
+  // SetEmbedderDataV3 doesn't grow the embedder data array, unlike V2.
+  static_assert(ContextDataIndex::REF < V8_EMBEDDER_DATA_ARRAY_SIZE);
   Local<Context> local_ctx = Context::New(iso, nullptr, global_template);
-  local_ctx->SetEmbedderDataV2(ContextDataIndex::REF, Integer::New(iso, ref));
+  local_ctx->SetEmbedderDataV3(ContextDataIndex::REF, Integer::New(iso, ref));
 
   m_ctx* ctx = new m_ctx;
   ctx->ptr.Reset(iso, local_ctx);
