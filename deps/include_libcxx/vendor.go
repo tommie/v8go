@@ -35,6 +35,7 @@ import (
 	_ "github.com/tommie/v8go/deps/include_libcxx/__mutex"
 	_ "github.com/tommie/v8go/deps/include_libcxx/__new"
 	_ "github.com/tommie/v8go/deps/include_libcxx/__numeric"
+	_ "github.com/tommie/v8go/deps/include_libcxx/__optional"
 	_ "github.com/tommie/v8go/deps/include_libcxx/__ostream"
 	_ "github.com/tommie/v8go/deps/include_libcxx/__pstl"
 	_ "github.com/tommie/v8go/deps/include_libcxx/__random"
