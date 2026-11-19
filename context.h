@@ -20,6 +20,7 @@ class Context;
 
 typedef v8::Isolate v8Isolate;
 typedef struct m_unboundScript m_unboundScript;
+typedef struct m_module m_module;
 
 // ContextDataIndex defines the indexes for "embedder data".
 enum ContextDataIndex {
@@ -34,6 +35,9 @@ struct m_ctx {
   v8::Isolate* iso;
   std::unordered_map<long, m_value*> vals;
   std::vector<m_unboundScript*> unboundScripts;
+  // Compiled modules, keyed by identity hash. Only used in the internal
+  // context.
+  std::unordered_multimap<int, m_module*> modules;
   v8::Persistent<v8::Context> ptr;
   long nextValId = 0;
 };

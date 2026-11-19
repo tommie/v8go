@@ -3,6 +3,7 @@
 #include "deps/include/v8-template.h"
 
 #include "context-macros.h"
+#include "module.h"
 #include "template.h"
 #include "unbound_script.h"
 #include "value.h"
@@ -59,6 +60,11 @@ void ContextFree(ContextPtr ctx) {
   for (m_unboundScript* us : ctx->unboundScripts) {
     us->ptr.Reset();
     delete us;
+  }
+
+  for (auto& it : ctx->modules) {
+    it.second->ptr.Reset();
+    delete it.second;
   }
 
   delete ctx;
